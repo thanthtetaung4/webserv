@@ -6,13 +6,13 @@
 #    By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/10/07 11:34:29 by lshein           ###   ########.fr        #
+#    Updated: 2025/10/08 08:16:31 by lshein           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = ./webserv
 
-SRCS = ./src/main.cpp ./src/WebServer.cpp
+SRCS = ./src/main.cpp ./src/WebServer.cpp ./src/Server.cpp
 OBJS = ${SRCS:.cpp=.o}
 
 CC = c++
