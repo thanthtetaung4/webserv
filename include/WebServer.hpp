@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/08 08:34:53 by lshein           ###   ########.fr       */
+/*   Updated: 2025/10/08 14:03:48 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,8 +34,10 @@ class WebServer
         // WebServer &operator=(const WebServer &other);
         void setServer(std::string configFile);
 };
-t_its getIts(std::string &content, std::string::iterator start, const std::string &target);
+t_its getIts(std::string &content, std::string::iterator start, const std::string &target1, const std::string &target2);
 void setAttributes(const std::vector<std::string> &line, Server &server);
-void getServerBlock(t_its it, std::vector<Server> servers);
+void setLocationAttributes(const std::vector<std::string> &line, t_location &location, std::string &key);
+void getServerBlock(t_its it, std::vector<Server> &servers);
+void getLocationBlock(t_its it, Server &server);
 
 #endif

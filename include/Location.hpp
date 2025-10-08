@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 05:09:26 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/07 10:27:16 by lshein           ###   ########.fr       */
+/*   Updated: 2025/10/08 12:45:13 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@
 #include <vector>
 #include <map>
 
-class Location
+typedef struct location
 {
         std::string _root;
         std::string _index;
@@ -27,6 +27,6 @@ class Location
         std::string _cgiPass;
         std::string _cgiExt;
         std::string _uploadStore;       
-};
+} t_location;
 
 #endif
