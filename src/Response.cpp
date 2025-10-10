@@ -46,7 +46,6 @@ std::string getMimeType(const std::string& path) {
 		return "text/plain";
 }
 
-
 void generateError(int errorCode, std::string const errorMsg, Response &res , std::string const bodyMsg){
 	res._statusCode = errorCode;
 	res._statusTxt = errorMsg;
