@@ -15,6 +15,7 @@
 #include <ostream>
 #include <sstream>
 #include <string>
+# include <unistd.h>
 
 bool safePath(std::string const& path){
 	if(path.find("..") == std::string::npos)
@@ -99,15 +100,22 @@ Response Response::handleResponse(const Request &req){
 		path +=  "index.html";
 
 	if(!safePath(path)){
-		res._statusCode = 403;
-		res._statusTxt = "Forbidden";
-		res._body = "<h1>403 Forbidden<h1>";
-		res._headers["Content-Type"] = "text/html";
+		generateError(403, "Forbidden", res, "403 Forbidden") ;
+		return res;
 	}
 
 	std::cout << "Path is " << path <<std::endl;
 	std::ifstream file(path.c_str());
+	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0)
+	{
+		generateError(403, "Forbidden", res, "403 Forbidden") ;
+		return res;
+	}
 	if(file.good()){
+		if(req._method != "GET" && req._method != "POST" && req._method != "DELETE"){
+			generateError(405, "Method Not Allowed", res, "Not Correct Method");
+		return res;
+		}
 		if(req._method == "GET"){
 			std::ifstream file(path.c_str(), std::ios::binary); 
 			if(file.is_open()){
@@ -121,12 +129,13 @@ Response Response::handleResponse(const Request &req){
 			}
 			else {
 				generateError(500, "Internal Server Error", res , "File Read Error");
+				return res;
 			}
 		}
 	}
 	else {
-		std::cout << " Here\n";
 		generateError(404, "Not Found" , res, "404 Not Found");
+		return res;
 	}
 	res._headers["Content-Length"] = intToString(res._body.size());
         res._headers["Connection"] = "close";
