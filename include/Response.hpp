@@ -13,7 +13,8 @@
 # ifndef RESPONSE_HPP
 # define RESPONSE_HPP
 
-#include "Request.hpp"
+# include "Request.hpp"
+# include <filesystem>
 
 class Response{
 	public:
@@ -27,5 +28,6 @@ class Response{
 		std::string toStr() const;
 };
 
+std::ostream& operator<<(std::ostream& os, const Response& res);
 # endif
 

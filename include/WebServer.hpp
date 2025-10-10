@@ -16,6 +16,8 @@
 #include "Server.hpp"
 #include <fstream>
 #include <sstream>
+# include "Response.hpp"
+# include "Request.hpp"
 
 typedef struct its
 {

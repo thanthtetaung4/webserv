@@ -25,7 +25,7 @@ static std::string trim(const std::string &s) {
 Request Request::Parse(const std::string &raw){
 	Request req;
 
-	size_t hearderEnd = raw.find("/r/n/r/n");
+	size_t hearderEnd = raw.find("\r\n\r\n");
 	std::string hearderPart = raw.substr(0, hearderEnd);
 	if(hearderEnd != std::string::npos)
 		req._body = raw.substr(hearderEnd + 4);

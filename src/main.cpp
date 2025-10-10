@@ -69,31 +69,25 @@ int loop() {
         }
 
         // 6. Read request
-        char buffer[1024] = {0};
-        ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
-        if (bytes_read > 0) {
-            std::cout << "--------------------------\n";
-            std::cout << "Received request:\n" << buffer << "\n";
-        }
+	char buffer[4096] = {0};
+	ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
+	if (bytes_read > 0) {
+		std::string raw(buffer, bytes_read);
+		Request req = Request::Parse(raw);
+		Response res = Response::handleResponse(req);
+		std::string out = res.toStr();
+		std::cout << "---------------------------" <<std::endl;
+		std::cout << out << std::endl;
+		std::cout << "----------------------------" <<std::endl;
+		write(client_fd, out.c_str(), out.size());
+	}
 
-	std::cout << "---------------Finish request ---------------"<<std::endl;
-
-        // 7. Send response
-        const char *response =
-            "HTTP/1.0 200 OK\r\n"
-            "Content-Type: text/html\r\n"
-            "Connection: close\r\n"
-            "\r\n"
-            "<h1>Hello from mini C++ server!</h1>";
-
-        if (write(client_fd, response, strlen(response)) < 0)
-            perror("write failed");
-
-        // 8. Close client connection
-        close(client_fd);
+	else// 8. Close client connection
+        	close(client_fd);
     }
 
     // (Unreachable normally)
+    std::cout << "------------------------End-------------------\n";
     close(server_fd);
     return 0;
 }
