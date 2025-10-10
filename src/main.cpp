@@ -76,9 +76,11 @@ int loop() {
             std::cout << "Received request:\n" << buffer << "\n";
         }
 
+	std::cout << "---------------Finish request ---------------"<<std::endl;
+
         // 7. Send response
         const char *response =
-            "HTTP/1.1 200 OK\r\n"
+            "HTTP/1.0 200 OK\r\n"
             "Content-Type: text/html\r\n"
             "Connection: close\r\n"
             "\r\n"
