@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 # include "../include/Response.hpp"
-#include <filesystem>
 #include <fstream>
 #include <ostream>
 #include <sstream>
@@ -23,29 +22,28 @@ bool safePath(std::string const& path){
 	return false;
 }
 
-
 std::string getMimeType(const std::string& path) {
-    size_t deliPos = path.rfind('.');
+	size_t deliPos = path.rfind('.');
 
-    if (deliPos == std::string::npos || deliPos == path.length() - 1) {
-        return "text/plain";
-    }
-    std::string type = path.substr(deliPos + 1);
+	if (deliPos == std::string::npos || deliPos == path.length() - 1) {
+		return "text/plain";
+	}
+	std::string type = path.substr(deliPos + 1);
 
-    if (type == "html")
-        return "text/html";
-    else if (type == "css")
-        return "text/css";
-    else if (type == "js")
-        return "application/javascript";
-    else if (type == "png")
-        return "image/png";
-    else if (type == "jpg" || type == "jpeg")
-        return "image/jpeg";
-    else if (type == "ico")
-        return "image/x-icon";
-    else
-        return "text/plain";
+	if (type == "html")
+        	return "text/html";
+	else if (type == "css")
+		return "text/css";
+	else if (type == "js")
+		return "application/javascript";
+	else if (type == "png")
+		return "image/png";
+	else if (type == "jpg" || type == "jpeg")
+		return "image/jpeg";
+	else if (type == "ico")
+		return "image/x-icon";
+	else
+		return "text/plain";
 }
 
 
@@ -56,42 +54,41 @@ void generateError(int errorCode, std::string const errorMsg, Response &res , st
 }
 
 std::string Response::toStr() const {
-    std::ostringstream response;
-
-    response << "HTTP/1.1 " << _statusCode << " " << _statusTxt << "\r\n";
-    for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it) {
-        response << it->first << ": " << it->second << "\r\n";
-    }
-    response << "\r\n";
-    response << _body;
-    return response.str();
+	std::ostringstream response;
+	response << "HTTP/1.1 " << _statusCode << " " << _statusTxt << "\r\n";
+	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it) {
+		response << it->first << ": " << it->second << "\r\n";
+	}
+	response << "\r\n";
+	response << _body;
+	return response.str();
 }
 
 static std::string intToString(size_t n) {
-    std::ostringstream ss;
-    ss << n;
-    return ss.str();
+	std::ostringstream ss;
+	ss << n;
+	return ss.str();
 }
+
 std::ostream& operator<<(std::ostream& os , const Response& res)
 {
 	os << "Http version: " << res._httpVersion << std::endl;
-    os << "Error Code: " << res._statusCode << std::endl;
-    os << "Error Msg: " << res._statusTxt << std::endl;
+	os << "Error Code: " << res._statusCode << std::endl;
+	os << "Error Msg: " << res._statusTxt << std::endl;
 
-    os << "Headers:" << std::endl;
-    if (res._headers.empty()) {
-        os << "  (none)" << std::endl;
-    } else {
-        // Use an explicit iterator to loop through the map
-        std::map<std::string, std::string>::const_iterator it;
-        for (it = res._headers.begin(); it != res._headers.end(); ++it) {
-            os << "  [" << it->first << "] = " << it->second << std::endl;
-        }
-    }
-
-    os << "Body: " << res._body << std::endl;
-    return os;
+	os << "Headers:" << std::endl;
+	if (res._headers.empty()) {
+		os << "  (none)" << std::endl;
+	} else {
+        	std::map<std::string, std::string>::const_iterator it;
+        	for (it = res._headers.begin(); it != res._headers.end(); ++it) {
+			os << "  [" << it->first << "] = " << it->second << std::endl;
+		}
+	}
+	os << "Body: " << res._body << std::endl;
+	return os;
 }
+
 Response Response::handleResponse(const Request &req){
 	Response res;
 	res._httpVersion = req._httpVersion;
