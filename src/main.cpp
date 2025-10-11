@@ -6,11 +6,95 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:41:50 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/11 14:51:08 by taung            ###   ########.fr       */
+/*   Updated: 2025/10/11 15:23:27 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-# include "./../include/WebServer.hpp"
+# include "../include/WebServer.hpp"
+# include "../include/Response.hpp"
+# include "../include/Request.hpp"
+
+#include <iostream>
+#include <cstring>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int loop() {
+    int server_fd, client_fd;
+    struct sockaddr_in addr;
+    socklen_t addr_len = sizeof(addr);
+    int opt = 1;
+
+    // 1. Create socket
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd < 0) {
+        perror("socket failed");
+        return 1;
+    }
+
+    // 2. Allow address reuse (avoid “Address already in use”)
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("setsockopt failed");
+        close(server_fd);
+        return 1;
+    }
+
+    // 3. Bind socket to port 8080
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(8080);
+
+    if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        perror("bind failed");
+        close(server_fd);
+        return 1;
+    }
+
+    // 4. Start listening for connections
+    if (listen(server_fd, 10) < 0) {
+        perror("listen failed");
+        close(server_fd);
+        return 1;
+    }
+
+    std::cout << "************************\n";
+    std::cout << "Server running on http://localhost:8080\n";
+    std::cout << "Waiting for connections...\n";
+
+    // 5. Main server loop
+    while (true) {
+        client_fd = accept(server_fd, (struct sockaddr*)&addr, &addr_len);
+        if (client_fd < 0) {
+            perror("accept failed");
+            continue;
+        }
+
+        // 6. Read request
+	char buffer[4096] = {0};
+	ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
+	if (bytes_read > 0) {
+		std::string raw(buffer, bytes_read);
+		Request req = Request::Parse(raw);
+		Response res = Response::handleResponse(req);
+		std::string out = res.toStr();
+		std::cout << "---------------------------" <<std::endl;
+		std::cout << out << std::endl;
+		std::cout << "----------------------------" <<std::endl;
+		write(client_fd, out.c_str(), out.size());
+	}
+
+	else// 8. Close client connection
+        	close(client_fd);
+    }
+
+    // (Unreachable normally)
+    std::cout << "------------------------End-------------------\n";
+    close(server_fd);
+    return 0;
+}
+
+
 # include "../include/Server.hpp"
 
 int main(int argc, char **argv) {
@@ -58,5 +142,6 @@ int main(int argc, char **argv) {
         ws.serve();
     }
     else
-        std::cerr << "Usage: ./webserv [config file]" << std::endl;
+	    std::cerr << "Usage: ./webserv [config file]" << std::endl;
+    loop();
 }
