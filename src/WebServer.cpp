@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/08 15:18:33 by lshein           ###   ########.fr       */
+/*   Updated: 2025/10/11 04:51:32 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,23 +20,40 @@ WebServer::~WebServer(){}
 
 // WebServer &WebServer::operator=(const WebServer &other) {}
 
-void printRange(std::string::iterator it1, std::string::iterator it2)
-{
-    if (it1 == it2) {
-        std::cout << "(empty range)" << std::endl;
-        return;
-    }
+std::string	WebServer::getIndex(std::string path) {
+	std::cout << path << std::endl;
+	std::ifstream	file(path.c_str());
 
-    for (std::string::iterator it = it1; it != it2; ++it) {
-        std::cout << *it;
-    }
-    std::cout << std::endl;
+	if (file.good()) {
+		std::stringstream buffer;
+		buffer << file.rdbuf();
+
+		std::cout << buffer.str() << std::endl;
+
+		return buffer.str();
+	} else {
+		std::cout << "file not opened" << std::endl;
+	}
+	return "";
+}
+
+void	printRange(std::string::iterator it1, std::string::iterator it2)
+{
+	if (it1 == it2) {
+		std::cout << "(empty range)" << std::endl;
+		return;
+	}
+
+	for (std::string::iterator it = it1; it != it2; ++it) {
+		std::cout << *it;
+	}
+	std::cout << std::endl;
 }
 
 t_its getIts(std::string &content, std::string::iterator start, const std::string &target1, const std::string &target2)
 {
 	t_its it;
-	
+
 	it.it1 = std::search(start, content.end(), target1.begin(), target1.end());
 	if (it.it1 == content.end())
 		throw "Invalid config file";
@@ -147,7 +164,7 @@ void setLocationAttributes(const std::vector<std::string> &line, t_location &loc
 			location._limit_except.push_back(line[i]);
 	}
 	else if (line[0] == "return")
-		location._return[line[1]] = line[2]; 
+		location._return[line[1]] = line[2];
 	else if (line[0] == "autoindex")
 		location._autoIndex = line[1];
 	else if (line[0] == "cgiPass")
@@ -182,4 +199,96 @@ void WebServer::setServer(std::string configFile)
 		}
 		config.close();
 	}
+}
+
+void	WebServer::addServer(Server server) {
+	this->_servers.push_back(server);
+	this->_sockets.push_back(Socket(std::atol(server.getPort().c_str())));
+}
+
+void	WebServer::setUpSock(void) {
+	std::vector<Socket>::iterator it;
+
+	for (it = this->_sockets.begin(); it != this->_sockets.end(); ++it) {
+		(*it).prepSock();
+		std::cout << (*it) << std::endl;
+	}
+}
+
+
+int	WebServer::serve(void) {
+		int epoll_fd = epoll_create1(0);
+	if (epoll_fd == -1) {
+		perror("epoll_create1");
+		return 1;
+	}
+
+	// Register all server sockets with epoll
+	for (size_t i = 0; i < _sockets.size(); ++i) {
+		int fd = _sockets[i].getServerFd();
+		struct epoll_event ev;
+		ev.events = EPOLLIN;
+		ev.data.u32 = i; // Store index to map back to Server
+		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1) {
+			perror("epoll_ctl: listen_sock");
+			close(epoll_fd);
+			return 1;
+		}
+		std::cout << "Listening on port: http://localhost:" << _servers[i].getPort() << std::endl;
+	}
+
+	struct epoll_event events[MAX_EVENTS];
+	while (true) {
+		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+		if (nfds == -1) {
+			perror("epoll_wait");
+			break;
+		}
+		for (int n = 0; n < nfds; ++n) {
+			size_t idx = events[n].data.u32;
+			int listen_fd = _sockets[idx].getServerFd();
+			sockaddr_in client_addr;
+			socklen_t client_len = sizeof(client_addr);
+			int client_fd = accept(listen_fd, (struct sockaddr*)&client_addr, &client_len);
+			if (client_fd < 0) {
+				perror("accept");
+				continue;
+			}
+			            // --- RECV REQUEST ---
+			char buffer[4096];
+			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+			if (bytes_received < 0) {
+				perror("recv");
+				close(client_fd);
+				continue;
+			}
+			buffer[bytes_received] = '\0';
+			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
+			std::cout << buffer << std::endl;
+
+			// --- SEND RESPONSE ---
+			std::string	body = this->getIndex("www/index.html");
+
+			std::cout << "==================================" << std::endl;
+			std::cout << body << std::endl;
+			std::cout << "==================================" << std::endl;
+
+			std::string	httpResponse =
+				"HTTP/1.1 200 OK\r\n"
+				"Content-Type: text/html\r\n"
+				// "Content-Length: 13\r\n"
+				"Connection: close\r\n"
+				"\r\n"
+				+ body;
+
+			std::cout << "http res: " << httpResponse << std::endl;
+			ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
+			if (sent < 0) {
+				perror("send");
+			}
+			close(client_fd);
+		}
+	}
+	close(epoll_fd);
+	return 0;
 }
