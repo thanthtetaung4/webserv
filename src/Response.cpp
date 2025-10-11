@@ -92,21 +92,15 @@ std::ostream& operator<<(std::ostream& os , const Response& res)
 Response Response::handleResponse(const Request &req){
 	Response res;
 	res._httpVersion = req._httpVersion;
-	if( req._httpVersion != "HTTP/1.0" || req._httpVersion != "HTTP/1.1" )
+	if( req._httpVersion != "HTTP/1.0" && req._httpVersion != "HTTP/1.1" )
 		generateError(505, "HTTP Version not Supported", res, "Error 505");
 
 	std::string path = "." + req._urlPath;
 	if(path[path.size() - 1] == '/')
 		path +=  "index.html";
-
-	if(!safePath(path)){
-		generateError(403, "Forbidden", res, "403 Forbidden") ;
-		return res;
-	}
-
 	std::cout << "Path is " << path <<std::endl;
 	std::ifstream file(path.c_str());
-	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0)
+	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 || !safePath(path))
 	{
 		generateError(403, "Forbidden", res, "403 Forbidden") ;
 		return res;
