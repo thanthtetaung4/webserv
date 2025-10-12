@@ -3,16 +3,16 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+         #
+#    By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/10/08 08:16:31 by lshein           ###   ########.fr        #
+#    Updated: 2025/10/11 03:42:52 by taung            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = ./webserv
 
-SRCS = ./src/main.cpp ./src/WebServer.cpp ./src/Server.cpp ./src/Response.cpp ./src/Request.cpp
+SRCS = ./src/main.cpp ./src/WebServer.cpp ./src/Server.cpp ./src/classes/Socket.cpp ./src/exceptions/ServerExceptions.cpp
 OBJS = ${SRCS:.cpp=.o}
 
 CC = c++

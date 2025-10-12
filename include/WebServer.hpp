@@ -3,21 +3,29 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/10 00:45:56 by hthant           ###   ########.fr       */
+/*   Updated: 2025/10/11 04:33:19 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef WEBSERVER_HPP
-#define WEBSERVER_HPP
+# ifndef WEBSERVER_HPP
+# define WEBSERVER_HPP
 
-#include "Server.hpp"
-#include <fstream>
-#include <sstream>
-# include "Response.hpp"
-# include "Request.hpp"
+# include "Server.hpp"
+# include <fstream>
+# include <sstream>
+# include "ServerException.hpp"
+# include "Socket.hpp"
+# include <poll.h>
+# include <cstdlib>
+# include <sys/epoll.h>
+# include <unistd.h>
+# include <string>
+#include <cstring>
+
+# define MAX_EVENTS 10
 
 typedef struct its
 {
@@ -29,12 +37,19 @@ class WebServer
 {
     private:
         std::vector<Server> _servers;
+        std::vector<Socket> _sockets;
+        // std::vector<pollfd> _pollFds;
+        std::string   getIndex(std::string path);
+
     public:
         WebServer();
         ~WebServer();
         // WebServer(const WebServer &src);
         // WebServer &operator=(const WebServer &other);
         void setServer(std::string configFile);
+        void addServer(Server server);
+        void setUpSock(void);
+        int serve(void);
 };
 t_its getIts(std::string &content, std::string::iterator start, const std::string &target1, const std::string &target2);
 void setAttributes(const std::vector<std::string> &line, Server &server);
@@ -42,4 +57,4 @@ void setLocationAttributes(const std::vector<std::string> &line, t_location &loc
 void getServerBlock(t_its it, std::vector<Server> &servers);
 void getLocationBlock(t_its it, Server &server);
 
-#endif
+# endif
