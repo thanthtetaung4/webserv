@@ -11,6 +11,8 @@
 /* ************************************************************************** */
 
 #include "./../include/WebServer.hpp"
+# include "../include/Request.hpp"
+# include "../include/Response.hpp"
 
 WebServer::WebServer(){}
 
@@ -256,6 +258,7 @@ int	WebServer::serve(void) {
 			}
 			            // --- RECV REQUEST ---
 			char buffer[4096];
+			std::cout << "=================REQUEST============================" <<std::endl;
 			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 			if (bytes_received < 0) {
 				perror("recv");
@@ -265,21 +268,14 @@ int	WebServer::serve(void) {
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
 			std::cout << buffer << std::endl;
+			std::cout << "=====================================================" << std::endl;
+			Request req = Request::Parse(buffer);
 
 			// --- SEND RESPONSE ---
-			std::string	body = this->getIndex("www/index.html");
 
-			std::cout << "==================================" << std::endl;
-			std::cout << body << std::endl;
-			std::cout << "==================================" << std::endl;
+			Response res = Response::handleResponse(req);
+			std::string httpResponse = res.toStr();
 
-			std::string	httpResponse =
-				"HTTP/1.1 200 OK\r\n"
-				"Content-Type: text/html\r\n"
-				// "Content-Length: 13\r\n"
-				"Connection: close\r\n"
-				"\r\n"
-				+ body;
 
 			std::cout << "http res: " << httpResponse << std::endl;
 			ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);

@@ -12,7 +12,7 @@
 
 NAME = ./webserv
 
-SRCS = ./src/main.cpp ./src/WebServer.cpp ./src/Server.cpp ./src/classes/Socket.cpp ./src/exceptions/ServerExceptions.cpp
+SRCS = ./src/main.cpp ./src/WebServer.cpp ./src/Server.cpp ./src/classes/Socket.cpp ./src/exceptions/ServerExceptions.cpp ./src/Response.cpp ./src/Request.cpp
 OBJS = ${SRCS:.cpp=.o}
 
 CC = c++
