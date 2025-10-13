@@ -3,19 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/13 06:41:25 by lshein           ###   ########.fr       */
+/*   Updated: 2025/10/13 16:19:50 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./../../include/WebServer.hpp"
-<<<<<<< HEAD
 # include "../../include/Request.hpp"
 # include "../../include/Response.hpp"
-=======
->>>>>>> a3096ba9bf8dfedce0067b4fcab810b584852e56
 
 WebServer::WebServer(){}
 
