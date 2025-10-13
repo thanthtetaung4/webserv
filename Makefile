@@ -6,7 +6,7 @@
 #    By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/10/13 16:15:23 by taung            ###   ########.fr        #
+#    Updated: 2025/10/13 16:22:09 by taung            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,7 +16,7 @@ CLASSES = ./src/classes
 EXCEPTIONS = ./src/exceptions
 SRCS = ./src/main.cpp \
 	${CLASSES}/WebServer.cpp ${CLASSES}/Server.cpp ${CLASSES}/Socket.cpp \
-	${CLASSES}/Response.cpp ${CLASSES}/Request.cpp
+	${CLASSES}/Response.cpp ${CLASSES}/Request.cpp \
 	${EXCEPTIONS}/ServerExceptions.cpp
 OBJS = ${SRCS:.cpp=.o}
 
