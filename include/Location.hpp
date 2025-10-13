@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 05:09:26 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/08 12:45:13 by lshein           ###   ########.fr       */
+/*   Updated: 2025/10/08 19:52:43 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 typedef struct location
 {
         std::string _root;
-        std::string _index;
+        std::vector<std::string> _index;
         std::vector<std::string> _limit_except; 
         std::map<std::string, std::string> _return;
         std::string _autoIndex;
