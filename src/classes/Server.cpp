@@ -6,11 +6,11 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/08 15:19:06 by lshein           ###   ########.fr       */
+/*   Updated: 2025/10/13 06:41:36 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "./../include/Server.hpp"
+#include "./../../include/Server.hpp"
 
 void Server::setPort(const std::string &port)
 {
@@ -79,7 +79,10 @@ std::ostream &operator<<(std::ostream &os, const Server &s)
 		os << "Location: [" << it->first << "]" << std::endl;
 		
 		os << "	root: " << it->second._root << std::endl;
-		os << "	index: " << it->second._index << std::endl;
+		os << "	index: ";
+		for (size_t i = 0; i < it->second._index.size(); i++)
+			os << it->second._index[i] << " ";
+		os << std::endl;
 		os << "	limit except: ";
 		for (unsigned int i = 0; i < it->second._limit_except.size(); i++)
 			os << it->second._limit_except[i] << " ";

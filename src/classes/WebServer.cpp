@@ -3,14 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/11 04:51:32 by taung            ###   ########.fr       */
+/*   Updated: 2025/10/13 06:41:25 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "./../include/WebServer.hpp"
+#include "./../../include/WebServer.hpp"
 
 WebServer::WebServer(){}
 
@@ -138,41 +138,92 @@ void getLocationBlock(t_its it, Server &server)
 void setAttributes(const std::vector<std::string>& line, Server& server)
 {
 	if (line.empty()) return;
-	if (line[0] == "listen" && line.size() == 2)
+
+	const std::string& key = line[0];
+	if (key == "listen") {
+		if (line.size() != 2)
+			throw std::runtime_error("Invalid listen directive format");
 		server.setPort(line[1]);
-	else if (line[0] == "server_name" && line.size() == 2)
+	}
+	else if (key == "server_name") {
+		if (line.size() != 2)
+			throw std::runtime_error("Invalid server_name directive format");
 		server.setServerName(line[1]);
-	else if (line[0] == "error_page" && line.size() >= 3)
-		server.setErrorPage(line[1], line[2]);
-	else if (line[0] == "client_max_body_size" && line.size() == 2)
+	}
+	else if (key == "error_page") {
+		if (line.size() < 3)
+			throw std::runtime_error("Invalid error_page directive format");
+		for (size_t i = 1; i < line.size() - 1; ++i)
+			server.setErrorPage(line[i], line.back());  // Allow multiple error codes mapping to one page
+	}
+	else if (key == "client_max_body_size") {
+		if (line.size() != 2)
+			throw std::runtime_error("Invalid client_max_body_size directive format");
 		server.setMaxBytes(line[1]);
+	}
 }
 
 void setLocationAttributes(const std::vector<std::string> &line, t_location &location, std::string &key)
 {
 	if (line.empty())
 		return;
+
 	if (line[0] == "location")
+	{
+		if (line.size() != 3)
+			throw std::runtime_error("Invalid 'location' directive format");
 		key = line[1];
+	}
 	else if (line[0] == "root")
+	{
+		if (line.size() != 2)
+			throw std::runtime_error("Invalid 'root' directive format");
 		location._root = line[1];
+	}
 	else if (line[0] == "index")
-		location._index = line[1];
+	{
+		if (line.size() < 2)
+			throw std::runtime_error("Invalid 'index' directive format");
+		for (size_t i = 1; i < line.size(); i++)
+			location._index.push_back(line[i]);
+	}
 	else if (line[0] == "limit_except")
 	{
+		if (line.size() < 2)
+			throw std::runtime_error("Invalid 'limit_except' directive format");
 		for (size_t i = 1; i < line.size(); i++)
 			location._limit_except.push_back(line[i]);
 	}
 	else if (line[0] == "return")
+	{
+		if (line.size() != 3)
+			throw std::runtime_error("Invalid 'return' directive format");
 		location._return[line[1]] = line[2];
+	}
 	else if (line[0] == "autoindex")
+	{
+		if (line.size() != 2 && line[1] != "on" && line[1] != "off")
+			throw std::runtime_error("Invalid 'autoindex' directive format");
 		location._autoIndex = line[1];
+	}
 	else if (line[0] == "cgiPass")
+	{
+		if (line.size() != 2)
+			throw std::runtime_error("Invalid 'cgiPass' directive format");
 		location._cgiPass = line[1];
+	}
 	else if (line[0] == "cgiExt")
+	{
+		if (line.size() != 2)
+			throw std::runtime_error("Invalid 'cgiExt' directive format");
 		location._cgiExt = line[1];
+	}
 	else if (line[0] == "uploadStore")
+	{
+		if (line.size() != 2)
+			throw std::runtime_error("Invalid 'uploadStore' directive format");
 		location._uploadStore = line[1];
+	}
 }
 
 void WebServer::setServer(std::string configFile)
