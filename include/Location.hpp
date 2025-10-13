@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 05:09:26 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/10 11:30:22 by hthant           ###   ########.fr       */
+/*   Updated: 2025/10/13 16:08:42 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,13 +20,13 @@
 typedef struct location
 {
         std::string _root;
-        std::string _index;
-        std::vector<std::string> _limit_except; 
+        std::vector<std::string> _index;
+        std::vector<std::string> _limit_except;
         std::map<std::string, std::string> _return;
         std::string _autoIndex;
         std::string _cgiPass;
         std::string _cgiExt;
-        std::string _uploadStore;       
+        std::string _uploadStore;
 } t_location;
 
 

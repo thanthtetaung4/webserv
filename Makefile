@@ -6,13 +6,17 @@
 #    By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/10/11 03:42:52 by taung            ###   ########.fr        #
+#    Updated: 2025/10/13 16:15:12 by taung            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = ./webserv
 
-SRCS = ./src/main.cpp ./src/classes/WebServer.cpp ./src/classes/Server.cpp ./src/classes/Socket.cpp ./src/exceptions/ServerExceptions.cpp ./src/classes/Response.cpp ./src/classes/Request.cpp
+CLASSES = ./src/classes
+EXCEPTIONS = ./src/exceptions
+SRCS = ./src/main.cpp \
+	${CLASSES}/WebServer.cpp ${CLASSES}/Server.cpp ${CLASSES}/Socket.cpp \
+	${EXCEPTIONS}/ServerExceptions.cpp
 OBJS = ${SRCS:.cpp=.o}
 
 CC = c++

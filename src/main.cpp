@@ -6,12 +6,13 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:41:50 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/11 14:51:08 by taung            ###   ########.fr       */
+/*   Updated: 2025/10/13 16:16:30 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-# include "./../include/WebServer.hpp"
-# include "../include/Server.hpp"
+# include "../include/WebServer.hpp"
+# include "../include/Response.hpp"
+# include "../include/Request.hpp"
 
 int main(int argc, char **argv) {
     (void)argv;
@@ -28,7 +29,7 @@ int main(int argc, char **argv) {
 
         t_location loc1;
         loc1._root = "/var/www/html1";
-        loc1._index = "index.html";
+        loc1._index.push_back("index.html");
         loc1._limit_except.push_back("GET");
         loc1._autoIndex = "off";
         s1.setLocation("/", loc1);
@@ -41,7 +42,7 @@ int main(int argc, char **argv) {
 
         t_location loc2;
         loc2._root = "/var/www/html2";
-        loc2._index = "home.html";
+        loc2._index.push_back("home.html");
         loc2._limit_except.push_back("GET");
         loc2._limit_except.push_back("POST");
         loc2._autoIndex = "on";
