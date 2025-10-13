@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-# include "../include/Response.hpp"
+# include "../../include/Response.hpp"
 #include <fstream>
 #include <ostream>
 #include <sstream>
@@ -93,7 +93,7 @@ Response Response::handleResponse(const Request &req){
 	Response res;
 	res._httpVersion = req._httpVersion;
 	if( req._httpVersion != "HTTP/1.0" && req._httpVersion != "HTTP/1.1" )
-		generateError(505, "HTTP Version not Supported", res, "Error 505");
+		generateError(505, "HTTP Version not Supported", res, "505 Version Not Supported");
 
 	std::string path = "." + req._urlPath;
 	if(path[path.size() - 1] == '/')
