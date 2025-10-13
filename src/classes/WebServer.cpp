@@ -6,11 +6,11 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/13 06:11:47 by lshein           ###   ########.fr       */
+/*   Updated: 2025/10/13 06:41:25 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "./../include/WebServer.hpp"
+#include "./../../include/WebServer.hpp"
 
 WebServer::WebServer(){}
 
