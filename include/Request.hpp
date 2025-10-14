@@ -24,6 +24,7 @@ class Request{
 		std::map<std::string, std::string> _headers;
 		std::string _body;
 
-		static Request Parse(const std::string &raw);
+		Request Parse(const std::string &raw);
+		bool hasHeader(const std::string &key) const;
 };
 # endif

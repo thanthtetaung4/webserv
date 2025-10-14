@@ -320,11 +320,13 @@ int	WebServer::serve(void) {
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
 			std::cout << buffer << std::endl;
 			std::cout << "=====================================================" << std::endl;
-			Request req = Request::Parse(buffer);
+			Request req;
+			req.Parse(buffer);
 
 			// --- SEND RESPONSE ---
 
-			Response res = Response::handleResponse(req);
+			Response res;
+			res.handleResponse(req, _servers[idx].getMaxByte());
 			std::string httpResponse = res.toStr();
 
 

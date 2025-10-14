@@ -11,6 +11,8 @@
 /* ************************************************************************** */
 
 # include "../../include/Response.hpp"
+#include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <ostream>
 #include <sstream>
@@ -47,10 +49,11 @@ std::string getMimeType(const std::string& path) {
 		return "text/plain";
 }
 
-void generateError(int errorCode, std::string const errorMsg, Response &res , std::string const bodyMsg){
+bool generateError(int errorCode, std::string const errorMsg, Response &res , std::string const bodyMsg){
 	res._statusCode = errorCode;
 	res._statusTxt = errorMsg;
 	res._body = "<h1>" + bodyMsg + "</h1>";	
+	return true;
 }
 
 std::string Response::toStr() const {
@@ -89,49 +92,92 @@ std::ostream& operator<<(std::ostream& os , const Response& res)
 	return os;
 }
 
-Response Response::handleResponse(const Request &req){
+bool Request::hasHeader(const std::string& key) const {
+	return _headers.find(key) != _headers.end();
+}
+
+bool isSupportedType(const std::string &type)
+{
+    return (type == "text/html" ||
+            type == "text/plain" ||
+            type == "text/css" ||
+            type == "image/png" ||
+	    type == "image/jpeg" ||
+	    type == "image/jpg" ||
+	    type == "image/x-icon"||
+            type == "application/json");
+}
+
+static bool checkHttpError(const Request& req,Response& res, size_t size, std::string path){
+	if(req._method.empty())
+		return (generateError(400, "Bad Request", res, "400 Bad Request"));
+	
+	if(req._urlPath.find("/private")==0 && !req.hasHeader("Authorization"))
+		return (generateError(401, "Unauthorized", res, "401 Unauthorized"));
+
+	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 || !safePath(path))
+		return (generateError(403,"Forbidden", res, "403 Forbidden")); 
+
+	std::ifstream file(path.c_str());
+	if(!file.is_open())
+		return (generateError(404,"Not Found", res, "404 Not Found"));
+
+	if(req._method != "GET" && req._method != "POST" && req._method != "DELETE")
+		return (generateError(405, "Method Not Allowed", res, "405 Method Not Allowed"));
+
+	if(req._method == "POST" && !req.hasHeader("Content-Length"))
+		return (generateError(411, "Required Length", res, "411 Required Length"));
+
+	if(req._body.size() > size)
+		return (generateError(413, "Content Too Large" , res, "413 Content Too Large"));
+
+	if(req._urlPath.size() > 2048)
+		return (generateError(414, "URL Too Long", res, "414 URL Too Long"));
+
+	if(req._method == "POST"){
+		std::string type = getMimeType(path);
+		if(!isSupportedType(type))
+			return (generateError(415, "Unsupported Media Type", res, "415 Unsupported Media Type"));
+	}
+
+	if(req._urlPath == "/teapot")
+		return (generateError(418, "I'm a teapot", res, "418 I'm a teapot"));
+
+	if(req._urlPath.empty())
+		return (generateError(500, "Internal Server Error",  res, "500 Internal Server Error"));
+
+	if( req._httpVersion != "HTTP/1.0" && req._httpVersion != "HTTP/1.1" )
+		return (generateError(505, "HTTP Version not Supported", res, "505 HTTP Version Not Supported"));
+
+ return false;
+}
+
+Response Response::handleResponse(const Request &req, std::string _maxBytes){
 	Response res;
 	res._httpVersion = req._httpVersion;
-	if( req._httpVersion != "HTTP/1.0" && req._httpVersion != "HTTP/1.1" )
-		generateError(505, "HTTP Version not Supported", res, "505 Version Not Supported");
-
+	
+	size_t size;
+	std::stringstream ss(_maxBytes);
+	ss >> size;
 	std::string path = "." + req._urlPath;
 	if(path[path.size() - 1] == '/')
 		path +=  "index.html";
-	std::cout << "Path is " << path <<std::endl;
-	std::ifstream file(path.c_str());
-	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 || !safePath(path))
-	{
-		generateError(403, "Forbidden", res, "403 Forbidden") ;
+
+	if(checkHttpError(req, res, size, path))
 		return res;
-	}
-	if(file.good()){
-		if(req._method != "GET" && req._method != "POST" && req._method != "DELETE"){
-			generateError(405, "Method Not Allowed", res, "Not Correct Method");
-		return res;
-		}
-		if(req._method == "GET"){
-			std::ifstream file(path.c_str(), std::ios::binary); 
-			if(file.is_open()){
-				std::ostringstream os;	
-				os << file.rdbuf();
-				res._body = os.str();
-				res._statusCode = 200;
-				res._statusTxt = "OK";
-				res._headers["Content-Type"] = getMimeType(path);
-				std::cout << res << std::endl;
-			}
-			else {
-				generateError(500, "Internal Server Error", res , "File Read Error");
-				return res;
-			}
-		}
-	}
-	else {
-		generateError(404, "Not Found" , res, "404 Not Found");
-		return res;
-	}
+
+	std::ifstream file(path.c_str(), std::ios::binary); 
+	std::ostringstream os;	
+	os << file.rdbuf();
+	res._body = os.str();
+
+	res._statusCode = 200;
+	res._statusTxt = "OK";
+	res._headers["Content-Type"] = getMimeType(path);
 	res._headers["Content-Length"] = intToString(res._body.size());
-        res._headers["Connection"] = "close";
-	return  res;
+	res._headers["Connection"] = "close";
+	return res;
 }
+
+
+

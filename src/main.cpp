@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:41:50 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/13 16:16:30 by taung            ###   ########.fr       */
+/*   Updated: 2025/10/14 16:39:48 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         s1.setPort("8080");
         s1.setServerName("server_one");
         s1.setMaxBytes("1048576"); // 1MB
-        s1.setErrorPage("404", "/errors/404.html");
+        s1.setErrorPage("404", "/404.html");
 
         t_location loc1;
         loc1._root = "/var/www/html1";

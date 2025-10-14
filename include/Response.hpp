@@ -24,7 +24,7 @@ class Response{
 		std::map<std::string , std::string> _headers;
 		std::string _body;
 
-		static Response handleResponse(const Request& req);
+		Response handleResponse(const Request& req, std::string _maxBytes);
 		std::string toStr() const;
 };
 
