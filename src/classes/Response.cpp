@@ -14,10 +14,15 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <locale>
 #include <ostream>
+#include <pthread.h>
 #include <sstream>
 #include <string>
+# include <map>
 # include <unistd.h>
+
+static std::string intToString(size_t n); 
 
 bool safePath(std::string const& path){
 	if(path.find("..") == std::string::npos)
@@ -49,9 +54,13 @@ std::string getMimeType(const std::string& path) {
 		return "text/plain";
 }
 
-bool generateError(int errorCode, std::string const errorMsg, Response &res , std::string const bodyMsg){
+bool generateError(int errorCode, std::string const errorMsg, Response &res , std::string const bodyMsg, Server& server){
 	res._statusCode = errorCode;
-	
+	std::map<std::string, std::string> errorPages = server.getErrorPage();
+	std::map<std::string, std::string>::iterator it = errorPages.find(intToString(res._statusCode));
+	if( it != errorPages.end())
+		std::string errorFile = it->second;
+
 	res._statusTxt = errorMsg;
 	res._body = "<h1>" + bodyMsg + "</h1>";	
 	return true;
@@ -109,46 +118,46 @@ bool isSupportedType(const std::string &type)
             type == "application/json");
 }
 
-static bool checkHttpError(const Request& req,Response& res, size_t size, std::string path){
+static bool checkHttpError(const Request& req,Response& res, size_t size, std::string path, Server& server){
 	if(req._method.empty())
-		return (generateError(400, "Bad Request", res, "400 Bad Request"));
+		return (generateError(400, "Bad Request", res, "400 Bad Request", server));
 	
 	if(req._urlPath.find("/private")==0 && !req.hasHeader("Authorization"))
-		return (generateError(401, "Unauthorized", res, "401 Unauthorized"));
+		return (generateError(401, "Unauthorized", res, "401 Unauthorized", server));
 
 	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 || !safePath(path))
-		return (generateError(403,"Forbidden", res, "403 Forbidden")); 
+		return (generateError(403,"Forbidden", res, "403 Forbidden", server)); 
 
 	std::ifstream file(path.c_str());
 	if(!file.is_open())
-		return (generateError(404,"Not Found", res, "404 Not Found"));
+		return (generateError(404,"Not Found", res, "404 Not Found", server));
 
 	if(req._method != "GET" && req._method != "POST" && req._method != "DELETE")
-		return (generateError(405, "Method Not Allowed", res, "405 Method Not Allowed"));
+		return (generateError(405, "Method Not Allowed", res, "405 Method Not Allowed", server));
 
 	if(req._method == "POST" && !req.hasHeader("Content-Length"))
-		return (generateError(411, "Required Length", res, "411 Required Length"));
+		return (generateError(411, "Required Length", res, "411 Required Length", server));
 
 	if(req._body.size() > size)
-		return (generateError(413, "Content Too Large" , res, "413 Content Too Large"));
+		return (generateError(413, "Content Too Large" , res, "413 Content Too Large", server));
 
 	if(req._urlPath.size() > 2048)
-		return (generateError(414, "URL Too Long", res, "414 URL Too Long"));
+		return (generateError(414, "URL Too Long", res, "414 URL Too Long", server));
 
 	if(req._method == "POST"){
 		std::string type = getMimeType(path);
 		if(!isSupportedType(type))
-			return (generateError(415, "Unsupported Media Type", res, "415 Unsupported Media Type"));
+			return (generateError(415, "Unsupported Media Type", res, "415 Unsupported Media Type", server));
 	}
 
 	if(req._urlPath == "/teapot")
-		return (generateError(418, "I'm a teapot", res, "418 I'm a teapot"));
+		return (generateError(418, "I'm a teapot", res, "418 I'm a teapot", server));
 
 	if(req._urlPath.empty())
-		return (generateError(500, "Internal Server Error",  res, "500 Internal Server Error"));
+		return (generateError(500, "Internal Server Error",  res, "500 Internal Server Error", server));
 
 	if( req._httpVersion != "HTTP/1.0" && req._httpVersion != "HTTP/1.1" )
-		return (generateError(505, "HTTP Version not Supported", res, "505 HTTP Version Not Supported"));
+		return (generateError(505, "HTTP Version not Supported", res, "505 HTTP Version Not Supported", server));
 
  return false;
 }
@@ -169,8 +178,9 @@ Response Response::handleResponse(const Request &req, Server& server){
 	std::cout << server << std::endl;
 	std::cout << "--------------------------------------------------------------------------" << std::endl;
 	//
-	if(checkHttpError(req, res, size, path))
-		return res;
+	if(checkHttpError(req, res, size, path, server)){
+		 return res;
+	}
 
 	std::ifstream file(path.c_str(), std::ios::binary); 
 	std::ostringstream os;	
