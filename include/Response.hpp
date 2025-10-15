@@ -15,6 +15,7 @@
 
 # include "Request.hpp"
 # include <filesystem>
+# include "Server.hpp"
 
 class Response{
 	public:
@@ -24,7 +25,7 @@ class Response{
 		std::map<std::string , std::string> _headers;
 		std::string _body;
 
-		Response handleResponse(const Request& req, std::string _maxBytes);
+		static Response handleResponse(const Request& req, Server& server);
 		std::string toStr() const;
 };
 

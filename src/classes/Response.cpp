@@ -6,7 +6,7 @@
 /*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/10/10 11:30:16 by hthant           ###   ########.fr       */
+/*   Updated: 2025/10/15 16:48:20 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,7 @@ std::string getMimeType(const std::string& path) {
 
 bool generateError(int errorCode, std::string const errorMsg, Response &res , std::string const bodyMsg){
 	res._statusCode = errorCode;
+	
 	res._statusTxt = errorMsg;
 	res._body = "<h1>" + bodyMsg + "</h1>";	
 	return true;
@@ -152,17 +153,22 @@ static bool checkHttpError(const Request& req,Response& res, size_t size, std::s
  return false;
 }
 
-Response Response::handleResponse(const Request &req, std::string _maxBytes){
+Response Response::handleResponse(const Request &req, Server& server){
 	Response res;
 	res._httpVersion = req._httpVersion;
 	
 	size_t size;
-	std::stringstream ss(_maxBytes);
+	std::stringstream ss(server.getMaxByte());
 	ss >> size;
 	std::string path = "." + req._urlPath;
 	if(path[path.size() - 1] == '/')
 		path +=  "index.html";
-
+	//check config error here
+	//
+	std::cout << "-----------------------------SERVER TEST----------------------" << std::endl;
+	std::cout << server << std::endl;
+	std::cout << "--------------------------------------------------------------------------" << std::endl;
+	//
 	if(checkHttpError(req, res, size, path))
 		return res;
 

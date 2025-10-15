@@ -307,9 +307,9 @@ int	WebServer::serve(void) {
 				perror("accept");
 				continue;
 			}
-			            // --- RECV REQUEST ---
 			char buffer[4096];
 			std::cout << "=================REQUEST============================" <<std::endl;
+			
 			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 			if (bytes_received < 0) {
 				perror("recv");
@@ -320,13 +320,9 @@ int	WebServer::serve(void) {
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
 			std::cout << buffer << std::endl;
 			std::cout << "=====================================================" << std::endl;
-			Request req;
-			req.Parse(buffer);
+			Request req = Request::Parse(buffer);	
 
-			// --- SEND RESPONSE ---
-
-			Response res;
-			res.handleResponse(req, _servers[idx].getMaxByte());
+			Response res = Response::handleResponse(req,_servers[idx]);
 			std::string httpResponse = res.toStr();
 
 
