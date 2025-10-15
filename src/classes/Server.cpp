@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/13 06:41:36 by lshein           ###   ########.fr       */
+/*   Updated: 2025/10/15 20:10:38 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,11 @@ void Server::setLocation(std::string key, const t_location &location)
 	_locations[key] = location;
 }
 
+void Server::setReturn(const std::string &key, const std::string &value)
+{
+	_return[key] = value;
+}
+
 std::string Server::getPort() const
 {
 	return _port;
@@ -60,6 +65,11 @@ const std::map<std::string, std::string> &Server::getErrorPage() const
 const std::map<std::string, t_location> &Server::getLocation() const
 {
 	return _locations;
+}
+
+const std::map<std::string, std::string> &Server::getReturn() const
+{
+	return _return;
 }
 
 std::ostream &operator<<(std::ostream &os, const Server &s)

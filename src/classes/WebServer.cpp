@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/13 16:19:50 by taung            ###   ########.fr       */
+/*   Updated: 2025/10/15 20:12:31 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -162,6 +162,12 @@ void setAttributes(const std::vector<std::string>& line, Server& server)
 		if (line.size() != 2)
 			throw std::runtime_error("Invalid client_max_body_size directive format");
 		server.setMaxBytes(line[1]);
+	}
+	else if (key == "return")
+	{
+		if (line.size() != 3)
+			throw;
+		server.setReturn(line[1], line[2]);
 	}
 }
 
