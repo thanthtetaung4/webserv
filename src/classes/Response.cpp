@@ -6,7 +6,7 @@
 /*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/10/15 16:48:20 by hthant           ###   ########.fr       */
+/*   Updated: 2025/10/16 13:13:17 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,13 +54,26 @@ std::string getMimeType(const std::string& path) {
 		return "text/plain";
 }
 
+std::string readFile(std::string& path) {
+	path.erase(0,1);
+	std::ifstream file(path.c_str());
+	if (!file.is_open())
+		return "";
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+	return buffer.str();
+}
+
 bool generateError(int errorCode, std::string const errorMsg, Response &res , std::string const bodyMsg, Server& server){
 	res._statusCode = errorCode;
 	std::map<std::string, std::string> errorPages = server.getErrorPage();
 	std::map<std::string, std::string>::iterator it = errorPages.find(intToString(res._statusCode));
-	if( it != errorPages.end())
-		std::string errorFile = it->second;
-
+    	if (it != errorPages.end())
+	{
+        	res._statusTxt = errorMsg;
+        	res._body = readFile(it->second); 
+        	return true;
+	}
 	res._statusTxt = errorMsg;
 	res._body = "<h1>" + bodyMsg + "</h1>";	
 	return true;
@@ -125,12 +138,12 @@ static bool checkHttpError(const Request& req,Response& res, size_t size, std::s
 	if(req._urlPath.find("/private")==0 && !req.hasHeader("Authorization"))
 		return (generateError(401, "Unauthorized", res, "401 Unauthorized", server));
 
-	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 || !safePath(path))
-		return (generateError(403,"Forbidden", res, "403 Forbidden", server)); 
-
 	std::ifstream file(path.c_str());
 	if(!file.is_open())
 		return (generateError(404,"Not Found", res, "404 Not Found", server));
+
+	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 || !safePath(path))
+		return (generateError(403,"Forbidden", res, "403 Forbidden", server)); 
 
 	if(req._method != "GET" && req._method != "POST" && req._method != "DELETE")
 		return (generateError(405, "Method Not Allowed", res, "405 Method Not Allowed", server));
