@@ -6,11 +6,12 @@
 /*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/10/15 16:49:04 by hthant           ###   ########.fr       */
+/*   Updated: 2025/10/16 15:26:26 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "../../include/Request.hpp"
+#include <ostream>
 #include <sstream>
 #include <string>
 
@@ -34,6 +35,7 @@ Request Request::Parse(const std::string &raw){
 	std::string line;
 	if(std::getline(lines, line)){
 		std::istringstream first(line);
+		std::cout << "First line: " << line << std::endl;
 		first >> req._method >> req._urlPath >> req._httpVersion;
 	}
 
@@ -48,4 +50,12 @@ Request Request::Parse(const std::string &raw){
 		}
 	}
 	return req;
+}
+
+
+std::ostream& operator<<(std::ostream& os, const Request& req){
+	os << "Method: " << req._method << std::endl;
+	os << "URL Path: " << req._urlPath << std::endl;
+	os << "HTTP Version: " << req._httpVersion << std::endl;
+	return  os;
 }

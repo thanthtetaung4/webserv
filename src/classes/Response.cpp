@@ -6,7 +6,7 @@
 /*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/10/16 13:13:17 by hthant           ###   ########.fr       */
+/*   Updated: 2025/10/16 17:22:26 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@
 #include <string>
 # include <map>
 # include <unistd.h>
+#include <vector>
 
 static std::string intToString(size_t n); 
 
@@ -55,7 +56,7 @@ std::string getMimeType(const std::string& path) {
 }
 
 std::string readFile(std::string& path) {
-	path.erase(0,1);
+	// path.erase(0,1);
 	std::ifstream file(path.c_str());
 	if (!file.is_open())
 		return "";
@@ -68,14 +69,23 @@ bool generateError(int errorCode, std::string const errorMsg, Response &res , st
 	res._statusCode = errorCode;
 	std::map<std::string, std::string> errorPages = server.getErrorPage();
 	std::map<std::string, std::string>::iterator it = errorPages.find(intToString(res._statusCode));
-    	if (it != errorPages.end())
-	{
-        	res._statusTxt = errorMsg;
-        	res._body = readFile(it->second); 
-        	return true;
+    	if (it != errorPages.end()) {
+			std::cout << "Custom error page found for " << res._statusCode << ": " << it->second << std::endl;
+        	res._body = readFile(it->second);
+			std::cout << "Cuastom page path: " << it->second << std::endl;
+			if (res._body.empty()) {
+				std::cout << "Failed to read custom error page: " << it->second << std::endl;
+				res._body = "<h1>" + bodyMsg + "</h1>";	
+			}
+		}
+	else {
+		std::cout << "No custom error page found for " << res._statusCode << ", using default message." << std::endl;
+		res._body = "<h1>" + bodyMsg + "</h1>";	
 	}
 	res._statusTxt = errorMsg;
-	res._body = "<h1>" + bodyMsg + "</h1>";	
+	res._headers["Content-Type"] = "text/html";
+	res._headers["Content-Length"] = intToString(res._body.size());
+	res._headers["Connection"] = "close";
 	return true;
 }
 
@@ -182,15 +192,35 @@ Response Response::handleResponse(const Request &req, Server& server){
 	size_t size;
 	std::stringstream ss(server.getMaxByte());
 	ss >> size;
-	std::string path = "." + req._urlPath;
-	if(path[path.size() - 1] == '/')
-		path +=  "index.html";
+	//find req.urlPath in server locations 
+
+	std::string path, index;
+	std::map<std::string, t_location> locations = server.getLocation();
+	std::map<std::string, t_location>::iterator it = locations.find(req._urlPath);
+	
+	
+	if(it != locations.end()) {
+			std::cout << "root need to be " << (it->second)._root << std::endl;
+			path = it->second._root;
+			for (std::vector<std::string>::iterator i = it->second._index.begin(); i != it->second._index.end() ; i++) {
+			if (access((path + "/" + *i).c_str(), R_OK) == 0) {
+				path = path + "/" + *i;
+				break;
+			}
+		}
+		}
+		else
+			path = "";
+		
+		std::cout << "The real path " << path << std::endl;
+	
 	//check config error here
 	//
 	std::cout << "-----------------------------SERVER TEST----------------------" << std::endl;
 	std::cout << server << std::endl;
 	std::cout << "--------------------------------------------------------------------------" << std::endl;
 	//
+	std::cout << "Requested Path: " << path << std::endl;
 	if(checkHttpError(req, res, size, path, server)){
 		 return res;
 	}

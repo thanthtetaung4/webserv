@@ -15,6 +15,8 @@
 
 # include <iostream>
 # include <map>
+#include <ostream>
+#include <sstream>
 
 class Request{
 	public:
@@ -27,4 +29,5 @@ class Request{
 		static Request Parse(const std::string &raw);
 		bool hasHeader(const std::string &key) const;
 };
+std::ostream& operator<<(std::ostream& os, const Request& req);
 # endif

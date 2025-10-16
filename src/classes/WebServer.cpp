@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/13 16:19:50 by taung            ###   ########.fr       */
+/*   Updated: 2025/10/16 15:38:15 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -318,15 +318,21 @@ int	WebServer::serve(void) {
 			}
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
+			std::cout << "=======================================================" <<std::endl;
 			std::cout << buffer << std::endl;
 			std::cout << "=====================================================" << std::endl;
 			Request req = Request::Parse(buffer);	
 
+			std::cout << req << std::endl;
+			std::cout << "=================================I do not know let see=====================" << std::endl;
+
 			Response res = Response::handleResponse(req,_servers[idx]);
+			std::cout << res << std::endl;
+			std::cout << "=================================I do not know let see=====================" << std::endl;
 			std::string httpResponse = res.toStr();
-
-
+			
 			std::cout << "http res: " << httpResponse << std::endl;
+
 			ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
 			if (sent < 0) {
 				perror("send");
