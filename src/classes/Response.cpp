@@ -12,9 +12,7 @@
 
 # include "../../include/Response.hpp"
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
-#include <locale>
 #include <ostream>
 #include <pthread.h>
 #include <sstream>
@@ -209,10 +207,9 @@ Response Response::handleResponse(const Request &req, Server& server){
 			}
 		}
 		}
-		else
-			path = "";
-		
-		std::cout << "The real path " << path << std::endl;
+	else
+		path = "";	
+	std::cout << "The real path " << path << std::endl;
 	
 	//check config error here
 	//
