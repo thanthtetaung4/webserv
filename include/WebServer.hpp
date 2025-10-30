@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/13 16:15:50 by taung            ###   ########.fr       */
+/*   Updated: 2025/10/30 10:20:34 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,17 @@
 
 # define MAX_EVENTS 10
 
+struct Validator 
+{
+    static void requireSize(const std::vector<std::string> &line, size_t expected, const std::string &name) {
+        if (line.size() != expected)
+            throw std::runtime_error("Invalid '" + name + "' directive format");
+    }
+    static void requireMinSize(const std::vector<std::string> &line, size_t min, const std::string &name) {
+        if (line.size() < min)
+            throw std::runtime_error("Invalid '" + name + "' directive format");
+    }
+};
 typedef struct its
 {
     std::string::iterator it1;
