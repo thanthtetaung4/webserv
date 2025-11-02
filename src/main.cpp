@@ -40,14 +40,15 @@ int main(int argc, char **argv) {
         s2.setServerName("server_two");
         s2.setMaxBytes("2097152"); // 2MB
         s2.setErrorPage("500", "/errors/500.html");
+	s2.setErrorPage("404","/errors/404.html");
 
         t_location loc2;
-        loc2._root = "/var/www/html2";
+        loc2._root = "/var/www/html";
         loc2._index.push_back("home.html");
         loc2._limit_except.push_back("GET");
         loc2._limit_except.push_back("POST");
         loc2._autoIndex = "on";
-        s2.setLocation("/app", loc2);
+        s2.setLocation("/", loc2);
 
         // Add servers to WebServer (assuming addServer takes a Server object)
         ws.addServer(s1);
@@ -55,6 +56,7 @@ int main(int argc, char **argv) {
 
         // For testing: print server configs
         std::cout << s1 << std::endl;
+	std::cout << s2 << std::endl;
         // std::cout << s2 << std::endl;
         ws.setUpSock();
         ws.serve();

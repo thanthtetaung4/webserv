@@ -49,6 +49,9 @@ Request Request::Parse(const std::string &raw){
 			req._headers[key] = value;
 		}
 	}
+	std::cout << "hey this is the req" << std::endl;
+	std::cout << req << std::endl;
+	std::cout << "Now finish hahahaha" << std::endl;
 	return req;
 }
 

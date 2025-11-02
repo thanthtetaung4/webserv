@@ -200,10 +200,11 @@ Response Response::handleResponse(const Request &req, Server& server){
 	if(it != locations.end()) {
 			std::cout << "root need to be " << (it->second)._root << std::endl;
 			path = it->second._root;
+			std::cout << "HEY PATH IS " << std::endl;
 			for (std::vector<std::string>::iterator i = it->second._index.begin(); i != it->second._index.end() ; i++) {
-			if (access((path + "/" + *i).c_str(), R_OK) == 0) {
-				path = path + "/" + *i;
-				break;
+				if (access((path + "/" + *i).c_str(), R_OK) == 0) {
+					path = path + "/" + *i;
+					break;
 			}
 		}
 		}

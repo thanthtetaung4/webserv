@@ -13,6 +13,9 @@
 #include "./../../include/WebServer.hpp"
 # include "../../include/Request.hpp"
 # include "../../include/Response.hpp"
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 WebServer::WebServer(){}
 
