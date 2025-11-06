@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/09 19:03:46 by taung             #+#    #+#             */
-/*   Updated: 2025/10/11 02:51:50 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/05 19:45:40 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,11 @@ class UnableToBind : public std::exception {
 };
 
 class UnableToListen : public std::exception {
+	public:
+	virtual const char* what() const throw();
+};
+
+class UnableToCreateResponse : public std::exception {
 	public:
 	virtual const char* what() const throw();
 };

@@ -3,25 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/10/16 17:22:26 by hthant           ###   ########.fr       */
+/*   Updated: 2025/11/05 20:32:32 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "../../include/Response.hpp"
-#include <cstdlib>
-#include <fstream>
-#include <ostream>
-#include <pthread.h>
-#include <sstream>
-#include <string>
-# include <map>
-# include <unistd.h>
-#include <vector>
-
-static std::string intToString(size_t n); 
 
 bool safePath(std::string const& path){
 	if(path.find("..") == std::string::npos)
@@ -63,27 +52,27 @@ std::string readFile(std::string& path) {
 	return buffer.str();
 }
 
-bool generateError(int errorCode, std::string const errorMsg, Response &res , std::string const bodyMsg, Server& server){
-	res._statusCode = errorCode;
+bool	Response::generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server& server){
+	this->_statusCode = errorCode;
 	std::map<std::string, std::string> errorPages = server.getErrorPage();
-	std::map<std::string, std::string>::iterator it = errorPages.find(intToString(res._statusCode));
-    	if (it != errorPages.end()) {
-			std::cout << "Custom error page found for " << res._statusCode << ": " << it->second << std::endl;
-        	res._body = readFile(it->second);
+	std::map<std::string, std::string>::iterator it = errorPages.find(intToString(this->_statusCode));
+		if (it != errorPages.end()) {
+			std::cout << "Custom error page found for " << this->_statusCode << ": " << it->second << std::endl;
+			this->_body = readFile(it->second);
 			std::cout << "Cuastom page path: " << it->second << std::endl;
-			if (res._body.empty()) {
+			if (this->_body.empty()) {
 				std::cout << "Failed to read custom error page: " << it->second << std::endl;
-				res._body = "<h1>" + bodyMsg + "</h1>";	
+				this->_body = "<h1>" + bodyMsg + "</h1>";
 			}
 		}
 	else {
-		std::cout << "No custom error page found for " << res._statusCode << ", using default message." << std::endl;
-		res._body = "<h1>" + bodyMsg + "</h1>";	
+		std::cout << "No custom error page found for " << this->_statusCode << ", using default message." << std::endl;
+		this->_body = "<h1>" + bodyMsg + "</h1>";
 	}
-	res._statusTxt = errorMsg;
-	res._headers["Content-Type"] = "text/html";
-	res._headers["Content-Length"] = intToString(res._body.size());
-	res._headers["Connection"] = "close";
+	this->_statusTxt = errorMsg;
+	this->_headers["Content-Type"] = "text/html";
+	this->_headers["Content-Length"] = intToString(this->_body.size());
+	this->_headers["Connection"] = "close";
 	return true;
 }
 
@@ -104,25 +93,6 @@ static std::string intToString(size_t n) {
 	return ss.str();
 }
 
-std::ostream& operator<<(std::ostream& os , const Response& res)
-{
-	os << "Http version: " << res._httpVersion << std::endl;
-	os << "Error Code: " << res._statusCode << std::endl;
-	os << "Error Msg: " << res._statusTxt << std::endl;
-
-	os << "Headers:" << std::endl;
-	if (res._headers.empty()) {
-		os << "  (none)" << std::endl;
-	} else {
-        	std::map<std::string, std::string>::const_iterator it;
-        	for (it = res._headers.begin(); it != res._headers.end(); ++it) {
-			os << "  [" << it->first << "] = " << it->second << std::endl;
-		}
-	}
-	os << "Body: " << res._body << std::endl;
-	return os;
-}
-
 bool Request::hasHeader(const std::string& key) const {
 	return _headers.find(key) != _headers.end();
 }
@@ -139,64 +109,67 @@ bool isSupportedType(const std::string &type)
             type == "application/json");
 }
 
-static bool checkHttpError(const Request& req,Response& res, size_t size, std::string path, Server& server){
+bool Response::checkHttpError(const Request& req, size_t size, std::string path, Server& server){
 	if(req._method.empty())
-		return (generateError(400, "Bad Request", res, "400 Bad Request", server));
-	
+		return (generateError(400, "Bad Request", "400 Bad Request", server));
+
 	if(req._urlPath.find("/private")==0 && !req.hasHeader("Authorization"))
-		return (generateError(401, "Unauthorized", res, "401 Unauthorized", server));
+		return (generateError(401, "Unauthorized", "401 Unauthorized", server));
 
 	std::ifstream file(path.c_str());
 	if(!file.is_open())
-		return (generateError(404,"Not Found", res, "404 Not Found", server));
+		return (generateError(404,"Not Found", "404 Not Found", server));
 
 	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 || !safePath(path))
-		return (generateError(403,"Forbidden", res, "403 Forbidden", server)); 
+		return (generateError(403,"Forbidden", "403 Forbidden", server));
 
 	if(req._method != "GET" && req._method != "POST" && req._method != "DELETE")
-		return (generateError(405, "Method Not Allowed", res, "405 Method Not Allowed", server));
+		return (generateError(405, "Method Not Allowed", "405 Method Not Allowed", server));
 
 	if(req._method == "POST" && !req.hasHeader("Content-Length"))
-		return (generateError(411, "Required Length", res, "411 Required Length", server));
+		return (generateError(411, "Required Length", "411 Required Length", server));
 
 	if(req._body.size() > size)
-		return (generateError(413, "Content Too Large" , res, "413 Content Too Large", server));
+		return (generateError(413, "Content Too Large" , "413 Content Too Large", server));
 
 	if(req._urlPath.size() > 2048)
-		return (generateError(414, "URL Too Long", res, "414 URL Too Long", server));
+		return (generateError(414, "URL Too Long", "414 URL Too Long", server));
 
 	if(req._method == "POST"){
 		std::string type = getMimeType(path);
 		if(!isSupportedType(type))
-			return (generateError(415, "Unsupported Media Type", res, "415 Unsupported Media Type", server));
+			return (generateError(415, "Unsupported Media Type", "415 Unsupported Media Type", server));
 	}
 
 	if(req._urlPath == "/teapot")
-		return (generateError(418, "I'm a teapot", res, "418 I'm a teapot", server));
+		return (generateError(418, "I'm a teapot", "418 I'm a teapot", server));
 
 	if(req._urlPath.empty())
-		return (generateError(500, "Internal Server Error",  res, "500 Internal Server Error", server));
+		return (generateError(500, "Internal Server Error", "500 Internal Server Error", server));
 
 	if( req._httpVersion != "HTTP/1.0" && req._httpVersion != "HTTP/1.1" )
-		return (generateError(505, "HTTP Version not Supported", res, "505 HTTP Version Not Supported", server));
+		return (generateError(505, "HTTP Version not Supported", "505 HTTP Version Not Supported", server));
 
  return false;
 }
 
-Response Response::handleResponse(const Request &req, Server& server){
-	Response res;
-	res._httpVersion = req._httpVersion;
-	
+Response::Response(void) {
+	throw UnableToCreateResponse();
+}
+
+Response::Response(const Request& req, Server& server) {
+	this->_httpVersion = req._httpVersion;
+
 	size_t size;
 	std::stringstream ss(server.getMaxByte());
 	ss >> size;
-	//find req.urlPath in server locations 
+	//find req.urlPath in server locations
 
 	std::string path, index;
 	std::map<std::string, t_location> locations = server.getLocation();
 	std::map<std::string, t_location>::iterator it = locations.find(req._urlPath);
-	
-	
+
+
 	if(it != locations.end()) {
 			std::cout << "root need to be " << (it->second)._root << std::endl;
 			path = it->second._root;
@@ -209,9 +182,9 @@ Response Response::handleResponse(const Request &req, Server& server){
 		}
 		}
 	else
-		path = "";	
+		path = "";
 	std::cout << "The real path " << path << std::endl;
-	
+
 	//check config error here
 	//
 	std::cout << "-----------------------------SERVER TEST----------------------" << std::endl;
@@ -219,22 +192,54 @@ Response Response::handleResponse(const Request &req, Server& server){
 	std::cout << "--------------------------------------------------------------------------" << std::endl;
 	//
 	std::cout << "Requested Path: " << path << std::endl;
-	if(checkHttpError(req, res, size, path, server)){
-		 return res;
+	if(!checkHttpError(req, size, path, server)){
+		std::ifstream file(path.c_str(), std::ios::binary);
+		std::ostringstream os;
+		os << file.rdbuf();
+		this->_body = os.str();
+		this->_statusCode = 200;
+		this->_statusTxt = "OK";
+		this->_headers["Content-Type"] = getMimeType(path);
+		this->_headers["Content-Length"] = intToString(this->_body.size());
+		this->_headers["Connection"] = "close";
 	}
-
-	std::ifstream file(path.c_str(), std::ios::binary); 
-	std::ostringstream os;	
-	os << file.rdbuf();
-	res._body = os.str();
-
-	res._statusCode = 200;
-	res._statusTxt = "OK";
-	res._headers["Content-Type"] = getMimeType(path);
-	res._headers["Content-Length"] = intToString(res._body.size());
-	res._headers["Connection"] = "close";
-	return res;
 }
 
+std::string	Response::getHttpVersion() const {
+	return this->_httpVersion;
+}
 
+int	Response::getStatusCode() const {
+	return this->_statusCode;
+}
 
+std::string	Response::getStatusTxt() const {
+	return this->_statusTxt;
+}
+
+std::map<std::string, std::string>	Response::getHeaders() const {
+	return this->_headers;
+}
+
+std::string	Response::getBody() const {
+	return this->_body;
+}
+
+std::ostream& operator<<(std::ostream& os , const Response& res)
+{
+	os << "Http version: " << res.getHttpVersion() << std::endl;
+	os << "Error Code: " << res.getStatusCode() << std::endl;
+	os << "Error Msg: " << res.getStatusTxt() << std::endl;
+
+	os << "Headers:" << std::endl;
+	if (res.getHeaders().empty()) {
+		os << "  (none)" << std::endl;
+	} else {
+		std::map<std::string, std::string>::const_iterator it;
+		for (it = res.getHeaders().begin(); it != res.getHeaders().end(); ++it) {
+			os << "  [" << it->first << "] = " << it->second << std::endl;
+		}
+	}
+	os << "Body: " << res.getBody() << std::endl;
+	return os;
+}
