@@ -6,11 +6,17 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/05 20:32:32 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/07 17:28:56 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "../../include/Response.hpp"
+
+static std::string intToString(size_t n) {
+	std::ostringstream ss;
+	ss << n;
+	return ss.str();
+}
 
 bool safePath(std::string const& path){
 	if(path.find("..") == std::string::npos)
@@ -85,12 +91,6 @@ std::string Response::toStr() const {
 	response << "\r\n";
 	response << _body;
 	return response.str();
-}
-
-static std::string intToString(size_t n) {
-	std::ostringstream ss;
-	ss << n;
-	return ss.str();
 }
 
 bool Request::hasHeader(const std::string& key) const {
@@ -192,7 +192,7 @@ Response::Response(const Request& req, Server& server) {
 	std::cout << "--------------------------------------------------------------------------" << std::endl;
 	//
 	std::cout << "Requested Path: " << path << std::endl;
-	if(!checkHttpError(req, size, path, server)){
+	if (!checkHttpError(req, size, path, server)){
 		std::ifstream file(path.c_str(), std::ios::binary);
 		std::ostringstream os;
 		os << file.rdbuf();
@@ -202,6 +202,9 @@ Response::Response(const Request& req, Server& server) {
 		this->_headers["Content-Type"] = getMimeType(path);
 		this->_headers["Content-Length"] = intToString(this->_body.size());
 		this->_headers["Connection"] = "close";
+	}
+	if (this->_body.empty()) {
+		std::cout << "Body is empty" << std::endl;
 	}
 }
 
@@ -217,7 +220,7 @@ std::string	Response::getStatusTxt() const {
 	return this->_statusTxt;
 }
 
-std::map<std::string, std::string>	Response::getHeaders() const {
+const std::map<std::string, std::string>	&Response::getHeaders() const {
 	return this->_headers;
 }
 
@@ -236,9 +239,10 @@ std::ostream& operator<<(std::ostream& os , const Response& res)
 		os << "  (none)" << std::endl;
 	} else {
 		std::map<std::string, std::string>::const_iterator it;
-		for (it = res.getHeaders().begin(); it != res.getHeaders().end(); ++it) {
+		for (it = res.getHeaders().begin(); it != res.getHeaders().end(); it++) {
 			os << "  [" << it->first << "] = " << it->second << std::endl;
 		}
+		std::cout << "----------------HEADER END-----------------" << std::endl;
 	}
 	os << "Body: " << res.getBody() << std::endl;
 	return os;

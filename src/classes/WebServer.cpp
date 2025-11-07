@@ -329,8 +329,11 @@ int	WebServer::serve(void) {
 			std::cout << req << std::endl;
 			std::cout << "=================================I do not know let see=====================" << std::endl;
 
-			Response res = Response::handleResponse(req,_servers[idx]);
+			std::cout << "creating res" << std::endl;
+			Response res(req,_servers[idx]);
+			std::cout << "printing res" << std::endl;
 			std::cout << res << std::endl;
+			std::cout << "res printed" << std::endl;
 			std::cout << "=================================I do not know let see=====================" << std::endl;
 			std::string httpResponse = res.toStr();
 

@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 05:09:26 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/13 16:08:42 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/07 17:36:33 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ typedef struct location
         std::string _cgiPass;
         std::string _cgiExt;
         std::string _uploadStore;
+        std::string _proxyPass;
 } t_location;
 
 

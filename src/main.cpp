@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:41:50 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/16 17:11:01 by hthant           ###   ########.fr       */
+/*   Updated: 2025/11/07 17:36:47 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
         loc2._limit_except.push_back("GET");
         loc2._limit_except.push_back("POST");
         loc2._autoIndex = "on";
+        loc2._proxyPass = "http://localhost:3000";
         s2.setLocation("/", loc2);
 
         // Add servers to WebServer (assuming addServer takes a Server object)

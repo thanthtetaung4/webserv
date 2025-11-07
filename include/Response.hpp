@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 00:55:47 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/05 20:32:28 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/07 17:24:42 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,7 @@ class Response{
 		std::string							getHttpVersion() const;
 		int									getStatusCode() const;
 		std::string							getStatusTxt() const;
-		std::map<std::string, std::string>	getHeaders() const;
+		const std::map<std::string, std::string>	&getHeaders() const;
 		std::string							getBody() const;
 
 };
