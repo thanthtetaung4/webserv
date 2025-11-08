@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/05 19:37:16 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/08 20:52:19 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -271,9 +271,18 @@ void	WebServer::setUpSock(void) {
 	}
 }
 
+/*
+	send the request to the proxy server and get the response
+	create a new Response object with the response from server
+	and return it
+*/
+const Response&	WebServer::handleReverseProxy () {
+	Response* res = new Response();
+	return *res;
+}
 
 int	WebServer::serve(void) {
-		int epoll_fd = epoll_create1(0);
+	int epoll_fd = epoll_create1(0);
 	if (epoll_fd == -1) {
 		perror("epoll_create1");
 		return 1;
@@ -324,7 +333,12 @@ int	WebServer::serve(void) {
 			std::cout << "=======================================================" <<std::endl;
 			std::cout << buffer << std::endl;
 			std::cout << "=====================================================" << std::endl;
-			Request req = Request::Parse(buffer);
+			Request req(buffer);
+
+			if (req._method == "POST") {
+				std::cout << "POST method detected" << std::endl;
+				Response res = this->handleReverseProxy();
+			}
 
 			std::cout << req << std::endl;
 			std::cout << "=================================I do not know let see=====================" << std::endl;

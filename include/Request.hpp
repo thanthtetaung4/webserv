@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 00:42:43 by hthant            #+#    #+#             */
-/*   Updated: 2025/10/10 00:59:40 by hthant           ###   ########.fr       */
+/*   Updated: 2025/11/08 20:48:16 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,8 +15,9 @@
 
 # include <iostream>
 # include <map>
-#include <ostream>
-#include <sstream>
+# include <ostream>
+# include <sstream>
+# include "ServerException.hpp"
 
 class Request{
 	public:
@@ -26,8 +27,10 @@ class Request{
 		std::map<std::string, std::string> _headers;
 		std::string _body;
 
-		static Request Parse(const std::string &raw);
+		Request(void);
+		Request(const std::string &raw);
 		bool hasHeader(const std::string &key) const;
+		bool checkHeaderValue(void) const;
 };
 std::ostream& operator<<(std::ostream& os, const Request& req);
 # endif

@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/11 01:56:39 by taung             #+#    #+#             */
-/*   Updated: 2025/11/05 19:45:58 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/08 20:46:59 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,4 +30,8 @@ const char* UnableToListen::what() const throw() {
 
 const char* UnableToCreateResponse::what() const throw() {
 	return "Unable To Create Response";
+}
+
+const char* UnableToCreateRequest::what() const throw() {
+	return "Unable To Create Request";
 }

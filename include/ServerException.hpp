@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/09 19:03:46 by taung             #+#    #+#             */
-/*   Updated: 2025/11/05 19:45:40 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/08 20:46:44 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,27 +17,32 @@
 
 class InvalidSocket : public std::exception {
 	public:
-	virtual const char* what() const throw();
+		virtual const char* what() const throw();
 };
 
 class UnableToOpenSocket : public std::exception {
 	public:
-	virtual const char* what() const throw();
+		virtual const char* what() const throw();
 };
 
 class UnableToBind : public std::exception {
 	public:
-	virtual const char* what() const throw();
+		virtual const char* what() const throw();
 };
 
 class UnableToListen : public std::exception {
 	public:
-	virtual const char* what() const throw();
+		virtual const char* what() const throw();
 };
 
 class UnableToCreateResponse : public std::exception {
 	public:
-	virtual const char* what() const throw();
+		virtual const char* what() const throw();
+};
+
+class UnableToCreateRequest : public std::exception {
+	public:
+		virtual const char* what() const throw();
 };
 
 # endif
