@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/09 14:18:59 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/09 14:46:29 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,7 @@ void printRange(std::string::iterator it1, std::string::iterator it2)
 	std::cout << std::endl;
 }
 
-t_its getIts(std::string &content, std::string::iterator start, const std::string &target1, const std::string &target2)
+t_its WebServer::getIts(std::string &content, std::string::iterator start, const std::string &target1, const std::string &target2)
 {
 	t_its it;
 
@@ -73,7 +73,7 @@ t_its getIts(std::string &content, std::string::iterator start, const std::strin
 	return it;
 }
 
-void getServerBlock(t_its it, std::vector<Server> &servers)
+void WebServer::getServerBlock(t_its it)
 {
 	std::string content(it.it1, it.it2);
 	std::stringstream serverString(content);
@@ -110,11 +110,11 @@ void getServerBlock(t_its it, std::vector<Server> &servers)
 			}
 		}
 	}
-	servers.push_back(server);
+	addServer(server);
 	// std::cout << server;
 }
 
-void getLocationBlock(t_its it, Server &server)
+void WebServer::getLocationBlock(t_its it, Server &server)
 {
 	std::string content(it.it1, it.it2);
 	std::stringstream locationString(content);
@@ -150,7 +150,7 @@ void getLocationBlock(t_its it, Server &server)
 	server.setLocation(key, location);
 }
 
-void setAttributes(const std::vector<std::string> &line, Server &server)
+void WebServer::setAttributes(const std::vector<std::string> &line, Server &server)
 {
 	if (line.empty())
 		return;
@@ -187,7 +187,7 @@ void setAttributes(const std::vector<std::string> &line, Server &server)
 		throw std::runtime_error("Unknown directive: '" + key + "'");
 }
 
-void setLocationAttributes(const std::vector<std::string> &line, t_location &location, std::string &key)
+void WebServer::setLocationAttributes(const std::vector<std::string> &line, t_location &location, std::string &key)
 {
 	if (line.empty())
 		return;
@@ -268,7 +268,7 @@ void WebServer::setServer(std::string configFile)
 		it = getIts(content, content.begin(), target, target);
 		while (it.it1 != content.end())
 		{
-			getServerBlock(it, _servers);
+			getServerBlock(it);
 			if (it.it2 != content.end())
 				it = getIts(content, it.it2, target, target);
 			else
@@ -318,10 +318,10 @@ int WebServer::serve(void)
 		perror("epoll_create1");
 		return 1;
 	}
-
 	// Register all server sockets with epoll
 	for (size_t i = 0; i < _sockets.size(); ++i)
 	{
+
 		int fd = _sockets[i].getServerFd();
 		struct epoll_event ev;
 		ev.events = EPOLLIN;
@@ -338,6 +338,7 @@ int WebServer::serve(void)
 	struct epoll_event events[MAX_EVENTS];
 	while (true)
 	{
+		// std::cout << "here" << std::endl;
 		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
 		if (nfds == -1)
 		{
@@ -401,5 +402,6 @@ int WebServer::serve(void)
 		}
 	}
 	close(epoll_fd);
+
 	return 0;
 }

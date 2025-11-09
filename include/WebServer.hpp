@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/09 14:17:29 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/09 14:45:53 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,13 +68,13 @@ public:
 	int serve(void);
 	std::vector<Server> getServers() const;
 	const Response &handleReverseProxy();
+	void getServerBlock(t_its it);
+	void getLocationBlock(t_its it, Server &server);
+	void setAttributes(const std::vector<std::string> &line, Server &server);
+	void setLocationAttributes(const std::vector<std::string> &line,
+							   t_location &location, std::string &key);
+	t_its getIts(std::string &content, std::string::iterator start,
+				 const std::string &target1, const std::string &target2);
 };
-t_its getIts(std::string &content, std::string::iterator start,
-			 const std::string &target1, const std::string &target2);
-void setAttributes(const std::vector<std::string> &line, Server &server);
-void setLocationAttributes(const std::vector<std::string> &line,
-						   t_location &location, std::string &key);
-void getServerBlock(t_its it, std::vector<Server> &servers);
-void getLocationBlock(t_its it, Server &server);
 
 #endif
