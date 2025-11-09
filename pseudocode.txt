@@ -1,0 +1,12 @@
+# proxy_pass
+
+get the request from the client
+mod the request to match the ip of the proxy_pass
+send the request to the ip
+get the response from the server
+send it back to the client
+
+## problem
+
+how do we identify this is the proxy_pass
+

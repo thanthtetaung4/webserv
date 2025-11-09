@@ -6,13 +6,16 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/30 10:21:38 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/09 13:44:46 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./../../include/WebServer.hpp"
 # include "../../include/Request.hpp"
 # include "../../include/Response.hpp"
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 WebServer::WebServer(){}
 
@@ -275,9 +278,18 @@ void	WebServer::setUpSock(void) {
 	}
 }
 
+/*
+	send the request to the proxy server and get the response
+	create a new Response object with the response from server
+	and return it
+*/
+const Response&	WebServer::handleReverseProxy () {
+	Response* res = new Response();
+	return *res;
+}
 
 int	WebServer::serve(void) {
-		int epoll_fd = epoll_create1(0);
+	int epoll_fd = epoll_create1(0);
 	if (epoll_fd == -1) {
 		perror("epoll_create1");
 		return 1;
@@ -314,9 +326,9 @@ int	WebServer::serve(void) {
 				perror("accept");
 				continue;
 			}
-			            // --- RECV REQUEST ---
 			char buffer[4096];
 			std::cout << "=================REQUEST============================" <<std::endl;
+
 			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 			if (bytes_received < 0) {
 				perror("recv");
@@ -325,17 +337,29 @@ int	WebServer::serve(void) {
 			}
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
+			std::cout << "=======================================================" <<std::endl;
 			std::cout << buffer << std::endl;
 			std::cout << "=====================================================" << std::endl;
-			Request req = Request::Parse(buffer);
+			Request req(buffer);
 
-			// --- SEND RESPONSE ---
+			if (req._method == "POST") {
+				std::cout << "POST method detected" << std::endl;
+				Response res = this->handleReverseProxy();
+			}
 
-			Response res = Response::handleResponse(req);
+			std::cout << req << std::endl;
+			std::cout << "=================================I do not know let see=====================" << std::endl;
+
+			std::cout << "creating res" << std::endl;
+			Response res(req,_servers[idx]);
+			std::cout << "printing res" << std::endl;
+			std::cout << res << std::endl;
+			std::cout << "res printed" << std::endl;
+			std::cout << "=================================I do not know let see=====================" << std::endl;
 			std::string httpResponse = res.toStr();
 
-
 			std::cout << "http res: " << httpResponse << std::endl;
+
 			ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
 			if (sent < 0) {
 				perror("send");
