@@ -6,50 +6,56 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/09 13:44:46 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/09 14:18:59 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./../../include/WebServer.hpp"
-# include "../../include/Request.hpp"
-# include "../../include/Response.hpp"
+#include "../../include/Request.hpp"
+#include "../../include/Response.hpp"
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-WebServer::WebServer(){}
+WebServer::WebServer() {}
 
-WebServer::~WebServer(){}
+WebServer::~WebServer() {}
 
 // WebServer::WebServer(const WebServer &src) {}
 
 // WebServer &WebServer::operator=(const WebServer &other) {}
 
-std::string	WebServer::getIndex(std::string path) {
+std::string WebServer::getIndex(std::string path)
+{
 	std::cout << path << std::endl;
-	std::ifstream	file(path.c_str());
+	std::ifstream file(path.c_str());
 
-	if (file.good()) {
+	if (file.good())
+	{
 		std::stringstream buffer;
 		buffer << file.rdbuf();
 
 		std::cout << buffer.str() << std::endl;
 
 		return buffer.str();
-	} else {
+	}
+	else
+	{
 		std::cout << "file not opened" << std::endl;
 	}
 	return "";
 }
 
-void	printRange(std::string::iterator it1, std::string::iterator it2)
+void printRange(std::string::iterator it1, std::string::iterator it2)
 {
-	if (it1 == it2) {
+	if (it1 == it2)
+	{
 		std::cout << "(empty range)" << std::endl;
 		return;
 	}
 
-	for (std::string::iterator it = it1; it != it2; ++it) {
+	for (std::string::iterator it = it1; it != it2; ++it)
+	{
 		std::cout << *it;
 	}
 	std::cout << std::endl;
@@ -88,6 +94,10 @@ void getServerBlock(t_its it, std::vector<Server> &servers)
 				itLoc = getIts(content, pos, token, "}");
 				getLocationBlock(itLoc, server);
 				pos = itLoc.it2;
+				std::string remaining(pos, content.end());
+				serverString.str(remaining);
+				serverString.clear();
+				continue;
 			}
 			if (!token.empty() && !(token.at(token.size() - 1) == ';'))
 				lineVec.push_back(token);
@@ -101,7 +111,7 @@ void getServerBlock(t_its it, std::vector<Server> &servers)
 		}
 	}
 	servers.push_back(server);
-	std::cout << server;
+	// std::cout << server;
 }
 
 void getLocationBlock(t_its it, Server &server)
@@ -140,12 +150,12 @@ void getLocationBlock(t_its it, Server &server)
 	server.setLocation(key, location);
 }
 
-void setAttributes(const std::vector<std::string>& line, Server& server)
+void setAttributes(const std::vector<std::string> &line, Server &server)
 {
 	if (line.empty())
 		return;
 
-	const std::string& key = line[0];	
+	const std::string &key = line[0];
 	if (key == "listen")
 	{
 		Validator::requireSize(line, 2, key);
@@ -159,7 +169,7 @@ void setAttributes(const std::vector<std::string>& line, Server& server)
 	else if (key == "error_page")
 	{
 		Validator::requireMinSize(line, 3, key);
-		const std::string& errorPage = line.back();
+		const std::string &errorPage = line.back();
 		for (size_t i = 1; i < line.size() - 1; ++i)
 			server.setErrorPage(line[i], errorPage);
 	}
@@ -183,7 +193,7 @@ void setLocationAttributes(const std::vector<std::string> &line, t_location &loc
 		return;
 
 	const std::string &directive = line[0];
-	
+
 	if (directive == "location")
 	{
 		Validator::requireSize(line, 3, directive);
@@ -233,10 +243,14 @@ void setLocationAttributes(const std::vector<std::string> &line, t_location &loc
 		Validator::requireSize(line, 2, directive);
 		location._uploadStore = line[1];
 	}
+	else if (directive == "proxy_pass")
+	{
+		Validator::requireSize(line, 2, directive);
+		location._proxy_pass = line[1];
+	}
 	else
 		throw std::runtime_error("Unknown location directive: '" + directive + "'");
 }
-
 
 void WebServer::setServer(std::string configFile)
 {
@@ -264,44 +278,56 @@ void WebServer::setServer(std::string configFile)
 	}
 }
 
-void	WebServer::addServer(Server server) {
+void WebServer::addServer(Server server)
+{
 	this->_servers.push_back(server);
 	this->_sockets.push_back(Socket(std::atol(server.getPort().c_str())));
 }
 
-void	WebServer::setUpSock(void) {
+void WebServer::setUpSock(void)
+{
 	std::vector<Socket>::iterator it;
 
-	for (it = this->_sockets.begin(); it != this->_sockets.end(); ++it) {
+	for (it = this->_sockets.begin(); it != this->_sockets.end(); ++it)
+	{
 		(*it).prepSock();
 		std::cout << (*it) << std::endl;
 	}
 }
 
+std::vector<Server> WebServer::getServers() const
+{
+	return _servers;
+}
 /*
 	send the request to the proxy server and get the response
 	create a new Response object with the response from server
 	and return it
 */
-const Response&	WebServer::handleReverseProxy () {
-	Response* res = new Response();
+const Response &WebServer::handleReverseProxy()
+{
+	Response *res = new Response();
 	return *res;
 }
 
-int	WebServer::serve(void) {
+int WebServer::serve(void)
+{
 	int epoll_fd = epoll_create1(0);
-	if (epoll_fd == -1) {
+	if (epoll_fd == -1)
+	{
 		perror("epoll_create1");
 		return 1;
 	}
 
 	// Register all server sockets with epoll
-	for (size_t i = 0; i < _sockets.size(); ++i) {
+	for (size_t i = 0; i < _sockets.size(); ++i)
+	{
 		int fd = _sockets[i].getServerFd();
 		struct epoll_event ev;
 		ev.events = EPOLLIN;
 		ev.data.u32 = i; // Store index to map back to Server
-		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1) {
+		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
+		{
 			perror("epoll_ctl: listen_sock");
 			close(epoll_fd);
 			return 1;
@@ -310,39 +336,45 @@ int	WebServer::serve(void) {
 	}
 
 	struct epoll_event events[MAX_EVENTS];
-	while (true) {
+	while (true)
+	{
 		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-		if (nfds == -1) {
+		if (nfds == -1)
+		{
 			perror("epoll_wait");
 			break;
 		}
-		for (int n = 0; n < nfds; ++n) {
+		for (int n = 0; n < nfds; ++n)
+		{
 			size_t idx = events[n].data.u32;
 			int listen_fd = _sockets[idx].getServerFd();
 			sockaddr_in client_addr;
 			socklen_t client_len = sizeof(client_addr);
-			int client_fd = accept(listen_fd, (struct sockaddr*)&client_addr, &client_len);
-			if (client_fd < 0) {
+			int client_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_len);
+			if (client_fd < 0)
+			{
 				perror("accept");
 				continue;
 			}
 			char buffer[4096];
-			std::cout << "=================REQUEST============================" <<std::endl;
+			std::cout << "=================REQUEST============================" << std::endl;
 
 			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-			if (bytes_received < 0) {
+			if (bytes_received < 0)
+			{
 				perror("recv");
 				close(client_fd);
 				continue;
 			}
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
-			std::cout << "=======================================================" <<std::endl;
+			std::cout << "=======================================================" << std::endl;
 			std::cout << buffer << std::endl;
 			std::cout << "=====================================================" << std::endl;
 			Request req(buffer);
 
-			if (req._method == "POST") {
+			if (req._method == "POST")
+			{
 				std::cout << "POST method detected" << std::endl;
 				Response res = this->handleReverseProxy();
 			}
@@ -351,7 +383,7 @@ int	WebServer::serve(void) {
 			std::cout << "=================================I do not know let see=====================" << std::endl;
 
 			std::cout << "creating res" << std::endl;
-			Response res(req,_servers[idx]);
+			Response res(req, _servers[idx]);
 			std::cout << "printing res" << std::endl;
 			std::cout << res << std::endl;
 			std::cout << "res printed" << std::endl;
@@ -361,7 +393,8 @@ int	WebServer::serve(void) {
 			std::cout << "http res: " << httpResponse << std::endl;
 
 			ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
-			if (sent < 0) {
+			if (sent < 0)
+			{
 				perror("send");
 			}
 			close(client_fd);

@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 05:09:26 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/09 13:47:43 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/09 14:07:04 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,8 +27,7 @@ typedef struct location
         std::string _cgiPass;
         std::string _cgiExt;
         std::string _uploadStore;
-        std::string _proxyPass;
+        std::string _proxy_pass;
 } t_location;
-
 
 #endif
