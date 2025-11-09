@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/09 14:46:29 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/09 14:57:26 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -147,6 +147,8 @@ void WebServer::getLocationBlock(t_its it, Server &server)
 			}
 		}
 	}
+	if (location._limit_except.empty())
+		location._limit_except.push_back("GET");
 	server.setLocation(key, location);
 }
 
@@ -212,7 +214,7 @@ void WebServer::setLocationAttributes(const std::vector<std::string> &line, t_lo
 	}
 	else if (directive == "limit_except")
 	{
-		Validator::requireMinSize(line, 2, directive);
+		Validator::requireMinSize(line, 1, directive);
 		for (size_t i = 1; i < line.size(); ++i)
 			location._limit_except.push_back(line[i]);
 	}
