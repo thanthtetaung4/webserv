@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 04:47:58 by lshein            #+#    #+#             */
-/*   Updated: 2025/10/15 20:08:01 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/09 13:45:55 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 #include <algorithm>
 #include <string>
-#include "Location.hpp"
+#include "Location.h"
 
 class Server
 {

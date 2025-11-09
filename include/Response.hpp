@@ -3,12 +3,13 @@
 /*                                                        :::      ::::::::   */
 /*   Response.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/10/10 00:55:47 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/07 17:24:42 by taung            ###   ########.fr       */
+/*   Created: 2025/11/09 13:39:37 by lshein            #+#    #+#             */
+/*   Updated: 2025/11/09 13:43:14 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 
 # ifndef RESPONSE_HPP
 # define RESPONSE_HPP
@@ -17,15 +18,15 @@
 # include <filesystem>
 # include "Server.hpp"
 # include "ServerException.hpp"
-#include <cstdlib>
-#include <fstream>
-#include <ostream>
-#include <pthread.h>
-#include <sstream>
-#include <string>
+# include <cstdlib>
+# include <fstream>
+# include <ostream>
+# include <pthread.h>
+# include <sstream>
+# include <string>
 # include <map>
 # include <unistd.h>
-#include <vector>
+# include <vector>
 
 class Response{
 	private:
