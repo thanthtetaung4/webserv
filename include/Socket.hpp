@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 14:06:54 by taung             #+#    #+#             */
-/*   Updated: 2025/10/11 03:41:31 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/09 21:07:50 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 class Socket {
 	private:
 		int	serverFd;
-		sockaddr_in addr;
+		sockaddr_in	addr;
 		socklen_t	addr_len;
 	public:
 		Socket();

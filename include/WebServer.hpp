@@ -3,33 +3,46 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/10 06:45:28 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/10 17:24:07 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef WEBSERVER_HPP
 #define WEBSERVER_HPP
 
-#include "Server.hpp"
-#include "ServerException.hpp"
-#include "Socket.hpp"
-#include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <poll.h>
-#include <sstream>
-#include <string>
-#include <sys/epoll.h>
-#include <unistd.h>
-#include "Request.hpp"
-#include "Response.hpp"
-#include "Validator.hpp"
+# include "Server.hpp"
+# include "ServerException.hpp"
+# include "Socket.hpp"
+# include <cstdlib>
+# include <cstring>
+# include <fstream>
+# include <poll.h>
+# include <sstream>
+# include <string>
+# include <sys/epoll.h>
+# include <unistd.h>
+# include "Request.hpp"
+# include "Response.hpp"
+# include "utils.h"
+# include "proxyPass.h"
+# include "Validator.hpp"
 
-#define MAX_EVENTS 10
+# define MAX_EVENTS 10
 
+struct Validator
+{
+    static void requireSize(const std::vector<std::string> &line, size_t expected, const std::string &name) {
+        if (line.size() != expected)
+            throw std::runtime_error("Invalid '" + name + "' directive format");
+    }
+    static void requireMinSize(const std::vector<std::string> &line, size_t min, const std::string &name) {
+        if (line.size() < min)
+            throw std::runtime_error("Invalid '" + name + "' directive format");
+    }
+};
 typedef struct its
 {
 	std::string::iterator it1;
@@ -55,7 +68,7 @@ public:
 	void setUpSock(void);
 	int serve(void);
 	std::vector<Server> getServers() const;
-	const Response &handleReverseProxy();
+	const std::string	handleReverseProxy(const Request& req, const Server &server);
 	void getServerBlock(t_its it);
 	void getLocationBlock(t_its it, Server &server);
 	void setAttributes(const std::vector<std::string> &line, Server &server);
