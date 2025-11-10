@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/10 06:45:57 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/10 08:26:27 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/10 09:53:55 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -118,6 +118,9 @@ bool ConfigValidator::validateLocation(const location &loc, const std::string &k
 		ok = false;
 	}
 
+	if (!loc._return.empty() && !validateReturn(atol(loc._return.begin()->first.c_str()), loc._return.begin()->second))
+		ok = false;
+		
 	if (!validateMethods(loc._limit_except))
 		ok = false;
 

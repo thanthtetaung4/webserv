@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/10 17:30:18 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/10 09:52:52 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -150,6 +150,7 @@ void WebServer::getLocationBlock(t_its it, Server &server)
 	}
 	if (location._limit_except.empty())
 		location._limit_except.push_back("GET");
+	ConfigValidator::validateLocation(location, key);
 	server.setLocation(key, location);
 }
 
