@@ -3,10 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
+<<<<<<< HEAD
 /*   Updated: 2025/11/10 15:53:17 by taung            ###   ########.fr       */
+=======
+/*   Updated: 2025/11/09 13:44:46 by lshein           ###   ########.fr       */
+>>>>>>> 0066376991127377dfb72be9d972faa1fd648ea4
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -142,30 +146,39 @@ void getLocationBlock(t_its it, Server &server)
 
 void setAttributes(const std::vector<std::string>& line, Server& server)
 {
-	if (line.empty()) return;
+	if (line.empty())
+		return;
 
-	const std::string& key = line[0];
-	if (key == "listen") {
-		if (line.size() != 2)
-			throw std::runtime_error("Invalid listen directive format");
+	const std::string& key = line[0];	
+	if (key == "listen")
+	{
+		Validator::requireSize(line, 2, key);
 		server.setPort(line[1]);
 	}
-	else if (key == "server_name") {
-		if (line.size() != 2)
-			throw std::runtime_error("Invalid server_name directive format");
+	else if (key == "server_name")
+	{
+		Validator::requireSize(line, 2, key);
 		server.setServerName(line[1]);
 	}
-	else if (key == "error_page") {
-		if (line.size() < 3)
-			throw std::runtime_error("Invalid error_page directive format");
+	else if (key == "error_page")
+	{
+		Validator::requireMinSize(line, 3, key);
+		const std::string& errorPage = line.back();
 		for (size_t i = 1; i < line.size() - 1; ++i)
-			server.setErrorPage(line[i], line.back());  // Allow multiple error codes mapping to one page
+			server.setErrorPage(line[i], errorPage);
 	}
-	else if (key == "client_max_body_size") {
-		if (line.size() != 2)
-			throw std::runtime_error("Invalid client_max_body_size directive format");
+	else if (key == "client_max_body_size")
+	{
+		Validator::requireSize(line, 2, key);
 		server.setMaxBytes(line[1]);
 	}
+	else if (key == "return")
+	{
+		Validator::requireSize(line, 3, key);
+		server.setReturn(line[1], line[2]);
+	}
+	else
+		throw std::runtime_error("Unknown directive: '" + key + "'");
 }
 
 void setLocationAttributes(const std::vector<std::string> &line, t_location &location, std::string &key)
@@ -173,63 +186,61 @@ void setLocationAttributes(const std::vector<std::string> &line, t_location &loc
 	if (line.empty())
 		return;
 
-	if (line[0] == "location")
+	const std::string &directive = line[0];
+	
+	if (directive == "location")
 	{
-		if (line.size() != 3)
-			throw std::runtime_error("Invalid 'location' directive format");
+		Validator::requireSize(line, 3, directive);
 		key = line[1];
 	}
-	else if (line[0] == "root")
+	else if (directive == "root")
 	{
-		if (line.size() != 2)
-			throw std::runtime_error("Invalid 'root' directive format");
+		Validator::requireSize(line, 2, directive);
 		location._root = line[1];
 	}
-	else if (line[0] == "index")
+	else if (directive == "index")
 	{
-		if (line.size() < 2)
-			throw std::runtime_error("Invalid 'index' directive format");
-		for (size_t i = 1; i < line.size(); i++)
+		Validator::requireMinSize(line, 2, directive);
+		for (size_t i = 1; i < line.size(); ++i)
 			location._index.push_back(line[i]);
 	}
-	else if (line[0] == "limit_except")
+	else if (directive == "limit_except")
 	{
-		if (line.size() < 2)
-			throw std::runtime_error("Invalid 'limit_except' directive format");
-		for (size_t i = 1; i < line.size(); i++)
+		Validator::requireMinSize(line, 2, directive);
+		for (size_t i = 1; i < line.size(); ++i)
 			location._limit_except.push_back(line[i]);
 	}
-	else if (line[0] == "return")
+	else if (directive == "return")
 	{
-		if (line.size() != 3)
-			throw std::runtime_error("Invalid 'return' directive format");
+		Validator::requireSize(line, 3, directive);
 		location._return[line[1]] = line[2];
 	}
-	else if (line[0] == "autoindex")
+	else if (directive == "autoindex")
 	{
-		if (line.size() != 2 && line[1] != "on" && line[1] != "off")
-			throw std::runtime_error("Invalid 'autoindex' directive format");
+		Validator::requireSize(line, 2, directive);
+		if (line[1] != "on" && line[1] != "off")
+			throw std::runtime_error("Invalid 'autoindex' value — expected 'on' or 'off'");
 		location._autoIndex = line[1];
 	}
-	else if (line[0] == "cgiPass")
+	else if (directive == "cgiPass")
 	{
-		if (line.size() != 2)
-			throw std::runtime_error("Invalid 'cgiPass' directive format");
+		Validator::requireSize(line, 2, directive);
 		location._cgiPass = line[1];
 	}
-	else if (line[0] == "cgiExt")
+	else if (directive == "cgiExt")
 	{
-		if (line.size() != 2)
-			throw std::runtime_error("Invalid 'cgiExt' directive format");
+		Validator::requireSize(line, 2, directive);
 		location._cgiExt = line[1];
 	}
-	else if (line[0] == "uploadStore")
+	else if (directive == "uploadStore")
 	{
-		if (line.size() != 2)
-			throw std::runtime_error("Invalid 'uploadStore' directive format");
+		Validator::requireSize(line, 2, directive);
 		location._uploadStore = line[1];
 	}
+	else
+		throw std::runtime_error("Unknown location directive: '" + directive + "'");
 }
+
 
 void WebServer::setServer(std::string configFile)
 {
