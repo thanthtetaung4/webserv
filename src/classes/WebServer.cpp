@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/10 17:28:24 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/10 17:30:18 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -312,9 +312,9 @@ std::vector<Server> WebServer::getServers() const
 */
 const std::string	WebServer::handleReverseProxy (const Request& req, const Server& server) {
 	std::cout << "Handling reverse proxy..." << std::endl;
-	std::cout << search_map_iterator(server.getLocation(), req._urlPath)->second._proxyPass << std::endl;
+	std::cout << search_map_iterator(server.getLocation(), req._urlPath)->second._proxy_pass << std::endl;
 
-	t_proxyPass pp = parseProxyPass(search_map_iterator(server.getLocation(), req._urlPath)->second._proxyPass);
+	t_proxyPass pp = parseProxyPass(search_map_iterator(server.getLocation(), req._urlPath)->second._proxy_pass);
 
 	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
 

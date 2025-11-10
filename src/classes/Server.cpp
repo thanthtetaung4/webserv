@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/10 17:17:55 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/10 17:29:39 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,7 +105,7 @@ std::ostream &operator<<(std::ostream &os, const Server &s)
 		os << "	cgiPass: " << it->second._cgiPass << std::endl;
 		os << "	cgiExt: " << it->second._cgiExt << std::endl;
 		os << "	uploadStore: " << it->second._uploadStore << std::endl;
-		os << "	proxyPass: " << it->second._proxyPass << std::endl;
+		os << "	proxyPass: " << it->second._proxy_pass << std::endl;
 	}
 	os << "************************" << std::endl;
 	return os;

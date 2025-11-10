@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/10 17:24:07 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/10 17:30:00 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,17 +32,6 @@
 
 # define MAX_EVENTS 10
 
-struct Validator
-{
-    static void requireSize(const std::vector<std::string> &line, size_t expected, const std::string &name) {
-        if (line.size() != expected)
-            throw std::runtime_error("Invalid '" + name + "' directive format");
-    }
-    static void requireMinSize(const std::vector<std::string> &line, size_t min, const std::string &name) {
-        if (line.size() < min)
-            throw std::runtime_error("Invalid '" + name + "' directive format");
-    }
-};
 typedef struct its
 {
 	std::string::iterator it1;
