@@ -6,7 +6,7 @@
 #    By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/11/09 19:49:53 by taung            ###   ########.fr        #
+#    Updated: 2025/11/10 14:37:42 by taung            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -19,7 +19,7 @@ UTILS = ./src/utils
 SRCS = ./src/main.cpp \
 	${CLASSES}/WebServer.cpp ${CLASSES}/Server.cpp ${CLASSES}/Socket.cpp \
 	${CLASSES}/Response.cpp ${CLASSES}/Request.cpp \
-	${EXCEPTIONS}/ServerExceptions.cpp ${UTILS}/search_map.cpp
+	${EXCEPTIONS}/ServerExceptions.cpp ${UTILS}/parseProxyPass.cpp
 OBJS = ${SRCS:.cpp=.o}
 
 CC = c++

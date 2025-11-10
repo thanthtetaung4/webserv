@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 19:48:22 by taung             #+#    #+#             */
-/*   Updated: 2025/11/09 19:48:45 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/10 14:44:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,8 +15,23 @@
 
 # include <iostream>
 # include <map>
+# include "proxyPass.h"
 
 template <typename K, typename V>
-bool	search_map(const std::map<K, V>& m, const K& key);
+bool	search_map(const std::map<K, V>& m, const K& key) {
+	typename std::map<K, V>::const_iterator it = m.find(key);
+	if (it != m.end())
+		return true;
+	else
+		return false;
+}
+
+template <typename K, typename V>
+typename std::map<K, V>::const_iterator search_map_iterator(const std::map<K, V>& m, const K& key)  {
+	typename std::map<K, V>::const_iterator it = m.find(key);
+	return it;
+}
+
+t_proxyPass	parseProxyPass(const std::string &proxyPassStr);
 
 # endif

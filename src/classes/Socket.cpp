@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 14:06:45 by taung             #+#    #+#             */
-/*   Updated: 2025/10/11 03:48:41 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/09 21:15:37 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,10 @@
 # include "../../include/ServerException.hpp"
 
 Socket::Socket() {
-	throw InvalidSocket();
+	// throw InvalidSocket();
+	this->addr_len = sizeof(addr);
+	this->addr.sin_family = AF_INET;
+	this->addr.sin_addr.s_addr = INADDR_ANY;
 }
 
 Socket::Socket(unsigned int port) {

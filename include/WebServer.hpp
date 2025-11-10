@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/08 19:12:08 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/10 16:19:28 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,8 @@
 # include <unistd.h>
 # include "Request.hpp"
 # include "Response.hpp"
+# include "utils.h"
+# include "proxyPass.h"
 
 # define MAX_EVENTS 10
 
@@ -49,11 +51,11 @@ class WebServer
 	// WebServer(const WebServer &src);
 	// WebServer &operator=(const WebServer &other);
 
-	void setServer(std::string configFile);
-	void addServer(Server server);
-	void setUpSock(void);
-	int serve(void);
-	const Response&handleReverseProxy();
+	void			setServer(std::string configFile);
+	void			addServer(Server server);
+	void			setUpSock(void);
+	int				serve(void);
+	const std::string	handleReverseProxy(const Request& req, const Server &server);
 };
 t_its	getIts(std::string &content, std::string::iterator start,
 			const std::string &target1, const std::string &target2);

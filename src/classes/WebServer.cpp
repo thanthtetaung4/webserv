@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/08 20:52:19 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/10 15:53:17 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -276,9 +276,82 @@ void	WebServer::setUpSock(void) {
 	create a new Response object with the response from server
 	and return it
 */
-const Response&	WebServer::handleReverseProxy () {
-	Response* res = new Response();
-	return *res;
+const std::string	WebServer::handleReverseProxy (const Request& req, const Server& server) {
+	std::cout << "Handling reverse proxy..." << std::endl;
+	std::cout << search_map_iterator(server.getLocation(), req._urlPath)->second._proxyPass << std::endl;
+
+	t_proxyPass pp = parseProxyPass(search_map_iterator(server.getLocation(), req._urlPath)->second._proxyPass);
+
+	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
+
+	// Create socket with the correct port
+	Socket proxySocket(std::atol(pp.port.c_str()));
+	proxySocket.openSock();  // Only create the socket, don't bind/listen
+
+	std::cout << "Proxy socket: " << proxySocket.getServerFd() << std::endl;
+
+	// Setup address structure for the proxy server
+	struct sockaddr_in server_addr;
+	// Initialize to zero without memset
+	for (size_t i = 0; i < sizeof(server_addr); i++) {
+		((char*)&server_addr)[i] = 0;
+	}
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(std::atol(pp.port.c_str()));
+
+	// Convert IP address from string to binary using inet_addr
+	server_addr.sin_addr.s_addr = inet_addr(pp.host.c_str());
+	if (server_addr.sin_addr.s_addr == INADDR_NONE) {
+		throw std::runtime_error("Invalid proxy address");
+	}
+
+	// Connect to proxy server
+	if (connect(proxySocket.getServerFd(), (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+		throw std::runtime_error("Unable to connect to proxy server");
+	}
+
+	std::cout << "Connected successfully!" << std::endl;
+
+	// Build the proxy request
+	std::string proxyRequest = req._method + " " + pp.path + " " + req._httpVersion + "\r\n";
+	for (std::map<std::string, std::string>::const_iterator it = req._headers.begin();
+		it != req._headers.end(); ++it) {
+		proxyRequest += it->first + ": " + it->second + "\r\n";
+	}
+	proxyRequest += "\r\n" + req._body;
+
+	std::cout << "Proxy Request:\n" << proxyRequest << std::endl;
+
+	// Send the request to proxy server
+	ssize_t sent = send(proxySocket.getServerFd(), proxyRequest.c_str(), proxyRequest.size(), 0);
+	if (sent < 0) {
+		throw std::runtime_error("Unable to send request to proxy server");
+	}
+
+	std::cout << "Request sent successfully (" << sent << " bytes)" << std::endl;
+
+	// Receive the response from proxy server
+	char buffer[4096];
+	// Initialize buffer to zero without memset
+	for (size_t i = 0; i < sizeof(buffer); i++) {
+		buffer[i] = 0;
+	}
+
+	ssize_t bytes_received = recv(proxySocket.getServerFd(), buffer, sizeof(buffer) - 1, 0);
+
+	if (bytes_received < 0) {
+		throw std::runtime_error("Error receiving response from proxy server");
+	}
+
+	if (bytes_received == 0) {
+		return ("");
+	}
+
+	buffer[bytes_received] = '\0';  // Null-terminate the received data
+
+	std::cout << "Received " << bytes_received << " bytes from proxy" << std::endl;
+
+	return std::string(buffer);
 }
 
 int	WebServer::serve(void) {
@@ -337,7 +410,14 @@ int	WebServer::serve(void) {
 
 			if (req._method == "POST") {
 				std::cout << "POST method detected" << std::endl;
-				Response res = this->handleReverseProxy();
+				std::string	rawRes = this->handleReverseProxy(req, _servers[idx]);
+				// just send the plain text to the client no need to change it back to Response obj
+				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
+				if (sent < 0) {
+					perror("send");
+				}
+				close(client_fd);
+				continue;
 			}
 
 			std::cout << req << std::endl;

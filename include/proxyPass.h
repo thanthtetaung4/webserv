@@ -1,25 +1,24 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   search_map.cpp                                     :+:      :+:    :+:   */
+/*   proxyPass.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/09 19:44:54 by taung             #+#    #+#             */
-/*   Updated: 2025/11/09 19:48:57 by taung            ###   ########.fr       */
+/*   Created: 2025/11/10 14:34:13 by taung             #+#    #+#             */
+/*   Updated: 2025/11/10 14:43:47 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-# include "../../include/utils.h"
+# ifndef PROXYPASS_H
+# define PROXYPASS_H
 
-/*
-	Returns true if the key in found in the map, false otherwise
-*/
-template <typename K, typename V>
-bool	search_map(const std::map<K, V>& m, const K& key) {
-	typename std::map<K, V>::const_iterator it = m.find(key);
-	if (it != m.end())
-		return true;
-	else
-		return false;
-}
+# include <iostream>
+
+typedef struct s_proxyPass {
+	std::string	host;
+	std::string	port;
+	std::string	path;
+}	t_proxyPass;
+
+# endif

@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/07 17:28:56 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/10 02:54:55 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,6 +57,18 @@ std::string readFile(std::string& path) {
 	buffer << file.rdbuf();
 	return buffer.str();
 }
+
+
+Response::Response(const Response &res) {
+	if (this == &res)
+		throw UnableToCreateResponse();
+	this->_httpVersion = res._httpVersion;
+	this->_statusCode = res._statusCode;
+	this->_statusTxt = res._statusTxt;
+	this->_headers = res._headers;
+	this->_body = res._body;
+}
+
 
 bool	Response::generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server& server){
 	this->_statusCode = errorCode;

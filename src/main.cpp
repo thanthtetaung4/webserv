@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:41:50 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/08 17:47:40 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/10 14:57:51 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
         Server s1,s2;
 
                 // Configure Server 1
-        s1.setPort("8080");
+        s1.setPort("8081");
         s1.setServerName("server_one");
         s1.setMaxBytes("1048576"); // 1MB
         s1.setErrorPage("404", "www/html/404.html");
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
         loc2._limit_except.push_back("GET");
         loc2._limit_except.push_back("POST");
         loc2._autoIndex = "on";
-        loc2._proxyPass = "http://127.0.0.1:8080";
+        loc2._proxyPass = "http://127.0.0.1:8080/items";
         s2.setLocation("/", loc2);
 
         // Add servers to WebServer (assuming addServer takes a Server object)
@@ -61,6 +61,8 @@ int main(int argc, char **argv) {
         // std::cout << s2 << std::endl;
         ws.setUpSock();
         ws.serve();
+        // Request req("POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 11\r\n\r\nHello World");
+        // ws.handleReverseProxy(req);
     }
     else
         std::cerr << "Usage: ./webserv [config file]" << std::endl;

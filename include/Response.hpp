@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 00:55:47 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/07 17:24:42 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/09 23:06:47 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,9 @@ class Response{
 		std::string _body;
 	public:
 		Response(void);
-		Response(const Request& res, Server& server);
+		Response(const Request& req, Server& server);
+		Response(const Response &res);
+		Response(const char* rawRes);
 		static Response handleResponse(const Request& req, Server& server);
 		bool								generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server& server);
 		bool								checkHttpError(const Request& req, size_t size, std::string path, Server& server);
