@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/09 14:57:26 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/10 08:20:21 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "../../include/Validator.hpp"
 
 WebServer::WebServer() {}
 
@@ -160,29 +161,32 @@ void WebServer::setAttributes(const std::vector<std::string> &line, Server &serv
 	const std::string &key = line[0];
 	if (key == "listen")
 	{
-		Validator::requireSize(line, 2, key);
+		Validator::requireSize(line, 2, key, ConfigValidator::validateListen(line[1]));
 		server.setPort(line[1]);
 	}
 	else if (key == "server_name")
 	{
-		Validator::requireSize(line, 2, key);
+		Validator::requireSize(line, 2, key, ConfigValidator::validateServerName(line[1]));
 		server.setServerName(line[1]);
 	}
 	else if (key == "error_page")
 	{
-		Validator::requireMinSize(line, 3, key);
+		Validator::requireMinSize(line, 3, key, true);
 		const std::string &errorPage = line.back();
 		for (size_t i = 1; i < line.size() - 1; ++i)
+		{
+			Validator::requireMinSize(line, 3, key, ConfigValidator::validateErrorPage(atoi(line[i].c_str()), errorPage));
 			server.setErrorPage(line[i], errorPage);
+		}
 	}
 	else if (key == "client_max_body_size")
 	{
-		Validator::requireSize(line, 2, key);
+		Validator::requireSize(line, 2, key, ConfigValidator::validateSize(line[1]));
 		server.setMaxBytes(line[1]);
 	}
 	else if (key == "return")
 	{
-		Validator::requireSize(line, 3, key);
+		Validator::requireSize(line, 3, key, ConfigValidator::validateReturn(atoi(line[1].c_str()), line[2]));
 		server.setReturn(line[1], line[2]);
 	}
 	else
@@ -198,56 +202,56 @@ void WebServer::setLocationAttributes(const std::vector<std::string> &line, t_lo
 
 	if (directive == "location")
 	{
-		Validator::requireSize(line, 3, directive);
+		Validator::requireSize(line, 3, directive, true);
 		key = line[1];
 	}
 	else if (directive == "root")
 	{
-		Validator::requireSize(line, 2, directive);
+		Validator::requireSize(line, 2, directive, true);
 		location._root = line[1];
 	}
 	else if (directive == "index")
 	{
-		Validator::requireMinSize(line, 2, directive);
+		Validator::requireMinSize(line, 2, directive, true);
 		for (size_t i = 1; i < line.size(); ++i)
 			location._index.push_back(line[i]);
 	}
 	else if (directive == "limit_except")
 	{
-		Validator::requireMinSize(line, 1, directive);
+		Validator::requireMinSize(line, 1, directive, true);
 		for (size_t i = 1; i < line.size(); ++i)
 			location._limit_except.push_back(line[i]);
 	}
 	else if (directive == "return")
 	{
-		Validator::requireSize(line, 3, directive);
+		Validator::requireSize(line, 3, directive, true);
 		location._return[line[1]] = line[2];
 	}
 	else if (directive == "autoindex")
 	{
-		Validator::requireSize(line, 2, directive);
+		Validator::requireSize(line, 2, directive, true);
 		if (line[1] != "on" && line[1] != "off")
 			throw std::runtime_error("Invalid 'autoindex' value — expected 'on' or 'off'");
 		location._autoIndex = line[1];
 	}
 	else if (directive == "cgiPass")
 	{
-		Validator::requireSize(line, 2, directive);
+		Validator::requireSize(line, 2, directive, true);
 		location._cgiPass = line[1];
 	}
 	else if (directive == "cgiExt")
 	{
-		Validator::requireSize(line, 2, directive);
+		Validator::requireSize(line, 2, directive, true);
 		location._cgiExt = line[1];
 	}
 	else if (directive == "uploadStore")
 	{
-		Validator::requireSize(line, 2, directive);
+		Validator::requireSize(line, 2, directive, true);
 		location._uploadStore = line[1];
 	}
 	else if (directive == "proxy_pass")
 	{
-		Validator::requireSize(line, 2, directive);
+		Validator::requireSize(line, 2, directive, true);
 		location._proxy_pass = line[1];
 	}
 	else

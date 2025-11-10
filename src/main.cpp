@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:41:50 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/09 14:59:29 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/10 07:16:07 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,7 +31,7 @@ int main(int argc, char **argv)
                 }
                 catch (std::exception &e)
                 {
-                        e.what();
+                        std::cout << e.what() << std::endl;
                 }
         }
         else
