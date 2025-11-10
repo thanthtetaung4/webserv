@@ -3,14 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-<<<<<<< HEAD
-/*   Updated: 2025/11/10 15:53:17 by taung            ###   ########.fr       */
-=======
-/*   Updated: 2025/11/09 13:44:46 by lshein           ###   ########.fr       */
->>>>>>> 0066376991127377dfb72be9d972faa1fd648ea4
+/*   Updated: 2025/11/10 17:20:30 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -149,7 +145,7 @@ void setAttributes(const std::vector<std::string>& line, Server& server)
 	if (line.empty())
 		return;
 
-	const std::string& key = line[0];	
+	const std::string& key = line[0];
 	if (key == "listen")
 	{
 		Validator::requireSize(line, 2, key);
@@ -187,7 +183,7 @@ void setLocationAttributes(const std::vector<std::string> &line, t_location &loc
 		return;
 
 	const std::string &directive = line[0];
-	
+
 	if (directive == "location")
 	{
 		Validator::requireSize(line, 3, directive);
