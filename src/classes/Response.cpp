@@ -27,9 +27,6 @@ bool safePath(std::string const& path){
 std::string getMimeType(const std::string& path) {
 	size_t deliPos = path.rfind('.');
 
-	if (deliPos == std::string::npos || deliPos == path.length() - 1) {
-		return "text/plain";
-	}
 	std::string type = path.substr(deliPos + 1);
 
 	if (type == "html")
@@ -44,6 +41,9 @@ std::string getMimeType(const std::string& path) {
 		return "image/jpeg";
 	else if (type == "ico")
 		return "image/x-icon";
+	else if (deliPos == std::string::npos || deliPos == path.length() - 1) {
+		return "text/plain";
+	}
 	else
 		return "text/plain";
 }
@@ -122,10 +122,10 @@ bool isSupportedType(const std::string &type)
 }
 
 bool Response::checkHttpError(const Request& req, size_t size, std::string path, Server& server){
-	if(req._method.empty())
+	if(req.getMethodType().empty())
 		return (generateError(400, "Bad Request", "400 Bad Request", server));
 
-	if(req._urlPath.find("/private")==0 && !req.hasHeader("Authorization"))
+	if(req.getUrlPath().find("/private")==0 && !req.hasHeader("Authorization"))
 		return (generateError(401, "Unauthorized", "401 Unauthorized", server));
 
 	std::ifstream file(path.c_str());
@@ -135,31 +135,31 @@ bool Response::checkHttpError(const Request& req, size_t size, std::string path,
 	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 || !safePath(path))
 		return (generateError(403,"Forbidden", "403 Forbidden", server));
 
-	if(req._method != "GET" && req._method != "POST" && req._method != "DELETE")
+	if(req.getMethodType() != "GET" && req.getMethodType() != "POST" && req.getMethodType() != "DELETE")
 		return (generateError(405, "Method Not Allowed", "405 Method Not Allowed", server));
 
-	if(req._method == "POST" && !req.hasHeader("Content-Length"))
+	if(req.getMethodType() == "POST" && !req.hasHeader("Content-Length"))
 		return (generateError(411, "Required Length", "411 Required Length", server));
 
-	if(req._body.size() > size)
+	if(req.getBody().size() > size)
 		return (generateError(413, "Content Too Large" , "413 Content Too Large", server));
 
-	if(req._urlPath.size() > 2048)
+	if(req.getUrlPath().size() > 2048)
 		return (generateError(414, "URL Too Long", "414 URL Too Long", server));
 
-	if(req._method == "POST"){
+	if(req.getMethodType() == "POST"){
 		std::string type = getMimeType(path);
 		if(!isSupportedType(type))
 			return (generateError(415, "Unsupported Media Type", "415 Unsupported Media Type", server));
 	}
 
-	if(req._urlPath == "/teapot")
+	if(req.getUrlPath() == "/teapot")
 		return (generateError(418, "I'm a teapot", "418 I'm a teapot", server));
 
-	if(req._urlPath.empty())
+	if(req.getUrlPath().empty() || path.empty())
 		return (generateError(500, "Internal Server Error", "500 Internal Server Error", server));
 
-	if( req._httpVersion != "HTTP/1.0" && req._httpVersion != "HTTP/1.1" )
+	if( req.getHttpVersion() != "HTTP/1.0" && req.getHttpVersion() != "HTTP/1.1" )
 		return (generateError(505, "HTTP Version not Supported", "505 HTTP Version Not Supported", server));
 
  return false;
@@ -170,7 +170,7 @@ Response::Response(void) {
 }
 
 Response::Response(const Request& req, Server& server) {
-	this->_httpVersion = req._httpVersion;
+	this->_httpVersion = req.getHttpVersion();
 
 	size_t size;
 	std::stringstream ss(server.getMaxByte());
@@ -179,7 +179,7 @@ Response::Response(const Request& req, Server& server) {
 
 	std::string path, index;
 	std::map<std::string, t_location> locations = server.getLocation();
-	std::map<std::string, t_location>::iterator it = locations.find(req._urlPath);
+	std::map<std::string, t_location>::iterator it = locations.find(req.getUrlPath());
 
 
 	if(it != locations.end()) {
@@ -195,6 +195,7 @@ Response::Response(const Request& req, Server& server) {
 		}
 	else
 		path = "";
+	//return error here
 	std::cout << "The real path " << path << std::endl;
 
 	//check config error here

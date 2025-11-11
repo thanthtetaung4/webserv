@@ -17,20 +17,33 @@
 # include <map>
 # include <ostream>
 # include <sstream>
+#include "Server.hpp"
 # include "ServerException.hpp"
 
 class Request{
-	public:
+	private:
 		std::string _method;
 		std::string _urlPath;
 		std::string _httpVersion;
 		std::map<std::string, std::string> _headers;
 		std::string _body;
 
+	public:
 		Request(void);
-		Request(const std::string &raw);
+		Request(const std::string &raw, Server& server);
 		bool hasHeader(const std::string &key) const;
 		bool checkHeaderValue(void) const;
+		std::string getMethodType() const;
+		std::string getUrlPath() const;
+		std::string getHttpVersion() const;
+		std::string getBody() const;
+		const std::map<std::string, std::string> &getHeaders() const;
+		
 };
 std::ostream& operator<<(std::ostream& os, const Request& req);
 # endif
+
+
+//check path if not error
+//if mathod check
+//if pass then go to response

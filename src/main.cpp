@@ -10,32 +10,33 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../include/WebServer.hpp"
-#include "../include/Response.hpp"
 #include "../include/Request.hpp"
+#include "../include/Response.hpp"
+#include "../include/WebServer.hpp"
 
-int main(int argc, char **argv)
+int	main(int argc, char **argv)
 {
-        if (argc == 2)
-        {
-                WebServer ws;
-                try
-                {
-                        ws.setServer(argv[1]);
-                        for (int i = 0; i < 2; i++)
-                        {
-                                std::cout << ws.getServers()[i] << std::endl;
-                        }
-                        ws.setUpSock();
-                        ws.serve();
-                }
-                catch (std::exception &e)
-                {
-                        std::cout << e.what() << std::endl;
-                }
-        }
-        else
-                std::cerr << "Usage: ./webserv [config file]" << std::endl;
+		WebServer ws;
+
+	if (argc == 2)
+	{
+		try
+		{
+			ws.setServer(argv[1]);
+			// for (int i = 0; i < 2; i++)
+			// {
+			//         std::cout << ws.getServers()[i] << std::endl;
+			// }
+			ws.setUpSock();
+			ws.serve();
+		}
+		catch (std::exception &e)
+		{
+			std::cout << e.what() << std::endl;
+		}
+	}
+	else
+		std::cerr << "Usage: ./webserv [config file]" << std::endl;
 }
 
 // int main(int argc, char **argv)
@@ -76,7 +77,8 @@ int main(int argc, char **argv)
 //                 loc2._proxy_pass = "http://127.0.0.1:8080";
 //                 s2.setLocation("/", loc2);
 
-//                 // Add servers to WebServer (assuming addServer takes a Server object)
+//                
+	// Add servers to WebServer (assuming addServer takes a Server object)
 //                 ws.addServer(s1);
 //                 ws.addServer(s2);
 
@@ -92,10 +94,11 @@ int main(int argc, char **argv)
 // }
 
 /*
-        std::string path;
-        std::map<std::string, t_location> locations = server.getLocation();
-        std::map<std::string, t_location>::iterator it = locations.find(req._urlPath);
-        if(it != locations.end())
-                path = it->second._root;
-        else
-                path = "";*/
+		std::string path;
+		std::map<std::string, t_location> locations = server.getLocation();
+		std::map<std::string,
+			t_location>::iterator it = locations.find(req._urlPath);
+		if(it != locations.end())
+				path = it->second._root;
+		else
+				path = "";*/

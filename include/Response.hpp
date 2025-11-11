@@ -40,22 +40,22 @@ class Response{
 		Response(const Request& req, Server& server);
 		Response(const Response &res);
 		Response(const char* rawRes);
-		static Response handleResponse(const Request& req, Server& server);
-		bool								generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server& server);
-		bool								checkHttpError(const Request& req, size_t size, std::string path, Server& server);
-		std::string							toStr() const;
+		static	Response handleResponse(const Request& req, Server& server);
+		bool	generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server& server);
+		bool	checkHttpError(const Request& req, size_t size, std::string path, Server& server);
+		std::string	toStr() const;
 
 		// Accessors
-		void								setHttpVersion(const std::string& version);
-		void								setStatusCode(int code);
-		void								setStatusTxt(const std::string& text);
-		void								setHeader(const std::string& key, const std::string& value);
-		void								setBody(const std::string& body);
-		std::string							getHttpVersion() const;
-		int									getStatusCode() const;
-		std::string							getStatusTxt() const;
+		void	setHttpVersion(const std::string& version);
+		void	setStatusCode(int code);
+		void	setStatusTxt(const std::string& text);
+		void	setHeader(const std::string& key, const std::string& value);
+		void	setBody(const std::string& body);
+		std::string	getHttpVersion() const;
+		int	getStatusCode() const;
+		std::string	getStatusTxt() const;
 		const std::map<std::string, std::string>	&getHeaders() const;
-		std::string							getBody() const;
+		std::string	getBody() const;
 
 };
 

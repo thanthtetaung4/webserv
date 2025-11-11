@@ -324,9 +324,9 @@ std::vector<Server> WebServer::getServers() const
 */
 const std::string	WebServer::handleReverseProxy (const Request& req, const Server& server) {
 	std::cout << "Handling reverse proxy..." << std::endl;
-	std::cout << search_map_iterator(server.getLocation(), req._urlPath)->second._proxy_pass << std::endl;
+	std::cout << search_map_iterator(server.getLocation(), req.getUrlPath())->second._proxy_pass << std::endl;
 
-	t_proxyPass pp = parseProxyPass(search_map_iterator(server.getLocation(), req._urlPath)->second._proxy_pass);
+	t_proxyPass pp = parseProxyPass(search_map_iterator(server.getLocation(), req.getUrlPath())->second._proxy_pass);
 
 	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
 
@@ -359,12 +359,12 @@ const std::string	WebServer::handleReverseProxy (const Request& req, const Serve
 	std::cout << "Connected successfully!" << std::endl;
 
 	// Build the proxy request
-	std::string proxyRequest = req._method + " " + pp.path + " " + req._httpVersion + "\r\n";
-	for (std::map<std::string, std::string>::const_iterator it = req._headers.begin();
-		it != req._headers.end(); ++it) {
+	std::string proxyRequest = req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
+	for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin();
+		it != req.getHeaders().end(); ++it) {
 		proxyRequest += it->first + ": " + it->second + "\r\n";
 	}
-	proxyRequest += "\r\n" + req._body;
+	proxyRequest += "\r\n" + req.getBody();
 
 	std::cout << "Proxy Request:\n" << proxyRequest << std::endl;
 
@@ -461,9 +461,9 @@ int	WebServer::serve(void) {
 			std::cout << "=======================================================" << std::endl;
 			std::cout << buffer << std::endl;
 			std::cout << "=====================================================" << std::endl;
-			Request req(buffer);
+			Request req(buffer, _servers[idx]);
 
-			if (req._method == "POST")
+			if (req.getMethodType() == "POST")
 			{
 				std::cout << "POST method detected" << std::endl;
 				std::string	rawRes = this->handleReverseProxy(req, _servers[idx]);
@@ -484,7 +484,7 @@ int	WebServer::serve(void) {
 			std::cout << "printing res" << std::endl;
 			std::cout << res << std::endl;
 			std::cout << "res printed" << std::endl;
-			std::cout << "=================================I do not know let see=====================" << std::endl;
+			std::cout << "=================================I do not know let see============it =========" << std::endl;
 			std::string httpResponse = res.toStr();
 
 			std::cout << "http res: " << httpResponse << std::endl;

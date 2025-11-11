@@ -11,8 +11,12 @@
 /* ************************************************************************** */
 
 # include "../../include/Request.hpp"
+#include <cstddef>
+#include <map>
 #include <ostream>
 #include <sstream>
+# include <fcntl.h>
+# include <unistd.h>
 #include <string>
 
 static std::string trim(const std::string &s) {
@@ -22,6 +26,28 @@ static std::string trim(const std::string &s) {
 		return "";
 	return s.substr(start, end - start + 1);
 }
+
+std::string Request::getMethodType() const {
+	return this->_method;
+} 
+
+std::string Request::getUrlPath() const {
+	return this->_urlPath;
+} 
+
+std::string Request::getHttpVersion() const {
+	return this->_httpVersion;
+} 
+
+std::string Request::getBody() const {
+	return this->_body;
+} 
+
+const std::map<std::string,std::string> &Request::getHeaders() const {
+	return this->_headers;
+}
+
+
 
 /*
 	check whether the header values matche the server config
@@ -38,7 +64,9 @@ Request::Request(void) {
 	throw UnableToCreateRequest();
 }
 
-Request::Request(const std::string &raw) {
+
+
+Request::Request(const std::string &raw, Server& server) {
 	size_t hearderEnd = raw.find("\r\n\r\n");
 	std::string hearderPart = raw.substr(0, hearderEnd);
 	if(hearderEnd != std::string::npos)
@@ -62,11 +90,13 @@ Request::Request(const std::string &raw) {
 			this->_headers[key] = value;
 		}
 	}
+	std::cout << this->_urlPath << std::endl;
+	(void) server;
 }
 
 std::ostream& operator<<(std::ostream& os, const Request& req){
-	os << "Method: " << req._method << std::endl;
-	os << "URL Path: " << req._urlPath << std::endl;
-	os << "HTTP Version: " << req._httpVersion << std::endl;
+	os << "Method: " << req.getMethodType() << std::endl;
+	os << "URL Path: " << req.getUrlPath() << std::endl;
+	os << "HTTP Version: " << req.getHttpVersion() << std::endl;
 	return  os;
 }
