@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/11 08:21:10 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/11 08:32:45 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,10 +85,16 @@ void WebServer::getServerBlock(t_its it)
 	std::string::iterator pos = content.begin();
 	while (std::getline(serverString, line))
 	{
-		if (line.at(line.size() - 1) != '{' || line.at(line.size() - 1) != '}')
+		if (!line.empty())
 		{
-			if (line.at(line.size() - 1) != ';')
-				throw std::runtime_error("Invalid directive format.\nMissing ';'");
+			if (line.at(line.size() - 1) != '{' && line.at(line.size() - 1) != '}')
+			{
+				if (line.at(line.size() - 1) != ';')
+				{
+					// std::cout << line.at(line.size() - 1) << std::endl;
+					throw std::runtime_error("Invalid directive format.\nMissing ';'");
+				}
+			}
 		}
 		std::stringstream ss(line);
 		std::string token;
