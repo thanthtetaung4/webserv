@@ -83,7 +83,7 @@ bool	Response::generateError(int errorCode, std::string const errorMsg, std::str
 				this->_body = "<h1>" + bodyMsg + "</h1>";
 			}
 		}
-	else {
+		else {
 		std::cout << "No custom error page found for " << this->_statusCode << ", using default message." << std::endl;
 		this->_body = "<h1>" + bodyMsg + "</h1>";
 	}

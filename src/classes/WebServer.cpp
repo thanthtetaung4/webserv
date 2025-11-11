@@ -461,7 +461,8 @@ int	WebServer::serve(void) {
 			std::cout << "=======================================================" << std::endl;
 			std::cout << buffer << std::endl;
 			std::cout << "=====================================================" << std::endl;
-			Request req(buffer, _servers[idx]);
+			Request req(buffer);
+			Request::validateAgainstConfig (req, _servers[idx]);
 
 			if (req.getMethodType() == "POST")
 			{

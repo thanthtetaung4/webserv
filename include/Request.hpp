@@ -17,6 +17,7 @@
 # include <map>
 # include <ostream>
 # include <sstream>
+# include <fstream>
 #include "Server.hpp"
 # include "ServerException.hpp"
 
@@ -30,7 +31,7 @@ class Request{
 
 	public:
 		Request(void);
-		Request(const std::string &raw, Server& server);
+		Request(const std::string &raw);
 		bool hasHeader(const std::string &key) const;
 		bool checkHeaderValue(void) const;
 		std::string getMethodType() const;
@@ -38,6 +39,7 @@ class Request{
 		std::string getHttpVersion() const;
 		std::string getBody() const;
 		const std::map<std::string, std::string> &getHeaders() const;
+		static int validateAgainstConfig(const Request& req, Server &server);
 		
 };
 std::ostream& operator<<(std::ostream& os, const Request& req);

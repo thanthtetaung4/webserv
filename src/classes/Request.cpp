@@ -16,6 +16,7 @@
 #include <ostream>
 #include <sstream>
 # include <fcntl.h>
+#include <sys/types.h>
 # include <unistd.h>
 #include <string>
 
@@ -65,8 +66,42 @@ Request::Request(void) {
 }
 
 
+int Request::validateAgainstConfig(const Request &req, Server &server) {
+	size_t maxBody;
+	std::stringstream ss(server.getMaxByte());
+	ss >> maxBody;
 
-Request::Request(const std::string &raw, Server& server) {
+	std::map<std::string, t_location> locations = server.getLocation();
+
+	t_location* matched = nullptr;
+	size_t bestLen = 0;
+	for (std::map<std::string, t_location>::iterator it = locations.begin(); it != locations.end(); ++it) {
+		if (req._urlPath.find(it->first) == 0 && it->first.length() > bestLen) {
+			matched = &it->second;
+			bestLen = it->first.length();
+		}
+	}
+	if (!matched)
+		return 404;
+
+	if(req.getMethodType() != "GET" && req.getMethodType() != "POST" && req.getMethodType() != "DELETE")
+		return 405;
+
+	if (req.getBody().size() > maxBody)
+		return 413;
+
+	std::string path = matched->_root + req._urlPath.substr(bestLen);
+	std::ifstream file(path.c_str());
+	if(!file.is_open())
+		return 404;
+
+	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 )
+		return 403;
+
+	return 200;
+}
+
+Request::Request(const std::string &raw) {
 	size_t hearderEnd = raw.find("\r\n\r\n");
 	std::string hearderPart = raw.substr(0, hearderEnd);
 	if(hearderEnd != std::string::npos)
@@ -90,8 +125,6 @@ Request::Request(const std::string &raw, Server& server) {
 			this->_headers[key] = value;
 		}
 	}
-	std::cout << this->_urlPath << std::endl;
-	(void) server;
 }
 
 std::ostream& operator<<(std::ostream& os, const Request& req){
