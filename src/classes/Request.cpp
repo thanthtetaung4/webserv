@@ -66,17 +66,17 @@ Request::Request(void) {
 }
 
 
-int Request::validateAgainstConfig(const Request &req, Server &server) {
+int Request::validateAgainstConfig(Server &server) {
 	size_t maxBody;
 	std::stringstream ss(server.getMaxByte());
 	ss >> maxBody;
 
 	std::map<std::string, t_location> locations = server.getLocation();
 
-	t_location* matched = nullptr;
+	t_location* matched = NULL;
 	size_t bestLen = 0;
 	for (std::map<std::string, t_location>::iterator it = locations.begin(); it != locations.end(); ++it) {
-		if (req._urlPath.find(it->first) == 0 && it->first.length() > bestLen) {
+		if (this->_urlPath.find(it->first) == 0 && it->first.length() > bestLen) {
 			matched = &it->second;
 			bestLen = it->first.length();
 		}
@@ -84,13 +84,13 @@ int Request::validateAgainstConfig(const Request &req, Server &server) {
 	if (!matched)
 		return 404;
 
-	if(req.getMethodType() != "GET" && req.getMethodType() != "POST" && req.getMethodType() != "DELETE")
+	if(this->getMethodType() != "GET" && this->getMethodType() != "POST" && this->getMethodType() != "DELETE")
 		return 405;
 
-	if (req.getBody().size() > maxBody)
+	if (this->getBody().size() > maxBody)
 		return 413;
 
-	std::string path = matched->_root + req._urlPath.substr(bestLen);
+	std::string path = matched->_root + this->_urlPath.substr(bestLen);
 	std::ifstream file(path.c_str());
 	if(!file.is_open())
 		return 404;

@@ -39,7 +39,7 @@ class Request{
 		std::string getHttpVersion() const;
 		std::string getBody() const;
 		const std::map<std::string, std::string> &getHeaders() const;
-		static int validateAgainstConfig(const Request& req, Server &server);
+		int validateAgainstConfig(Server &server);
 		
 };
 std::ostream& operator<<(std::ostream& os, const Request& req);

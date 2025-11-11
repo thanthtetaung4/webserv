@@ -3,8 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   Response.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */ /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 13:39:37 by lshein            #+#    #+#             */
 /*   Updated: 2025/11/10 17:17:37 by taung            ###   ########.fr       */
 /*                                                                            */
@@ -40,6 +39,7 @@ class Response{
 		Response(const Request& req, Server& server);
 		Response(const Response &res);
 		Response(const char* rawRes);
+		Response(unsigned int errorCode);
 		static	Response handleResponse(const Request& req, Server& server);
 		bool	generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server& server);
 		bool	checkHttpError(const Request& req, size_t size, std::string path, Server& server);

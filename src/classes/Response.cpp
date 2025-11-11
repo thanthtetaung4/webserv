@@ -169,6 +169,10 @@ Response::Response(void) {
 	throw UnableToCreateResponse();
 }
 
+Response::Response(unsigned int errorCode){
+	this->_statusCode =  errorCode;
+}
+
 Response::Response(const Request& req, Server& server) {
 	this->_httpVersion = req.getHttpVersion();
 
