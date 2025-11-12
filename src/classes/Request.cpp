@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/08 20:50:34 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/12 14:22:02 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,19 +30,19 @@ static std::string trim(const std::string &s) {
 
 std::string Request::getMethodType() const {
 	return this->_method;
-} 
+}
 
 std::string Request::getUrlPath() const {
 	return this->_urlPath;
-} 
+}
 
 std::string Request::getHttpVersion() const {
 	return this->_httpVersion;
-} 
+}
 
 std::string Request::getBody() const {
 	return this->_body;
-} 
+}
 
 const std::map<std::string,std::string> &Request::getHeaders() const {
 	return this->_headers;

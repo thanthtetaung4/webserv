@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/10 18:58:36 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/12 14:14:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -187,9 +187,9 @@ Response::Response(const Request& req, Server& server) {
 
 
 	if(it != locations.end()) {
-			std::cout << "root need to be " << (it->second)._root << std::endl;
+			// std::cout << "root need to be " << (it->second)._root << std::endl;
 			path = it->second._root;
-			std::cout << "HEY PATH IS " << std::endl;
+			// std::cout << "HEY PATH IS " << std::endl;
 			for (std::vector<std::string>::iterator i = it->second._index.begin(); i != it->second._index.end() ; i++) {
 				if (access((path + "/" + *i).c_str(), R_OK) == 0) {
 					path = path + "/" + *i;
@@ -202,14 +202,8 @@ Response::Response(const Request& req, Server& server) {
 	//return error here
 	std::cout << "The real path " << path << std::endl;
 
-	//check config error here
-	//
-	std::cout << "-----------------------------SERVER TEST----------------------" << std::endl;
-	std::cout << server << std::endl;
-	std::cout << "--------------------------------------------------------------------------" << std::endl;
-	//
 	std::cout << "Requested Path: " << path << std::endl;
-	if (!checkHttpError(req, size, path, server)){
+	if (!checkHttpError(req, size, path, server)) {
 		std::ifstream file(path.c_str(), std::ios::binary);
 		std::ostringstream os;
 		os << file.rdbuf();
