@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/12 18:47:53 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/12 20:00:17 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -315,6 +315,15 @@ void WebServer::setUpSock(void)
 	}
 }
 
+bool	WebServer::isProxyPass(std::string urlPath, Server server) {
+	std::map<std::string, t_location>::const_iterator it = search_map_iterator(server.getLocation(), urlPath);
+
+	if (it != server.getLocation().end()) {
+		return (! (it->second._proxy_pass.empty()));
+	}
+	return (false);
+}
+
 std::vector<Server> WebServer::getServers() const
 {
 	return _servers;
@@ -481,11 +490,10 @@ int WebServer::serve(void)
 			std::cout << "================================= SERVER TEST END =====================" << std::endl;
 
 			int i = req.validateAgainstConfig (_servers[idx]);
-			std::cout << "Validation code: " << i << std::endl;
 			if(i != 200)
 				Response res(i);
-
-			if (req.getMethodType() == "POST")
+			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
+			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
 			{
 				std::cout << "POST method detected" << std::endl;
 				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
