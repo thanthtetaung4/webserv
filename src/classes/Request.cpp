@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/12 14:22:02 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/16 20:52:20 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,8 +81,10 @@ int Request::validateAgainstConfig(Server &server) {
 			bestLen = it->first.length();
 		}
 	}
-	if (!matched)
+	if (!matched) {
+		std::cout << "404 returned" << std::endl;
 		return 404;
+	}
 
 	if(this->getMethodType() != "GET" && this->getMethodType() != "POST" && this->getMethodType() != "DELETE")
 		return 405;
@@ -100,6 +102,46 @@ int Request::validateAgainstConfig(Server &server) {
 
 	return 200;
 }
+
+bool	checkIndices(std::vector<std::string> indices, std::string locationRoot, std::string serverRoot) {
+	std::vector<std::string>::const_iterator it = indices.begin();
+	(void)locationRoot;
+	(void)serverRoot;
+	std::cout << "checking indices" << std::endl;
+	it == indices.end() ? std::cout << "fuck" : std::cout << "unfuck";
+	std::cout << std::endl;
+	while (it != indices.end()) {
+		std::string	index = *it;
+		if (!locationRoot.empty()) {
+			locationRoot.append(index);
+			index = locationRoot;
+		} else {
+			if (!serverRoot.empty()) {
+				serverRoot.append(index);
+				index = serverRoot;
+			} else
+				return (false);
+		}
+		if(access(index.c_str(), F_OK) == -1)
+			return (false);
+		it++;
+	}
+	return (true);
+}
+
+bool	Request::isAutoIndex(Server& server) const {
+	std::map<std::string,t_location>::const_iterator it = search_map_iterator(server.getLocation(), this->_urlPath);
+	std::cout << "checking auto index: " << it->first << std::endl;
+	if (it != server.getLocation().end()) {
+		std::cout << "checking auto index inside" << std::endl;
+		if (it->second._index.empty() || !checkIndices(it->second._index, it->second._root, server.getServerRoot()))
+			return (true);
+		else
+			return (false);
+	}
+	return (false);
+}
+
 
 Request::Request(const std::string &raw) {
 	size_t hearderEnd = raw.find("\r\n\r\n");

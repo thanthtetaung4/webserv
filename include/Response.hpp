@@ -38,7 +38,7 @@ class Response{
 		Response(void);
 		Response(const Request& req, Server& server);
 		Response(const Response &res);
-		Response(const char* rawRes);
+		Response(const std::string rawRes);
 		Response(unsigned int errorCode);
 		static	Response handleResponse(const Request& req, Server& server);
 		bool	generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server& server);

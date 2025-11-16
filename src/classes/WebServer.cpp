@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/12 20:00:17 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/16 20:26:05 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -122,6 +122,9 @@ void WebServer::getServerBlock(t_its it)
 			}
 		}
 	}
+	server.setServerRoot("/home/taung/webserv/www");
+	// std::vector<std::string> v = {"index.html", "asdf.html"};
+	// server.setServerIndex(v);
 	addServer(server);
 	// std::cout << server;
 }
@@ -163,7 +166,6 @@ void WebServer::getLocationBlock(t_its it, Server &server)
 		location._limit_except.push_back("GET");
 	if (!ConfigValidator::validateLocation(location, key))
 		throw std::runtime_error("Invalid location directive format");
-
 	server.setLocation(key, location);
 }
 
@@ -328,6 +330,7 @@ std::vector<Server> WebServer::getServers() const
 {
 	return _servers;
 }
+
 /*
 	send the request to the proxy server and get the response
 	create a new Response object with the response from server
@@ -421,6 +424,14 @@ const std::string WebServer::handleReverseProxy(const Request &req, const Server
 	return std::string(buffer);
 }
 
+const std::string	WebServer::handleAutoIndex(const Request& req, const Server &server) {
+	// Check the
+	(void)req;
+	(void)server;
+	return "";
+}
+
+
 int WebServer::serve(void)
 {
 	int epoll_fd = epoll_create1(0);
@@ -490,8 +501,10 @@ int WebServer::serve(void)
 			std::cout << "================================= SERVER TEST END =====================" << std::endl;
 
 			int i = req.validateAgainstConfig (_servers[idx]);
-			if(i != 200)
-				Response res(i);
+			if(i != 200) {
+					Response res(i);
+			}
+
 			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
 			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
 			{
@@ -505,6 +518,9 @@ int WebServer::serve(void)
 				}
 				close(client_fd);
 				continue;
+			} else if (req.isAutoIndex(_servers[idx])) {
+				std::cout << "auto index" << std::endl;
+				Response res(handleAutoIndex(req, _servers[idx]));
 			}
 
 			std::cout << req << std::endl;

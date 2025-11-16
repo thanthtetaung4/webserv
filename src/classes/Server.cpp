@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/10 17:29:39 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/16 19:52:45 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,15 @@ void Server::setReturn(const std::string &key, const std::string &value)
 	_return[key] = value;
 }
 
+void Server::setServerRoot(std::string sr) {
+	_serverRoot = sr;
+}
+
+void Server::setServerIndex(const std::vector<std::string> &indices) {
+	_serverIndices = indices;
+}
+
+
 std::string Server::getPort() const
 {
 	return _port;
@@ -71,6 +80,15 @@ const std::map<std::string, std::string> &Server::getReturn() const
 {
 	return _return;
 }
+
+std::string Server::getServerRoot() const {
+	return (this->_serverRoot);
+}
+
+const std::vector<std::string> &Server::getServerIndex(void) const {
+	return (this->_serverIndices);
+}
+
 
 std::ostream &operator<<(std::ostream &os, const Server &s)
 {

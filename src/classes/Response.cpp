@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/12 14:14:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/16 20:10:35 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -168,6 +168,11 @@ bool Response::checkHttpError(const Request& req, size_t size, std::string path,
 Response::Response(void) {
 	throw UnableToCreateResponse();
 }
+
+Response::Response(const std::string rawRes) {
+	(void)rawRes;
+}
+
 
 Response::Response(unsigned int errorCode){
 	this->_statusCode =  errorCode;
