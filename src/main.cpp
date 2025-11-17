@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:41:50 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/12 06:38:10 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/13 06:19:16 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ int main(int argc, char **argv)
                 try
                 {
                         ws.setServer(argv[1]);
-                        for (int i = 0; i < 2; i++)
+                        for (int i = 0; i < (int)ws.getServers().size(); i++)
                         {
                                 std::cout << ws.getServers()[i] << std::endl;
                         }

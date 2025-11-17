@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/12 06:42:55 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/17 06:55:48 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,13 +85,15 @@ void WebServer::getServerBlock(t_its it)
 	std::string::iterator pos = content.begin();
 	while (std::getline(serverString, line))
 	{
+		if (line.find_first_not_of(" \t") == std::string::npos)
+			continue;
 		if (!line.empty())
 		{
 			if (line.at(line.size() - 1) != '{' && line.at(line.size() - 1) != '}')
 			{
 				if (line.at(line.size() - 1) != ';')
 				{
-					// std::cout << line.at(line.size() - 1) << std::endl;
+					// std::cout << line << std::endl;
 					throw std::runtime_error("Invalid directive format.\nMissing ';'");
 				}
 			}
@@ -198,6 +200,22 @@ void WebServer::setAttributes(const std::vector<std::string> &line, Server &serv
 		Validator::requireSize(line, 2, key, ConfigValidator::validateSize(line[1]));
 		server.setMaxBytes(line[1]);
 	}
+	else if (key == "root")
+	{
+		Validator::requireSize(line, 2, key, ConfigValidator::validateRoot(line[1]));
+		server.setRoot(line[1]);
+	}
+
+	else if (key == "index")
+	{
+		Validator::requireMinSize(line, 2, key, true);
+		for (size_t i = 1; i < line.size(); i++)
+		{
+			if (!ConfigValidator::validateIndex(line[i]))
+				throw std::runtime_error("Invalid '" + key + "' directive format");
+			server.setIndex(line[i]);
+		}
+	}
 	else if (key == "return")
 	{
 		Validator::requireSize(line, 3, key, ConfigValidator::validateReturn(atoi(line[1].c_str()), line[2]));
@@ -248,17 +266,17 @@ void WebServer::setLocationAttributes(const std::vector<std::string> &line, t_lo
 			throw std::runtime_error("Invalid 'autoindex' value — expected 'on' or 'off'");
 		location._autoIndex = line[1];
 	}
-	else if (directive == "cgiPass")
+	else if (directive == "cgi_pass")
 	{
 		Validator::requireSize(line, 2, directive, true);
 		location._cgiPass = line[1];
 	}
-	else if (directive == "cgiExt")
+	else if (directive == "cgi_ext")
 	{
 		Validator::requireSize(line, 2, directive, true);
 		location._cgiExt = line[1];
 	}
-	else if (directive == "uploadStore")
+	else if (directive == "upload_store")
 	{
 		Validator::requireSize(line, 2, directive, true);
 		location._uploadStore = line[1];
