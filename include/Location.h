@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 05:09:26 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/10 17:22:38 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/17 07:34:19 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 
 typedef struct location
 {
+        bool _isCgi;
         std::string _root;
         std::vector<std::string> _index;
         std::vector<std::string> _limit_except;

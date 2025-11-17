@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:20:30 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/13 07:04:44 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/17 07:12:01 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,5 +35,5 @@ public:
 };
 char **createEnvArray(const std::map<std::string, std::string> &env);
 void freeEnvArray(char **env);
-std::map<std::string, std::string> &createEnvMap(const Request &request);
+std::map<std::string, std::string> &createEnvMap(const Request &request, const Server &server);
 #endif

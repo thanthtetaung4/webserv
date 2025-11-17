@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/17 06:55:48 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/17 07:34:26 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -165,7 +165,10 @@ void WebServer::getLocationBlock(t_its it, Server &server)
 		location._limit_except.push_back("GET");
 	if (!ConfigValidator::validateLocation(location, key))
 		throw std::runtime_error("Invalid location directive format");
-
+	if (!location._cgiExt.empty() && !location._cgiPass.empty())
+		location._isCgi = true;
+	else
+		location._isCgi = false;
 	server.setLocation(key, location);
 }
 

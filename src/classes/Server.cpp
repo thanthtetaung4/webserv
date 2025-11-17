@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/17 06:17:34 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/17 07:33:39 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,7 +121,7 @@ std::ostream &operator<<(std::ostream &os, const Server &s)
 	{
 		for (std::map<std::string, t_location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
 		{
-			os << "Location: [" << it->first << "]" << std::endl;
+			os << "Location: [" << it->first << "](" << (it->second._isCgi ? "CGI block)" : "not CGI block)") << std::endl;
 			os << "	root: " << it->second._root << std::endl;
 			os << "	index: ";
 			for (size_t i = 0; i < it->second._index.size(); i++)

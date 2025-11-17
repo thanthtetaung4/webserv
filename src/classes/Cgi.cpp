@@ -6,11 +6,12 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/13 08:22:48 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/17 08:18:14 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Cgi.hpp"
+#include "Response.hpp"
 
 Cgi::Cgi(const std::string &path, const std::string &interpreter, const std::map<std::string, std::string> &env, const std::string &body) : _path(path), _interpreter(interpreter), _env(env), _body(body) {}
 
@@ -41,9 +42,31 @@ void freeEnvArray(char **env)
 	delete[] env;
 }
 
-std::map<std::string, std::string> &createEnvMap(const Request &request)
+std::map<std::string, std::string> &createEnvMap(const Request &request, const Server &server)
 {
+	std::string contentType = "";
+	std::map<std::string, std::string> headers = request.getHeaders();
+	std::map<std::string, std::string>::const_iterator it = headers.find("Content-Type");
+	if (it != headers.end())
+		contentType = it->second;
+	std::string filename = "";
+	std::map<std::string, t_location> paths = server.getLocation();
+	std::map<std::string, t_location>::const_iterator it1 = paths.find(request.getUrlPath());
+	if (it1 != paths.end())
+		filename = it1->second._root.empty() ? (server.getRoot() + "/" + request.getUrlPath()) : (it1->second._root + "/" + request.getUrlPath());
 	std::map<std::string, std::string> env;
-	
+	env["REQUEST_METHOD"] = request.getMethodType();
+	env["SCRIPT_FILENAME"] = "";
+	env["CONTENT_LENGTH"] = intToString(request.getBody().size());
+	env["CONTENT_TYPE"] = contentType;
+	env["SERVER_NAME"] = server.getServerName().empty() ? "" : server.getServerName();
+	env["SERVER_PORT"] = server.getPort();
+	env["SERVER_PROTOCOL"] = request.getHttpVersion();
+	env["SERVER_SOFTWARE"] = "webserv/1.0";
+	std::cout << "env: " << std::endl;
+	for (std::map<std::string, std::string>::const_iterator it2 = env.begin(); it2 != env.end(); ++it2)
+	{
+		std::cout << "[" << it2->first << "] = " << it2->second << std::endl;
+	}
 	return env;
 }
