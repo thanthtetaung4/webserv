@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/17 07:34:26 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/17 08:24:47 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -336,6 +336,17 @@ void WebServer::setUpSock(void)
 	}
 }
 
+bool WebServer::isProxyPass(std::string urlPath, Server server)
+{
+	std::map<std::string, t_location>::const_iterator it = search_map_iterator(server.getLocation(), urlPath);
+
+	if (it != server.getLocation().end())
+	{
+		return (!(it->second._proxy_pass.empty()));
+	}
+	return (false);
+}
+
 std::vector<Server> WebServer::getServers() const
 {
 	return _servers;
@@ -492,15 +503,20 @@ int WebServer::serve(void)
 			}
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
-			std::cout << "=======================================================" << std::endl;
+			std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
 			std::cout << buffer << std::endl;
-			std::cout << "=====================================================" << std::endl;
+			std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
+
 			Request req(buffer);
+			std::cout << "================================= SEVER TEST =====================" << std::endl;
+			std::cout << _servers[idx] << std::endl;
+			std::cout << "================================= SERVER TEST END =====================" << std::endl;
+
 			int i = req.validateAgainstConfig(_servers[idx]);
 			if (i != 200)
 				Response res(i);
-
-			if (req.getMethodType() == "POST")
+			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
+			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
 			{
 				std::cout << "POST method detected" << std::endl;
 				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
@@ -515,17 +531,19 @@ int WebServer::serve(void)
 			}
 
 			std::cout << req << std::endl;
-			std::cout << "=================================I do not know let see=====================" << std::endl;
+			std::cout << "================================= RESPONSE =====================" << std::endl;
 
 			std::cout << "creating res" << std::endl;
 			Response res(req, _servers[idx]);
 			std::cout << "printing res" << std::endl;
 			std::cout << res << std::endl;
 			std::cout << "res printed" << std::endl;
-			std::cout << "=================================I do not know let see============it =========" << std::endl;
+			std::cout << "================================= RESPONSE END =====================" << std::endl;
 			std::string httpResponse = res.toStr();
 
+			std::cout << "================================= FINAL RESPONSE =====================" << std::endl;
 			std::cout << "http res: " << httpResponse << std::endl;
+			std::cout << "================================= FINAL RESPONSE END =====================" << std::endl;
 
 			ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
 			if (sent < 0)

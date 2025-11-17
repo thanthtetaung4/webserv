@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/17 07:44:50 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/17 08:24:02 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -203,9 +203,9 @@ Response::Response(const Request &req, Server &server)
 
 	if (it != locations.end())
 	{
-		std::cout << "root need to be " << (it->second)._root << std::endl;
+		// std::cout << "root need to be " << (it->second)._root << std::endl;
 		path = it->second._root;
-		std::cout << "HEY PATH IS " << std::endl;
+		// std::cout << "HEY PATH IS " << std::endl;
 		for (std::vector<std::string>::iterator i = it->second._index.begin(); i != it->second._index.end(); i++)
 		{
 			if (access((path + "/" + *i).c_str(), R_OK) == 0)

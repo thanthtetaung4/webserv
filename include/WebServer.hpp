@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/10 17:30:00 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/12 18:59:56 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,6 +58,7 @@ public:
 	int serve(void);
 	std::vector<Server> getServers() const;
 	const std::string	handleReverseProxy(const Request& req, const Server &server);
+	bool	isProxyPass(std::string urlPath, Server server);
 	void getServerBlock(t_its it);
 	void getLocationBlock(t_its it, Server &server);
 	void setAttributes(const std::vector<std::string> &line, Server &server);
