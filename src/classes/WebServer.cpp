@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/17 08:24:47 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/17 13:48:28 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "../../include/Validator.hpp"
+#include "../../include/Cgi.hpp"
 
 WebServer::WebServer() {}
 
@@ -347,6 +348,17 @@ bool WebServer::isProxyPass(std::string urlPath, Server server)
 	return (false);
 }
 
+bool WebServer::isCGI(std::string urlPath, Server server)
+{
+	std::map<std::string, t_location>::const_iterator it = search_map_iterator(server.getLocation(), urlPath);
+
+	if (it != server.getLocation().end())
+	{
+		return ((it->second._isCgi));
+	}
+	return (false);
+}
+
 std::vector<Server> WebServer::getServers() const
 {
 	return _servers;
@@ -529,7 +541,10 @@ int WebServer::serve(void)
 				close(client_fd);
 				continue;
 			}
-
+			if (isCGI(req.getUrlPath(), _servers[idx]))
+			{
+				Cgi cgi(req, _servers[idx]);
+			}
 			std::cout << req << std::endl;
 			std::cout << "================================= RESPONSE =====================" << std::endl;
 

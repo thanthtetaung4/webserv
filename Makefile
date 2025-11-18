@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+         #
+#    By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/11/10 17:22:25 by taung            ###   ########.fr        #
+#    Updated: 2025/11/17 08:41:59 by lshein           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,7 +17,7 @@ EXCEPTIONS = ./src/exceptions
 UTILS = ./src/utils
 
 SRCS = ./src/main.cpp \
-	${CLASSES}/WebServer.cpp ${CLASSES}/Server.cpp ${CLASSES}/Socket.cpp \
+	${CLASSES}/WebServer.cpp ${CLASSES}/Server.cpp ${CLASSES}/Socket.cpp ${CLASSES}/Cgi.cpp\
 	${CLASSES}/Response.cpp ${CLASSES}/Request.cpp ${CLASSES}/Validator.cpp\
 	${EXCEPTIONS}/ServerExceptions.cpp ${UTILS}/parseProxyPass.cpp
 OBJS = ${SRCS:.cpp=.o}
