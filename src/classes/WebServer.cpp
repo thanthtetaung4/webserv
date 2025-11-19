@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/17 17:54:10 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/19 15:15:38 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -531,89 +531,78 @@ std::string WebServer::serveStaticFile(const std::string &fullPath, const Reques
 
 const std::string WebServer::handleAutoIndex(const Request& req, const Server &server)
 {
-    std::string httpRes = "";
-    std::string fullPath = "";
+	std::string fullPath;
 
-    // 1. Resolve full path
-    std::map<std::string, t_location>::const_iterator it =
-        getBestLocationMatch(server.getLocation(), req.getUrlPath());
+	// 1. Resolve full path from location or server root
+	std::map<std::string, t_location>::const_iterator it =
+		search_map_iterator(server.getLocation(), req.getUrlPath());
 
-    if (it != server.getLocation().end()) {
-        if (!it->second._root.empty())
-            fullPath = it->second._root + req.getUrlPath();
-        else if (!server.getServerRoot().empty())
-            fullPath = server.getServerRoot() + req.getUrlPath();
-    }
+	if (it != server.getLocation().end()) {
+		if (!it->second._root.empty())
+			fullPath = it->second._root + req.getUrlPath();
+		else if (!server.getServerRoot().empty())
+			fullPath = server.getServerRoot() + req.getUrlPath();
+	}
 
-    // ---- FIX: Serve FILES instead of generating autoindex ----
-    struct stat st;
-    if (stat(fullPath.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
-        return this->serveStaticFile(fullPath, req);  // <--- your file-serving function
-    }
+	std::cout << "[AUTOINDEX] fullPath: " << fullPath << std::endl;
 
-    // If path doesn't exist → 404
-    if (access(fullPath.c_str(), R_OK) == -1) {
-        Response res(404);
-        return res.toStr();
-    }
+	// Check access
+	if (access(fullPath.c_str(), R_OK) == -1) {
+		return "HTTP/1.1 403 Forbidden\r\n\r\n";
+	}
 
-    // If path is not a directory → 403 (or 404)
-    if (stat(fullPath.c_str(), &st) == -1 || !S_ISDIR(st.st_mode)) {
-        Response res(403);
-        return res.toStr();
-    }
+	// Try opening directory
+	DIR* dir = opendir(fullPath.c_str());
+	if (!dir) {
+		return "HTTP/1.1 404 Not Found\r\n\r\n";
+	}
 
-    // 3. Open directory
-    DIR* dir = opendir(fullPath.c_str());
-    if (!dir) {
-        Response res(403);
-        return res.toStr();
-    }
+	// 2. Build HTML body
+	std::string body;
+	body += "<html><head><title>Index of " + req.getUrlPath() + "</title></head><body>";
+	body += "<h1>Index of " + req.getUrlPath() + "</h1><hr><pre>";
 
-    // 4. Build autoindex HTML
-    std::string body;
-    body += "<html><head><title>Index of " + req.getUrlPath() + "</title></head><body>";
-    body += "<h1>Index of " + req.getUrlPath() + "</h1><hr><pre>";
+	struct dirent* entry;
 
-    struct dirent* entry;
+	while ((entry = readdir(dir)) != NULL) {
+		std::string name = entry->d_name;
 
-    while ((entry = readdir(dir)) != NULL) {
+		if (name == "." || name == "..")
+			continue;
 
-        std::string name = entry->d_name;
-        if (name == "." || name == "..")
-            continue;
+		std::string itemFullPath = fullPath + "/" + name;
 
-        std::string itemFullPath = fullPath + "/" + name;
+		struct stat st;
+		if (stat(itemFullPath.c_str(), &st) == -1)
+			continue;
 
-        struct stat itemSt;
-        if (stat(itemFullPath.c_str(), &itemSt) == -1)
-            continue;
+		body += "<a href=\"" + req.getUrlPath();
 
-        // ---- Build URL safely without string.back() ----
-        std::string href = req.getUrlPath();
-        if (!href.empty() && href[href.size() - 1] != '/')
-            href += "/";
+		// Ensure trailing slash for directory
+		if (req.getUrlPath().back() != '/')
+			body += "/";
 
-        href += name;
+		body += name;
 
-        if (S_ISDIR(itemSt.st_mode))
-            href += "/";   // Add trailing slash for directories
+		if (S_ISDIR(st.st_mode))
+			body += "/";
 
-        body += "<a href=\"" + href + "\">" + name + "</a>\n";
-    }
+		body += "\">" + name + "</a>\n";
+	}
 
-    closedir(dir);
+	body += "</pre><hr></body></html>";
 
-    body += "</pre><hr></body></html>";
+	closedir(dir);
 
-    // 5. Build HTTP response
-    httpRes += "HTTP/1.1 200 OK\r\n";
-    httpRes += "Content-Type: text/html\r\n";
-    httpRes += "Content-Length: " + intToString(body.size()) + "\r\n";
-    httpRes += "\r\n";
-    httpRes += body;
+	// 3. Build Raw HTTP Response
+	std::string response;
+	response += "HTTP/1.1 200 OK\r\n";
+	response += "Content-Type: text/html\r\n";
+	response += "Content-Length: " + std::to_string(body.size()) + "\r\n";
+	response += "\r\n";           // end of header
+	response += body;             // body
 
-    return httpRes;
+	return response;
 }
 
 
