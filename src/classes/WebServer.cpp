@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/19 22:07:27 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/20 01:46:14 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -424,41 +424,6 @@ const std::string WebServer::handleReverseProxy(const Request &req, const Server
 	return std::string(buffer);
 }
 
-// const std::string	WebServer::handleAutoIndex(const Request& req, const Server &server) {
-// 	/*
-// 	get the fullPath from server's location
-// 	if location doesn't have full path
-// 		use the serverRoot to build the fullPath
-// 	if there is not path
-// 		return error(404)
-// 	if the path is invalid
-// 		return error(403?)
-
-// 	open dir using fullPath
-// 	list all the files in the dir
-// 	close dir
-// 	*/
-// 	std::string	httpRes = "";
-// 	std::string	fullPath = "";
-
-// 	std::map<std::string, t_location>::const_iterator	it = search_map_iterator(server.getLocation(), req.getUrlPath());
-// 	if (it != server.getLocation().end()) {
-// 		if (!it->second._root.empty()) {
-// 			fullPath += it->second._root + req.getUrlPath();
-// 		} else if (!server.getServerRoot().empty()) {
-// 			fullPath += server.getServerRoot() + req.getUrlPath();
-// 		}
-// 		std::cout << fullPath << std::endl;
-// 		if (access(fullPath.c_str(), R_OK) == -1) {
-// 			Response	res(403);
-// 			return (res.toStr());
-// 		}
-
-// 	}
-
-// 	return httpRes;
-// }
-
 std::map<std::string, t_location>::const_iterator	getBestLocationMatch(const std::map<std::string, t_location>& locations,
                                 const std::string& url)
 {
@@ -499,12 +464,12 @@ const std::string WebServer::handleAutoIndex(const Request& req, const Server &s
 		if file => serve the file
 	*/
 
-	if (open(fullPath.c_str(), O_RDONLY) >= 0) {
-		/*
-			build response from the path and return
-		*/
-	}
-	else {
+	// if (open(fullPath.c_str(), O_RDONLY) >= 0) {
+	// 	/*
+	// 		build response from the path and return
+	// 	*/
+	// }
+	// else {
 
 		// Check access
 		if (access(fullPath.c_str(), R_OK) == -1) {
@@ -563,8 +528,8 @@ const std::string WebServer::handleAutoIndex(const Request& req, const Server &s
 		response += body;             // body
 
 		return response;
-	}
-	return "";
+	// }
+	// return "";
 }
 
 
@@ -597,6 +562,7 @@ int WebServer::serve(void)
 	while (true)
 	{
 		// std::cout << "here" << std::endl;
+		// can we add the max loading time for the request in the epoll_wait(fd, events, time)
 		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
 		if (nfds == -1)
 		{
@@ -647,6 +613,9 @@ int WebServer::serve(void)
 				std::cout << "POST method detected" << std::endl;
 				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
 				// just send the plain text to the client no need to change it back to Response obj
+				std::cout << "================================= SERVER TEST START =====================" << std::endl;
+				std::cout << rawRes << std::endl;
+				std::cout << "================================= SERVER TEST END =====================" << std::endl;
 				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
 				if (sent < 0)
 				{

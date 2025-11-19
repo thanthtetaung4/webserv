@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/19 20:48:07 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/20 02:06:30 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -199,13 +199,47 @@ bool	checkIndices(std::vector<std::string> indices, std::string locationRoot, st
 }
 
 bool	Request::isAutoIndex(Server& server) const {
-	t_location*	loc = searchMapLongestMatch(server.getLocation(), this->_urlPath);
+	// t_location*	loc = searchMapLongestMatch(server.getLocation(), this->_urlPath);
 
-	std::cout << "checking auto index: " << loc->_autoIndex << std::endl;
+	// std::cout << "checking auto index: " << loc->_autoIndex << std::endl;
 
-	if (loc->_index.empty() ||
-		!checkIndices(loc->_index, loc->_root, server.getServerRoot())) {
-		return true;
+	// if (loc->_index.empty() ||
+	// 	!checkIndices(loc->_index, loc->_root, server.getServerRoot())) {
+	// 	return true;
+	// }
+
+	// return false;
+
+	std::map<std::string, t_location>::const_iterator it;
+	std::map<std::string, t_location> locs = server.getLocation();
+
+	it = locs.end();
+
+	for (std::map<std::string, t_location>::const_iterator iter = locs.begin();
+		iter != locs.end(); ++iter)
+	{
+		// if (this->_urlPath.compare(0, iter->first.size(), iter->first) == 0 &&
+		// 	iter->first.size() > bestLen)
+		// {
+		// 	bestLen = iter->first.size();
+		// 	it = iter;
+		// }
+		std::cout << "The path: " << iter->first << std::endl;
+		if (this->_urlPath == iter->first) {
+			it = iter;
+		}
+	}
+
+	if (it != locs.end()) {
+		std::cout << "checking auto index: " << it->first << std::endl;
+
+		if (it->second._index.empty() ||
+			!checkIndices(it->second._index, it->second._root, server.getServerRoot()))
+		{
+			return true;
+		}
+
+		return false;
 	}
 
 	return false;
