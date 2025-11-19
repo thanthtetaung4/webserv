@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/20 02:24:05 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/20 03:36:20 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,7 +131,7 @@ bool Response::checkHttpError(const Request& req, size_t size, std::string path,
 	if(!file.is_open())
 		return (generateError(404,"Not Found", "404 Not Found", server));
 
-	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 || !safePath(path))
+	if(access(path.c_str(), R_OK) < 0 || !safePath(path))
 		return (generateError(403,"Forbidden", "403 Forbidden", server));
 
 	if(req.getMethodType() != "GET" && req.getMethodType() != "POST" && req.getMethodType() != "DELETE")
@@ -185,24 +185,32 @@ Response::Response(const Request& req, Server& server) {
 	ss >> size;
 	//find req.urlPath in server locations
 
-	std::string path, index;
+
 	std::map<std::string, t_location> locations = server.getLocation();
-	std::map<std::string, t_location>::iterator it = locations.find(req.getUrlPath());
+	t_location* loc = searchMapLongestMatch(locations, req.getUrlPath());
 
+	std::string	path = "";
+	// path building
+	if (loc) {
+		if (!loc->_root.empty())
+			path = loc->_root + req.getUrlPath();
+		else if (!server.getServerRoot().empty())
+			path = server.getServerRoot() + req.getUrlPath();
+	}
+	// if(it != locations.end()) {
+	// 		// std::cout << "root need to be " << (it->second)._root << std::endl;
+	// 		path = it->second._root;
+	// 		// std::cout << "HEY PATH IS " << std::endl;
+	// 		for (std::vector<std::string>::iterator i = it->second._index.begin(); i != it->second._index.end() ; i++) {
+	// 			if (access((path + "/" + *i).c_str(), R_OK) == 0) {
+	// 				path = path + "/" + *i;
+	// 				break;
+	// 		}
+	// 	}
+	// 	}
+	// else
+	// 	path = "";
 
-	if(it != locations.end()) {
-			// std::cout << "root need to be " << (it->second)._root << std::endl;
-			path = it->second._root;
-			// std::cout << "HEY PATH IS " << std::endl;
-			for (std::vector<std::string>::iterator i = it->second._index.begin(); i != it->second._index.end() ; i++) {
-				if (access((path + "/" + *i).c_str(), R_OK) == 0) {
-					path = path + "/" + *i;
-					break;
-			}
-		}
-		}
-	else
-		path = "";
 	//return error here
 	std::cout << "The real path " << path << std::endl;
 

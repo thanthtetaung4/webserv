@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 01:46:14 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/20 04:54:00 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -441,20 +441,37 @@ std::map<std::string, t_location>::const_iterator	getBestLocationMatch(const std
 	return best;
 }
 
+const std::string	WebServer::handleRedirect(std::string redirUrlPath) {
+	std::string res;
+
+	res  = "HTTP/1.1 302 Found\r\n";
+	res += "Location: " + redirUrlPath + "\r\n";
+	res += "Content-Type: text/html\r\n";
+	res += "Content-Length: 0\r\n";
+	res += "\r\n";
+
+	return res;
+}
+
+
 const std::string WebServer::handleAutoIndex(const Request& req, const Server &server)
 {
 	std::string fullPath;
 
-	// 1. Resolve full path from location or server root
-	std::map<std::string, t_location>::const_iterator it =
-		search_map_iterator(server.getLocation(), req.getUrlPath());
+	if (req.getUrlPath()[req.getUrlPath().length() - 1] != '/') {
+		return this->handleRedirect(req.getUrlPath() + "/");
+	}
 
-	if (it != server.getLocation().end()) {
-		if (!it->second._root.empty())
-			fullPath = it->second._root + req.getUrlPath();
+	// 1. Resolve full path from location or server root
+	t_location* loc = searchMapLongestMatch(server.getLocation(), req.getUrlPath());
+
+	if (loc) {
+		if (!loc->_root.empty())
+			fullPath = loc->_root + req.getUrlPath();
 		else if (!server.getServerRoot().empty())
 			fullPath = server.getServerRoot() + req.getUrlPath();
 	}
+
 
 	std::cout << "[AUTOINDEX] fullPath: " << fullPath << std::endl;
 

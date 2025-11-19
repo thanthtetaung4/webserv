@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/20 02:06:30 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/20 04:04:42 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -225,8 +225,9 @@ bool	Request::isAutoIndex(Server& server) const {
 		// 	it = iter;
 		// }
 		std::cout << "The path: " << iter->first << std::endl;
-		if (this->_urlPath == iter->first) {
-			it = iter;
+		if (this->_urlPath == iter->first || this->_urlPath == iter->first + "/") {
+			if (iter->second._autoIndex == "on")
+				it = iter;
 		}
 	}
 

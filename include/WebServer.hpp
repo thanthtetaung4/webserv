@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/19 20:50:23 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/20 04:13:46 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,6 +69,7 @@ public:
 							   t_location &location, std::string &key);
 	t_its getIts(std::string &content, std::string::iterator start,
 				 const std::string &target1, const std::string &target2);
+	const std::string	handleRedirect(std::string redirUrlPath);
 };
 
 #endif
