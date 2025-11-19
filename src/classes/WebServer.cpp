@@ -472,8 +472,7 @@ int WebServer::serve(void)
 	struct epoll_event events[MAX_EVENTS];
 	while (true)
 	{
-		// std::cout << "here" << std::endl;
-		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1);
+		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
 		if (nfds == -1)
 		{
 			perror("epoll_wait");
@@ -488,17 +487,25 @@ int WebServer::serve(void)
 			int client_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_len);
 			if (client_fd < 0)
 			{
-				perror("accept");
+				
+				perror("recv");
 				continue;
 			}
-			char buffer[4096];
+			struct timeval timeout;
+            timeout.tv_sec = 5;
+            timeout.tv_usec = 0;
+
+            setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+            setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));			char buffer[4096];
+			
 			std::cout << "=================REQUEST============================" << std::endl;
+			// sleep(6);
 
 			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 			if (bytes_received < 0)
 			{
 				perror("recv");
-				close(client_fd);
+    			close(client_fd);
 				continue;
 			}
 			buffer[bytes_received] = '\0';
