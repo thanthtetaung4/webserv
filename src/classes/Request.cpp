@@ -11,14 +11,14 @@
 /* ************************************************************************** */
 
 # include "../../include/Request.hpp"
-#include <cstddef>
-#include <map>
-#include <ostream>
-#include <sstream>
+# include <cstddef>
+# include <map>
+# include <ostream>
+# include <sstream>
 # include <fcntl.h>
-#include <sys/types.h>
+# include <sys/types.h>
 # include <unistd.h>
-#include <string>
+# include <string>
 
 static std::string trim(const std::string &s) {
 	size_t start = s.find_first_not_of(" \t\r\n");

@@ -473,7 +473,7 @@ int WebServer::serve(void)
 	while (true)
 	{
 		// std::cout << "here" << std::endl;
-		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1);
 		if (nfds == -1)
 		{
 			perror("epoll_wait");
