@@ -6,13 +6,13 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/16 20:10:35 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/17 15:43:08 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "../../include/Response.hpp"
 
-static std::string intToString(size_t n) {
+std::string intToString(size_t n) {
 	std::ostringstream ss;
 	ss << n;
 	return ss.str();
@@ -68,7 +68,6 @@ Response::Response(const Response &res) {
 	this->_headers = res._headers;
 	this->_body = res._body;
 }
-
 
 bool	Response::generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server& server){
 	this->_statusCode = errorCode;

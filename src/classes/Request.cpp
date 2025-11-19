@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/16 20:52:20 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/17 17:36:36 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,6 +67,41 @@ Request::Request(void) {
 
 
 int Request::validateAgainstConfig(Server &server) {
+// 	size_t maxBody;
+// 	std::stringstream ss(server.getMaxByte());
+// 	ss >> maxBody;
+
+// 	std::map<std::string, t_location> locations = server.getLocation();
+
+// 	t_location* matched = NULL;
+// 	size_t bestLen = 0;
+// 	for (std::map<std::string, t_location>::iterator it = locations.begin(); it != locations.end(); ++it) {
+// 		if (this->_urlPath.find(it->first) == 0 && it->first.length() > bestLen) {
+// 			matched = &it->second;
+// 			bestLen = it->first.length();
+// 		}
+// 	}
+// 	if (!matched) {
+// 		std::cout << "404 returned" << std::endl;
+// 		return 404;
+// 	}
+
+// 	if(this->getMethodType() != "GET" && this->getMethodType() != "POST" && this->getMethodType() != "DELETE")
+// 		return 405;
+
+// 	if (this->getBody().size() > maxBody)
+// 		return 413;
+
+// 	std::string path = matched->_root + this->_urlPath.substr(bestLen);
+// 	std::ifstream file(path.c_str());
+// 	if(!file.is_open())
+// 		return 404;
+
+// 	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 )
+// 		return 403;
+
+// 	return 200;
+// }
 	size_t maxBody;
 	std::stringstream ss(server.getMaxByte());
 	ss >> maxBody;
@@ -75,32 +110,66 @@ int Request::validateAgainstConfig(Server &server) {
 
 	t_location* matched = NULL;
 	size_t bestLen = 0;
-	for (std::map<std::string, t_location>::iterator it = locations.begin(); it != locations.end(); ++it) {
+
+	// Longest-prefix-match (location matching)
+	for (std::map<std::string, t_location>::iterator it = locations.begin();
+		it != locations.end(); ++it)
+	{
 		if (this->_urlPath.find(it->first) == 0 && it->first.length() > bestLen) {
-			matched = &it->second;
-			bestLen = it->first.length();
+			matched  = &it->second;
+			bestLen  = it->first.length();
 		}
 	}
-	if (!matched) {
-		std::cout << "404 returned" << std::endl;
+
+	if (!matched)
 		return 404;
+
+	// Method validation
+	if(this->getMethodType() != "GET" &&
+	this->getMethodType() != "POST" &&
+	this->getMethodType() != "DELETE")
+	{
+		return 405;
 	}
 
-	if(this->getMethodType() != "GET" && this->getMethodType() != "POST" && this->getMethodType() != "DELETE")
-		return 405;
-
+	// Body size
 	if (this->getBody().size() > maxBody)
 		return 413;
 
-	std::string path = matched->_root + this->_urlPath.substr(bestLen);
-	std::ifstream file(path.c_str());
-	if(!file.is_open())
-		return 404;
+	// Build full file system path
+	std::string relPath = this->_urlPath.substr(bestLen);
+	std::string fullPath = matched->_root + relPath;
 
-	if(access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK)< 0 || access(path.c_str(), X_OK) < 0 )
+	struct stat st;
+	if (stat(fullPath.c_str(), &st) == -1) {
+		return 404; // Not found
+	}
+
+	// Permission checks
+	if (access(fullPath.c_str(), R_OK) == -1)
 		return 403;
 
-	return 200;
+	// 📌 If it's a directory and autoindex is enabled → allow it
+	if (S_ISDIR(st.st_mode)) {
+		if (!matched->_autoIndex.empty()) {
+			return 200;
+		}
+
+		// Directory without autoindex → MUST contain index.html
+		std::string indexPath = fullPath + "/index.html";
+		if (access(indexPath.c_str(), R_OK) == 0)
+			return 200;
+
+		return 403;
+	}
+
+	// If it's a file → OK
+	if (S_ISREG(st.st_mode)) {
+		return 200;
+	}
+
+	// If it's not a file or directory
+	return 403;
 }
 
 bool	checkIndices(std::vector<std::string> indices, std::string locationRoot, std::string serverRoot) {
@@ -130,16 +199,36 @@ bool	checkIndices(std::vector<std::string> indices, std::string locationRoot, st
 }
 
 bool	Request::isAutoIndex(Server& server) const {
-	std::map<std::string,t_location>::const_iterator it = search_map_iterator(server.getLocation(), this->_urlPath);
-	std::cout << "checking auto index: " << it->first << std::endl;
-	if (it != server.getLocation().end()) {
-		std::cout << "checking auto index inside" << std::endl;
-		if (it->second._index.empty() || !checkIndices(it->second._index, it->second._root, server.getServerRoot()))
-			return (true);
-		else
-			return (false);
+	std::map<std::string, t_location>::const_iterator it;
+	std::map<std::string, t_location> locs = server.getLocation();
+
+	size_t bestLen = 0;
+	it = locs.end();
+
+	for (std::map<std::string, t_location>::const_iterator iter = locs.begin();
+		iter != locs.end(); ++iter)
+	{
+		if (this->_urlPath.compare(0, iter->first.size(), iter->first) == 0 &&
+			iter->first.size() > bestLen)
+		{
+			bestLen = iter->first.size();
+			it = iter;
+		}
 	}
-	return (false);
+
+	if (it != server.getLocation().end()) {
+		std::cout << "checking auto index: " << it->first << std::endl;
+
+		if (it->second._index.empty() ||
+			!checkIndices(it->second._index, it->second._root, server.getServerRoot()))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	return false;
 }
 
 

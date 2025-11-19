@@ -56,8 +56,8 @@ class Response{
 		std::string	getStatusTxt() const;
 		const std::map<std::string, std::string>	&getHeaders() const;
 		std::string	getBody() const;
-
 };
+std::string intToString(size_t n);
 
 std::ostream& operator<<(std::ostream& os, const Response& res);
 # endif

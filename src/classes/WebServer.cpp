@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/16 20:26:05 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/17 17:54:10 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -122,7 +122,7 @@ void WebServer::getServerBlock(t_its it)
 			}
 		}
 	}
-	server.setServerRoot("/home/taung/webserv/www");
+	server.setServerRoot("/home/thant-htet-aung/webserv/www/html");
 	// std::vector<std::string> v = {"index.html", "asdf.html"};
 	// server.setServerIndex(v);
 	addServer(server);
@@ -424,11 +424,196 @@ const std::string WebServer::handleReverseProxy(const Request &req, const Server
 	return std::string(buffer);
 }
 
-const std::string	WebServer::handleAutoIndex(const Request& req, const Server &server) {
-	// Check the
-	(void)req;
-	(void)server;
-	return "";
+// const std::string	WebServer::handleAutoIndex(const Request& req, const Server &server) {
+// 	/*
+// 	get the fullPath from server's location
+// 	if location doesn't have full path
+// 		use the serverRoot to build the fullPath
+// 	if there is not path
+// 		return error(404)
+// 	if the path is invalid
+// 		return error(403?)
+
+// 	open dir using fullPath
+// 	list all the files in the dir
+// 	close dir
+// 	*/
+// 	std::string	httpRes = "";
+// 	std::string	fullPath = "";
+
+// 	std::map<std::string, t_location>::const_iterator	it = search_map_iterator(server.getLocation(), req.getUrlPath());
+// 	if (it != server.getLocation().end()) {
+// 		if (!it->second._root.empty()) {
+// 			fullPath += it->second._root + req.getUrlPath();
+// 		} else if (!server.getServerRoot().empty()) {
+// 			fullPath += server.getServerRoot() + req.getUrlPath();
+// 		}
+// 		std::cout << fullPath << std::endl;
+// 		if (access(fullPath.c_str(), R_OK) == -1) {
+// 			Response	res(403);
+// 			return (res.toStr());
+// 		}
+
+// 	}
+
+// 	return httpRes;
+// }
+
+std::map<std::string, t_location>::const_iterator	getBestLocationMatch(const std::map<std::string, t_location>& locations,
+                                const std::string& url)
+{
+	std::map<std::string, t_location>::const_iterator best = locations.end();
+	size_t bestLen = 0;
+
+	for (std::map<std::string, t_location>::const_iterator it = locations.begin();
+		it != locations.end(); ++it)
+	{
+		if (url.find(it->first) == 0 && it->first.size() > bestLen) {
+			best = it;
+			bestLen = it->first.size();
+		}
+	}
+	return best;
+}
+
+std::string WebServer::serveStaticFile(const std::string &fullPath, const Request &req)
+{
+	// 1. Open the file
+	int fd = open(fullPath.c_str(), O_RDONLY);
+	if (fd == -1) {
+		Response res(403);  // Could not read
+		return res.toStr();
+	}
+
+	// 2. Read file content
+	std::string body;
+	char buf[4096];
+	ssize_t n;
+	while ((n = read(fd, buf, sizeof(buf))) > 0) {
+		body.append(buf, n);
+	}
+	close(fd);
+
+	// 3. Determine Content-Type based on file extension
+	std::map<std::string, std::string> mimeTypes;
+	mimeTypes[".html"] = "text/html";
+	mimeTypes[".htm"]  = "text/html";
+	mimeTypes[".txt"]  = "text/plain";
+	mimeTypes[".css"]  = "text/css";
+	mimeTypes[".js"]   = "application/javascript";
+	mimeTypes[".json"] = "application/json";
+	mimeTypes[".png"]  = "image/png";
+	mimeTypes[".jpg"]  = "image/jpeg";
+	mimeTypes[".jpeg"] = "image/jpeg";
+	mimeTypes[".gif"]  = "image/gif";
+	mimeTypes[".pdf"]  = "application/pdf";
+
+	std::string contentType = "application/octet-stream"; // default
+
+	size_t dotPos = fullPath.rfind('.');
+	if (dotPos != std::string::npos) {
+		std::string ext = fullPath.substr(dotPos);
+		std::map<std::string, std::string>::iterator it = mimeTypes.find(ext);
+		if (it != mimeTypes.end())
+			contentType = it->second;
+	}
+
+	// 4. Build HTTP response
+	std::stringstream ss;
+	ss << "HTTP/1.1 200 OK\r\n";
+	ss << "Content-Type: " << contentType << "\r\n";
+	ss << "Content-Length: " << body.size() << "\r\n";
+	ss << "\r\n";
+	ss << body;
+
+	return ss.str();
+}
+
+const std::string WebServer::handleAutoIndex(const Request& req, const Server &server)
+{
+    std::string httpRes = "";
+    std::string fullPath = "";
+
+    // 1. Resolve full path
+    std::map<std::string, t_location>::const_iterator it =
+        getBestLocationMatch(server.getLocation(), req.getUrlPath());
+
+    if (it != server.getLocation().end()) {
+        if (!it->second._root.empty())
+            fullPath = it->second._root + req.getUrlPath();
+        else if (!server.getServerRoot().empty())
+            fullPath = server.getServerRoot() + req.getUrlPath();
+    }
+
+    // ---- FIX: Serve FILES instead of generating autoindex ----
+    struct stat st;
+    if (stat(fullPath.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
+        return this->serveStaticFile(fullPath, req);  // <--- your file-serving function
+    }
+
+    // If path doesn't exist → 404
+    if (access(fullPath.c_str(), R_OK) == -1) {
+        Response res(404);
+        return res.toStr();
+    }
+
+    // If path is not a directory → 403 (or 404)
+    if (stat(fullPath.c_str(), &st) == -1 || !S_ISDIR(st.st_mode)) {
+        Response res(403);
+        return res.toStr();
+    }
+
+    // 3. Open directory
+    DIR* dir = opendir(fullPath.c_str());
+    if (!dir) {
+        Response res(403);
+        return res.toStr();
+    }
+
+    // 4. Build autoindex HTML
+    std::string body;
+    body += "<html><head><title>Index of " + req.getUrlPath() + "</title></head><body>";
+    body += "<h1>Index of " + req.getUrlPath() + "</h1><hr><pre>";
+
+    struct dirent* entry;
+
+    while ((entry = readdir(dir)) != NULL) {
+
+        std::string name = entry->d_name;
+        if (name == "." || name == "..")
+            continue;
+
+        std::string itemFullPath = fullPath + "/" + name;
+
+        struct stat itemSt;
+        if (stat(itemFullPath.c_str(), &itemSt) == -1)
+            continue;
+
+        // ---- Build URL safely without string.back() ----
+        std::string href = req.getUrlPath();
+        if (!href.empty() && href[href.size() - 1] != '/')
+            href += "/";
+
+        href += name;
+
+        if (S_ISDIR(itemSt.st_mode))
+            href += "/";   // Add trailing slash for directories
+
+        body += "<a href=\"" + href + "\">" + name + "</a>\n";
+    }
+
+    closedir(dir);
+
+    body += "</pre><hr></body></html>";
+
+    // 5. Build HTTP response
+    httpRes += "HTTP/1.1 200 OK\r\n";
+    httpRes += "Content-Type: text/html\r\n";
+    httpRes += "Content-Length: " + intToString(body.size()) + "\r\n";
+    httpRes += "\r\n";
+    httpRes += body;
+
+    return httpRes;
 }
 
 
@@ -500,7 +685,7 @@ int WebServer::serve(void)
 			std::cout << _servers[idx] << std::endl;
 			std::cout << "================================= SERVER TEST END =====================" << std::endl;
 
-			int i = req.validateAgainstConfig (_servers[idx]);
+			int i = req.validateAgainstConfig(_servers[idx]);
 			if(i != 200) {
 					Response res(i);
 			}
@@ -520,7 +705,14 @@ int WebServer::serve(void)
 				continue;
 			} else if (req.isAutoIndex(_servers[idx])) {
 				std::cout << "auto index" << std::endl;
-				Response res(handleAutoIndex(req, _servers[idx]));
+				std::string	rawRes = handleAutoIndex(req, _servers[idx]);
+				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
+				if (sent < 0)
+				{
+					perror("send");
+				}
+				close(client_fd);
+				continue;
 			}
 
 			std::cout << req << std::endl;
