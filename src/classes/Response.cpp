@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/20 02:20:26 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/20 02:24:05 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -203,7 +203,7 @@ Response::Response(const Request& req, Server& server) {
 		}
 	else
 		path = "";
-	return error here
+	//return error here
 	std::cout << "The real path " << path << std::endl;
 
 	std::cout << "Requested Path: " << path << std::endl;
