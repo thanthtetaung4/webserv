@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/10 14:36:13 by taung             #+#    #+#             */
-/*   Updated: 2025/11/10 19:14:41 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/19 21:17:53 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@ t_proxyPass	parseProxyPass(const std::string &proxyPassStr) {
 	size_t		start;
 
 	// Example proxyPassStr: "http://
+	std::cout << proxyPassStr << std::endl;
 	pos = proxyPassStr.find("://");
 	if (pos == std::string::npos)
 		throw std::runtime_error("Invalid proxyPass format: missing '://'");

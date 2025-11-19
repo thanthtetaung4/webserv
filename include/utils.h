@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 19:48:22 by taung             #+#    #+#             */
-/*   Updated: 2025/11/18 18:39:40 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/19 20:55:37 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 # define UTILS_H
 
 # include <iostream>
+# include <sstream>
 # include <map>
 # include "proxyPass.h"
 # include "Location.h"
@@ -37,5 +38,6 @@ t_location*	searchMapLongestMatch(const std::map<std::string,
 									t_location>& map, std::string key);
 
 t_proxyPass	parseProxyPass(const std::string &proxyPassStr);
+std::string	intToString(size_t n);
 
 # endif

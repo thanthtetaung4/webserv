@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/19 15:15:38 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/19 22:07:27 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -122,7 +122,7 @@ void WebServer::getServerBlock(t_its it)
 			}
 		}
 	}
-	server.setServerRoot("/home/thant-htet-aung/webserv/www/html");
+	server.setServerRoot("/home/taung/webserv/www/html");
 	// std::vector<std::string> v = {"index.html", "asdf.html"};
 	// server.setServerIndex(v);
 	addServer(server);
@@ -476,59 +476,6 @@ std::map<std::string, t_location>::const_iterator	getBestLocationMatch(const std
 	return best;
 }
 
-std::string WebServer::serveStaticFile(const std::string &fullPath, const Request &req)
-{
-	// 1. Open the file
-	int fd = open(fullPath.c_str(), O_RDONLY);
-	if (fd == -1) {
-		Response res(403);  // Could not read
-		return res.toStr();
-	}
-
-	// 2. Read file content
-	std::string body;
-	char buf[4096];
-	ssize_t n;
-	while ((n = read(fd, buf, sizeof(buf))) > 0) {
-		body.append(buf, n);
-	}
-	close(fd);
-
-	// 3. Determine Content-Type based on file extension
-	std::map<std::string, std::string> mimeTypes;
-	mimeTypes[".html"] = "text/html";
-	mimeTypes[".htm"]  = "text/html";
-	mimeTypes[".txt"]  = "text/plain";
-	mimeTypes[".css"]  = "text/css";
-	mimeTypes[".js"]   = "application/javascript";
-	mimeTypes[".json"] = "application/json";
-	mimeTypes[".png"]  = "image/png";
-	mimeTypes[".jpg"]  = "image/jpeg";
-	mimeTypes[".jpeg"] = "image/jpeg";
-	mimeTypes[".gif"]  = "image/gif";
-	mimeTypes[".pdf"]  = "application/pdf";
-
-	std::string contentType = "application/octet-stream"; // default
-
-	size_t dotPos = fullPath.rfind('.');
-	if (dotPos != std::string::npos) {
-		std::string ext = fullPath.substr(dotPos);
-		std::map<std::string, std::string>::iterator it = mimeTypes.find(ext);
-		if (it != mimeTypes.end())
-			contentType = it->second;
-	}
-
-	// 4. Build HTTP response
-	std::stringstream ss;
-	ss << "HTTP/1.1 200 OK\r\n";
-	ss << "Content-Type: " << contentType << "\r\n";
-	ss << "Content-Length: " << body.size() << "\r\n";
-	ss << "\r\n";
-	ss << body;
-
-	return ss.str();
-}
-
 const std::string WebServer::handleAutoIndex(const Request& req, const Server &server)
 {
 	std::string fullPath;
@@ -546,63 +493,78 @@ const std::string WebServer::handleAutoIndex(const Request& req, const Server &s
 
 	std::cout << "[AUTOINDEX] fullPath: " << fullPath << std::endl;
 
-	// Check access
-	if (access(fullPath.c_str(), R_OK) == -1) {
-		return "HTTP/1.1 403 Forbidden\r\n\r\n";
+	/*
+		here check the requested path is a file or a folder
+		if folder => show auto index page
+		if file => serve the file
+	*/
+
+	if (open(fullPath.c_str(), O_RDONLY) >= 0) {
+		/*
+			build response from the path and return
+		*/
 	}
+	else {
 
-	// Try opening directory
-	DIR* dir = opendir(fullPath.c_str());
-	if (!dir) {
-		return "HTTP/1.1 404 Not Found\r\n\r\n";
+		// Check access
+		if (access(fullPath.c_str(), R_OK) == -1) {
+			return "HTTP/1.1 403 Forbidden\r\n\r\n";
+		}
+
+		// Try opening directory
+		DIR* dir = opendir(fullPath.c_str());
+		if (!dir) {
+			return "HTTP/1.1 404 Not Found\r\n\r\n";
+		}
+
+		// 2. Build HTML body
+		std::string body;
+		body += "<html><head><title>Index of " + req.getUrlPath() + "</title></head><body>";
+		body += "<h1>Index of " + req.getUrlPath() + "</h1><hr><pre>";
+
+		struct dirent* entry;
+
+		while ((entry = readdir(dir)) != NULL) {
+			std::string name = entry->d_name;
+
+			if (name == "." || name == "..")
+				continue;
+
+			std::string itemFullPath = fullPath + "/" + name;
+
+			struct stat st;
+			if (stat(itemFullPath.c_str(), &st) == -1)
+				continue;
+
+			body += "<a href=\"" + req.getUrlPath();
+
+			// Ensure trailing slash for directory
+			if (*(req.getUrlPath().end()) != '/')
+				body += "/";
+
+			body += name;
+
+			if (S_ISDIR(st.st_mode))
+				body += "/";
+
+			body += "\">" + name + "</a>\n";
+		}
+
+		body += "</pre><hr></body></html>";
+
+		closedir(dir);
+
+		// 3. Build Raw HTTP Response
+		std::string response;
+		response += "HTTP/1.1 200 OK\r\n";
+		response += "Content-Type: text/html\r\n";
+		response += "Content-Length: " + intToString(body.size()) + "\r\n";
+		response += "\r\n";           // end of header
+		response += body;             // body
+
+		return response;
 	}
-
-	// 2. Build HTML body
-	std::string body;
-	body += "<html><head><title>Index of " + req.getUrlPath() + "</title></head><body>";
-	body += "<h1>Index of " + req.getUrlPath() + "</h1><hr><pre>";
-
-	struct dirent* entry;
-
-	while ((entry = readdir(dir)) != NULL) {
-		std::string name = entry->d_name;
-
-		if (name == "." || name == "..")
-			continue;
-
-		std::string itemFullPath = fullPath + "/" + name;
-
-		struct stat st;
-		if (stat(itemFullPath.c_str(), &st) == -1)
-			continue;
-
-		body += "<a href=\"" + req.getUrlPath();
-
-		// Ensure trailing slash for directory
-		if (req.getUrlPath().back() != '/')
-			body += "/";
-
-		body += name;
-
-		if (S_ISDIR(st.st_mode))
-			body += "/";
-
-		body += "\">" + name + "</a>\n";
-	}
-
-	body += "</pre><hr></body></html>";
-
-	closedir(dir);
-
-	// 3. Build Raw HTTP Response
-	std::string response;
-	response += "HTTP/1.1 200 OK\r\n";
-	response += "Content-Type: text/html\r\n";
-	response += "Content-Length: " + std::to_string(body.size()) + "\r\n";
-	response += "\r\n";           // end of header
-	response += body;             // body
-
-	return response;
+	return "";
 }
 
 
@@ -674,10 +636,10 @@ int WebServer::serve(void)
 			std::cout << _servers[idx] << std::endl;
 			std::cout << "================================= SERVER TEST END =====================" << std::endl;
 
-			int i = req.validateAgainstConfig(_servers[idx]);
-			if(i != 200) {
-					Response res(i);
-			}
+			// int i = req.validateAgainstConfig(_servers[idx]);
+			// if(i != 200) {
+			// 		Response res(i);
+			// }
 
 			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
 			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))

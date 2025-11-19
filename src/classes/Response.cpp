@@ -6,17 +6,17 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/17 15:43:08 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/19 21:06:36 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "../../include/Response.hpp"
 
-std::string intToString(size_t n) {
-	std::ostringstream ss;
-	ss << n;
-	return ss.str();
-}
+// std::string intToString(size_t n) {
+// 	std::ostringstream ss;
+// 	ss << n;
+// 	return ss.str();
+// }
 
 bool safePath(std::string const& path){
 	if(path.find("..") == std::string::npos)
