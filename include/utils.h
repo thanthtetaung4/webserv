@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 19:48:22 by taung             #+#    #+#             */
-/*   Updated: 2025/11/12 19:15:52 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/20 18:54:19 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 # include <iostream>
 # include <map>
 # include "proxyPass.h"
+# include "Location.h"
 
 template <typename K, typename V>
 bool	search_map(const std::map<K, V>& m, const K& key) {
