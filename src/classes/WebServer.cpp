@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 09:08:18 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/20 19:30:53 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,6 +97,7 @@ std::vector<Server> WebServer::getServers() const
 {
 	return _servers;
 }
+
 /*
 	send the request to the proxy server and get the response
 	create a new Response object with the response from server
@@ -190,6 +191,132 @@ const std::string WebServer::handleReverseProxy(const Request &req, const Server
 	return std::string(buffer);
 }
 
+std::map<std::string, t_location>::const_iterator	getBestLocationMatch(const std::map<std::string, t_location>& locations,
+                                const std::string& url)
+{
+	std::map<std::string, t_location>::const_iterator best = locations.end();
+	size_t bestLen = 0;
+
+	for (std::map<std::string, t_location>::const_iterator it = locations.begin();
+		it != locations.end(); ++it)
+	{
+		if (url.find(it->first) == 0 && it->first.size() > bestLen) {
+			best = it;
+			bestLen = it->first.size();
+		}
+	}
+	return best;
+}
+
+const std::string	WebServer::handleRedirect(std::string redirUrlPath) {
+	std::string res;
+
+	res  = "HTTP/1.1 302 Found\r\n";
+	res += "Location: " + redirUrlPath + "\r\n";
+	res += "Content-Type: text/html\r\n";
+	res += "Content-Length: 0\r\n";
+	res += "\r\n";
+
+	return res;
+}
+
+
+const std::string WebServer::handleAutoIndex(const Request& req, const Server &server)
+{
+	std::string fullPath;
+
+	if (req.getUrlPath()[req.getUrlPath().length() - 1] != '/') {
+		return this->handleRedirect(req.getUrlPath() + "/");
+	}
+
+	// 1. Resolve full path from location or server root
+	t_location* loc = searchMapLongestMatch(server.getLocation(), req.getUrlPath());
+
+	if (loc) {
+		if (!loc->_root.empty())
+			fullPath = loc->_root + req.getUrlPath();
+		else if (!server.getRoot().empty())
+			fullPath = server.getRoot() + req.getUrlPath();
+	}
+
+
+	std::cout << "[AUTOINDEX] fullPath: " << fullPath << std::endl;
+
+	/*
+		here check the requested path is a file or a folder
+		if folder => show auto index page
+		if file => serve the file
+	*/
+
+	// if (open(fullPath.c_str(), O_RDONLY) >= 0) {
+	// 	/*
+	// 		build response from the path and return
+	// 	*/
+	// }
+	// else {
+
+		// Check access
+		if (access(fullPath.c_str(), R_OK) == -1) {
+			return "HTTP/1.1 403 Forbidden\r\n\r\n";
+		}
+
+		// Try opening directory
+		DIR* dir = opendir(fullPath.c_str());
+		if (!dir) {
+			return "HTTP/1.1 404 Not Found\r\n\r\n";
+		}
+
+		// 2. Build HTML body
+		std::string body;
+		body += "<html><head><title>Index of " + req.getUrlPath() + "</title></head><body>";
+		body += "<h1>Index of " + req.getUrlPath() + "</h1><hr><pre>";
+
+		struct dirent* entry;
+
+		while ((entry = readdir(dir)) != NULL) {
+			std::string name = entry->d_name;
+
+			if (name == "." || name == "..")
+				continue;
+
+			std::string itemFullPath = fullPath + "/" + name;
+
+			struct stat st;
+			if (stat(itemFullPath.c_str(), &st) == -1)
+				continue;
+
+			body += "<a href=\"" + req.getUrlPath();
+
+			// Ensure trailing slash for directory
+			if (*(req.getUrlPath().end()) != '/')
+				body += "/";
+
+			body += name;
+
+			if (S_ISDIR(st.st_mode))
+				body += "/";
+
+			body += "\">" + name + "</a>\n";
+		}
+
+		body += "</pre><hr></body></html>";
+
+		closedir(dir);
+
+		// 3. Build Raw HTTP Response
+		std::string response;
+		response += "HTTP/1.1 200 OK\r\n";
+		response += "Content-Type: text/html\r\n";
+		response += "Content-Length: " + intToString(body.size()) + "\r\n";
+		response += "\r\n";           // end of header
+		response += body;             // body
+
+		return response;
+	// }
+	// return "";
+}
+
+
 int WebServer::serve(void)
 {
 	int epoll_fd = epoll_create1(0);
@@ -258,15 +385,30 @@ int WebServer::serve(void)
 			std::cout << _servers[idx] << std::endl;
 			std::cout << "================================= SERVER TEST END =====================" << std::endl;
 
-			int i = req.validateAgainstConfig(_servers[idx]);
-			if (i != 200)
-				Response res(i);
+			// int i = req.validateAgainstConfig(_servers[idx]);
+			// if(i != 200) {
+			// 		Response res(i);
+			// }
+
 			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
 			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
 			{
 				std::cout << "POST method detected" << std::endl;
 				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
 				// just send the plain text to the client no need to change it back to Response obj
+				std::cout << "================================= SERVER TEST START =====================" << std::endl;
+				std::cout << rawRes << std::endl;
+				std::cout << "================================= SERVER TEST END =====================" << std::endl;
+				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
+				if (sent < 0)
+				{
+					perror("send");
+				}
+				close(client_fd);
+				continue;
+			} else if (req.isAutoIndex(_servers[idx])) {
+				std::cout << "auto index" << std::endl;
+				std::string	rawRes = handleAutoIndex(req, _servers[idx]);
 				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
 				if (sent < 0)
 				{

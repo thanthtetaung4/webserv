@@ -3,31 +3,36 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 08:57:07 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/20 19:03:44 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef WEBSERVER_HPP
 #define WEBSERVER_HPP
 
-#include "Server.hpp"
-#include "ServerException.hpp"
-#include "Socket.hpp"
-#include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <poll.h>
-#include <sys/epoll.h>
-#include <unistd.h>
-#include "Request.hpp"
-#include "Response.hpp"
-#include "utils.h"
-#include "proxyPass.h"
+# include "Server.hpp"
+# include "ServerException.hpp"
+# include "Socket.hpp"
+# include <cstdlib>
+# include <cstring>
+# include <fstream>
+# include <poll.h>
+# include <sstream>
+# include <string>
+# include <dirent.h>
+# include <sys/epoll.h>
+# include <sys/stat.h>
+# include <unistd.h>
+# include "Request.hpp"
+# include "Response.hpp"
+# include "utils.h"
+# include "proxyPass.h"
+# include "Validator.hpp"
 
-#define MAX_EVENTS 10
+# define MAX_EVENTS 10
 
 typedef struct its
 {
@@ -55,8 +60,10 @@ public:
 	int serve(void);
 	std::vector<Server> getServers() const;
 	const std::string handleReverseProxy(const Request &req, const Server &server);
+	const std::string	handleAutoIndex(const Request& req, const Server &server);
 	bool isProxyPass(std::string urlPath, Server server);
 	bool isCGI(std::string urlPath, Server server);
+	const std::string	handleRedirect(std::string redirUrlPath);
 };
 
 #endif
