@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/17 08:35:17 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/20 08:57:07 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,15 +20,12 @@
 #include <cstring>
 #include <fstream>
 #include <poll.h>
-#include <sstream>
-#include <string>
 #include <sys/epoll.h>
 #include <unistd.h>
 #include "Request.hpp"
 #include "Response.hpp"
 #include "utils.h"
 #include "proxyPass.h"
-#include "Validator.hpp"
 
 #define MAX_EVENTS 10
 
@@ -60,13 +57,6 @@ public:
 	const std::string handleReverseProxy(const Request &req, const Server &server);
 	bool isProxyPass(std::string urlPath, Server server);
 	bool isCGI(std::string urlPath, Server server);
-	void getServerBlock(t_its it);
-	void getLocationBlock(t_its it, Server &server);
-	void setAttributes(const std::vector<std::string> &line, Server &server);
-	void setLocationAttributes(const std::vector<std::string> &line,
-							   t_location &location, std::string &key);
-	t_its getIts(std::string &content, std::string::iterator start,
-				 const std::string &target1, const std::string &target2);
 };
 
 #endif

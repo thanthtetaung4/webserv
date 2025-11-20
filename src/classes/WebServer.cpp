@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/17 13:48:28 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/20 09:08:18 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,277 +26,9 @@ WebServer::~WebServer() {}
 // WebServer::WebServer(const WebServer &src) {}
 
 // WebServer &WebServer::operator=(const WebServer &other) {}
-
-std::string WebServer::getIndex(std::string path)
-{
-	std::cout << path << std::endl;
-	std::ifstream file(path.c_str());
-
-	if (file.good())
-	{
-		std::stringstream buffer;
-		buffer << file.rdbuf();
-
-		std::cout << buffer.str() << std::endl;
-
-		return buffer.str();
-	}
-	else
-	{
-		std::cout << "file not opened" << std::endl;
-	}
-	return "";
-}
-
-void printRange(std::string::iterator it1, std::string::iterator it2)
-{
-	if (it1 == it2)
-	{
-		std::cout << "(empty range)" << std::endl;
-		return;
-	}
-
-	for (std::string::iterator it = it1; it != it2; ++it)
-	{
-		std::cout << *it;
-	}
-	std::cout << std::endl;
-}
-
-t_its WebServer::getIts(std::string &content, std::string::iterator start, const std::string &target1, const std::string &target2)
-{
-	t_its it;
-
-	it.it1 = std::search(start, content.end(), target1.begin(), target1.end());
-	if (it.it1 == content.end())
-		throw "Invalid config file";
-	else
-		it.it2 = std::search(it.it1 + 1, content.end(), target2.begin(), target2.end());
-	return it;
-}
-
-void WebServer::getServerBlock(t_its it)
-{
-	std::string content(it.it1, it.it2);
-	std::stringstream serverString(content);
-	std::string line;
-	Server server;
-	t_its itLoc;
-
-	std::string::iterator pos = content.begin();
-	while (std::getline(serverString, line))
-	{
-		if (line.find_first_not_of(" \t") == std::string::npos)
-			continue;
-		if (!line.empty())
-		{
-			if (line.at(line.size() - 1) != '{' && line.at(line.size() - 1) != '}')
-			{
-				if (line.at(line.size() - 1) != ';')
-				{
-					// std::cout << line << std::endl;
-					throw std::runtime_error("Invalid directive format.\nMissing ';'");
-				}
-			}
-		}
-		std::stringstream ss(line);
-		std::string token;
-		std::vector<std::string> lineVec;
-		while (ss >> token)
-		{
-			if (!token.empty() && token == "location")
-			{
-				itLoc = getIts(content, pos, token, "}");
-				getLocationBlock(itLoc, server);
-				pos = itLoc.it2;
-				std::string remaining(pos, content.end());
-				serverString.str(remaining);
-				serverString.clear();
-				continue;
-			}
-			if (!token.empty() && !(token.at(token.size() - 1) == ';'))
-				lineVec.push_back(token);
-			else if (!token.empty() && (token.at(token.size() - 1) == ';'))
-			{
-				token = token.substr(0, token.size() - 1);
-				lineVec.push_back(token);
-				setAttributes(lineVec, server);
-				lineVec.clear();
-			}
-		}
-	}
-	addServer(server);
-	// std::cout << server;
-}
-
-void WebServer::getLocationBlock(t_its it, Server &server)
-{
-	std::string content(it.it1, it.it2);
-	std::stringstream locationString(content);
-	std::string line;
-	t_location location;
-	std::string key;
-
-	while (std::getline(locationString, line))
-	{
-		std::stringstream ss(line);
-		std::string token;
-		std::vector<std::string> lineVec;
-
-		while (ss >> token)
-		{
-			if (!token.empty() && !(token.at(token.size() - 1) == ';') && !(token == "{"))
-				lineVec.push_back(token);
-			else if (!token.empty() && (token.at(token.size() - 1) == ';'))
-			{
-				token = token.substr(0, token.size() - 1);
-				lineVec.push_back(token);
-				setLocationAttributes(lineVec, location, key);
-				lineVec.clear();
-			}
-			else if (!token.empty() && token == "{")
-			{
-				lineVec.push_back(token);
-				setLocationAttributes(lineVec, location, key);
-				lineVec.clear();
-			}
-		}
-	}
-	if (location._limit_except.empty())
-		location._limit_except.push_back("GET");
-	if (!ConfigValidator::validateLocation(location, key))
-		throw std::runtime_error("Invalid location directive format");
-	if (!location._cgiExt.empty() && !location._cgiPass.empty())
-		location._isCgi = true;
-	else
-		location._isCgi = false;
-	server.setLocation(key, location);
-}
-
-void WebServer::setAttributes(const std::vector<std::string> &line, Server &server)
-{
-	if (line.empty())
-		return;
-
-	const std::string &key = line[0];
-	if (key == "listen")
-	{
-		Validator::requireSize(line, 2, key, ConfigValidator::validateListen(line[1]));
-		server.setPort(line[1]);
-	}
-	else if (key == "server_name")
-	{
-		Validator::requireSize(line, 2, key, ConfigValidator::validateServerName(line[1]));
-		server.setServerName(line[1]);
-	}
-	else if (key == "error_page")
-	{
-		Validator::requireMinSize(line, 3, key, true);
-		const std::string &errorPage = line.back();
-		for (size_t i = 1; i < line.size() - 1; ++i)
-		{
-			Validator::requireMinSize(line, 3, key, ConfigValidator::validateErrorPage(atoi(line[i].c_str()), errorPage));
-			server.setErrorPage(line[i], errorPage);
-		}
-	}
-	else if (key == "client_max_body_size")
-	{
-		Validator::requireSize(line, 2, key, ConfigValidator::validateSize(line[1]));
-		server.setMaxBytes(line[1]);
-	}
-	else if (key == "root")
-	{
-		Validator::requireSize(line, 2, key, ConfigValidator::validateRoot(line[1]));
-		server.setRoot(line[1]);
-	}
-
-	else if (key == "index")
-	{
-		Validator::requireMinSize(line, 2, key, true);
-		for (size_t i = 1; i < line.size(); i++)
-		{
-			if (!ConfigValidator::validateIndex(line[i]))
-				throw std::runtime_error("Invalid '" + key + "' directive format");
-			server.setIndex(line[i]);
-		}
-	}
-	else if (key == "return")
-	{
-		Validator::requireSize(line, 3, key, ConfigValidator::validateReturn(atoi(line[1].c_str()), line[2]));
-		server.setReturn(line[1], line[2]);
-	}
-	else
-		throw std::runtime_error("Unknown directive: '" + key + "'");
-}
-
-void WebServer::setLocationAttributes(const std::vector<std::string> &line, t_location &location, std::string &key)
-{
-	if (line.empty())
-		return;
-
-	const std::string &directive = line[0];
-
-	if (directive == "location")
-	{
-		Validator::requireSize(line, 3, directive, true);
-		key = line[1];
-	}
-	else if (directive == "root")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		location._root = line[1];
-	}
-	else if (directive == "index")
-	{
-		Validator::requireMinSize(line, 2, directive, true);
-		for (size_t i = 1; i < line.size(); ++i)
-			location._index.push_back(line[i]);
-	}
-	else if (directive == "limit_except")
-	{
-		Validator::requireMinSize(line, 1, directive, true);
-		for (size_t i = 1; i < line.size(); ++i)
-			location._limit_except.push_back(line[i]);
-	}
-	else if (directive == "return")
-	{
-		Validator::requireSize(line, 3, directive, true);
-		location._return[line[1]] = line[2];
-	}
-	else if (directive == "autoindex")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		if (line[1] != "on" && line[1] != "off")
-			throw std::runtime_error("Invalid 'autoindex' value — expected 'on' or 'off'");
-		location._autoIndex = line[1];
-	}
-	else if (directive == "cgi_pass")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		location._cgiPass = line[1];
-	}
-	else if (directive == "cgi_ext")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		location._cgiExt = line[1];
-	}
-	else if (directive == "upload_store")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		location._uploadStore = line[1];
-	}
-	else if (directive == "proxy_pass")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		location._proxy_pass = line[1];
-	}
-	else
-		throw std::runtime_error("Unknown location directive: '" + directive + "'");
-}
-
 void WebServer::setServer(std::string configFile)
 {
-	t_its it;
+	t_iterators it;
 	std::string target = "server {";
 
 	std::ifstream config(configFile.c_str());
@@ -307,12 +39,14 @@ void WebServer::setServer(std::string configFile)
 		std::stringstream ss;
 		ss << config.rdbuf();
 		std::string content = ss.str();
-		it = getIts(content, content.begin(), target, target);
+		it = Server::getIterators(content, content.begin(), target, target);
 		while (it.it1 != content.end())
 		{
-			getServerBlock(it);
+			Server server;
+			server.fetchSeverInfo(it);
+			addServer(server);
 			if (it.it2 != content.end())
-				it = getIts(content, it.it2, target, target);
+				it = Server::getIterators(content, it.it2, target, target);
 			else
 				break;
 		}
