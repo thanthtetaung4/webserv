@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/17 08:24:47 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/20 19:30:53 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "../../include/Validator.hpp"
+#include "../../include/Cgi.hpp"
 
 WebServer::WebServer() {}
 
@@ -25,277 +26,9 @@ WebServer::~WebServer() {}
 // WebServer::WebServer(const WebServer &src) {}
 
 // WebServer &WebServer::operator=(const WebServer &other) {}
-
-std::string WebServer::getIndex(std::string path)
-{
-	std::cout << path << std::endl;
-	std::ifstream file(path.c_str());
-
-	if (file.good())
-	{
-		std::stringstream buffer;
-		buffer << file.rdbuf();
-
-		std::cout << buffer.str() << std::endl;
-
-		return buffer.str();
-	}
-	else
-	{
-		std::cout << "file not opened" << std::endl;
-	}
-	return "";
-}
-
-void printRange(std::string::iterator it1, std::string::iterator it2)
-{
-	if (it1 == it2)
-	{
-		std::cout << "(empty range)" << std::endl;
-		return;
-	}
-
-	for (std::string::iterator it = it1; it != it2; ++it)
-	{
-		std::cout << *it;
-	}
-	std::cout << std::endl;
-}
-
-t_its WebServer::getIts(std::string &content, std::string::iterator start, const std::string &target1, const std::string &target2)
-{
-	t_its it;
-
-	it.it1 = std::search(start, content.end(), target1.begin(), target1.end());
-	if (it.it1 == content.end())
-		throw "Invalid config file";
-	else
-		it.it2 = std::search(it.it1 + 1, content.end(), target2.begin(), target2.end());
-	return it;
-}
-
-void WebServer::getServerBlock(t_its it)
-{
-	std::string content(it.it1, it.it2);
-	std::stringstream serverString(content);
-	std::string line;
-	Server server;
-	t_its itLoc;
-
-	std::string::iterator pos = content.begin();
-	while (std::getline(serverString, line))
-	{
-		if (line.find_first_not_of(" \t") == std::string::npos)
-			continue;
-		if (!line.empty())
-		{
-			if (line.at(line.size() - 1) != '{' && line.at(line.size() - 1) != '}')
-			{
-				if (line.at(line.size() - 1) != ';')
-				{
-					// std::cout << line << std::endl;
-					throw std::runtime_error("Invalid directive format.\nMissing ';'");
-				}
-			}
-		}
-		std::stringstream ss(line);
-		std::string token;
-		std::vector<std::string> lineVec;
-		while (ss >> token)
-		{
-			if (!token.empty() && token == "location")
-			{
-				itLoc = getIts(content, pos, token, "}");
-				getLocationBlock(itLoc, server);
-				pos = itLoc.it2;
-				std::string remaining(pos, content.end());
-				serverString.str(remaining);
-				serverString.clear();
-				continue;
-			}
-			if (!token.empty() && !(token.at(token.size() - 1) == ';'))
-				lineVec.push_back(token);
-			else if (!token.empty() && (token.at(token.size() - 1) == ';'))
-			{
-				token = token.substr(0, token.size() - 1);
-				lineVec.push_back(token);
-				setAttributes(lineVec, server);
-				lineVec.clear();
-			}
-		}
-	}
-	addServer(server);
-	// std::cout << server;
-}
-
-void WebServer::getLocationBlock(t_its it, Server &server)
-{
-	std::string content(it.it1, it.it2);
-	std::stringstream locationString(content);
-	std::string line;
-	t_location location;
-	std::string key;
-
-	while (std::getline(locationString, line))
-	{
-		std::stringstream ss(line);
-		std::string token;
-		std::vector<std::string> lineVec;
-
-		while (ss >> token)
-		{
-			if (!token.empty() && !(token.at(token.size() - 1) == ';') && !(token == "{"))
-				lineVec.push_back(token);
-			else if (!token.empty() && (token.at(token.size() - 1) == ';'))
-			{
-				token = token.substr(0, token.size() - 1);
-				lineVec.push_back(token);
-				setLocationAttributes(lineVec, location, key);
-				lineVec.clear();
-			}
-			else if (!token.empty() && token == "{")
-			{
-				lineVec.push_back(token);
-				setLocationAttributes(lineVec, location, key);
-				lineVec.clear();
-			}
-		}
-	}
-	if (location._limit_except.empty())
-		location._limit_except.push_back("GET");
-	if (!ConfigValidator::validateLocation(location, key))
-		throw std::runtime_error("Invalid location directive format");
-	if (!location._cgiExt.empty() && !location._cgiPass.empty())
-		location._isCgi = true;
-	else
-		location._isCgi = false;
-	server.setLocation(key, location);
-}
-
-void WebServer::setAttributes(const std::vector<std::string> &line, Server &server)
-{
-	if (line.empty())
-		return;
-
-	const std::string &key = line[0];
-	if (key == "listen")
-	{
-		Validator::requireSize(line, 2, key, ConfigValidator::validateListen(line[1]));
-		server.setPort(line[1]);
-	}
-	else if (key == "server_name")
-	{
-		Validator::requireSize(line, 2, key, ConfigValidator::validateServerName(line[1]));
-		server.setServerName(line[1]);
-	}
-	else if (key == "error_page")
-	{
-		Validator::requireMinSize(line, 3, key, true);
-		const std::string &errorPage = line.back();
-		for (size_t i = 1; i < line.size() - 1; ++i)
-		{
-			Validator::requireMinSize(line, 3, key, ConfigValidator::validateErrorPage(atoi(line[i].c_str()), errorPage));
-			server.setErrorPage(line[i], errorPage);
-		}
-	}
-	else if (key == "client_max_body_size")
-	{
-		Validator::requireSize(line, 2, key, ConfigValidator::validateSize(line[1]));
-		server.setMaxBytes(line[1]);
-	}
-	else if (key == "root")
-	{
-		Validator::requireSize(line, 2, key, ConfigValidator::validateRoot(line[1]));
-		server.setRoot(line[1]);
-	}
-
-	else if (key == "index")
-	{
-		Validator::requireMinSize(line, 2, key, true);
-		for (size_t i = 1; i < line.size(); i++)
-		{
-			if (!ConfigValidator::validateIndex(line[i]))
-				throw std::runtime_error("Invalid '" + key + "' directive format");
-			server.setIndex(line[i]);
-		}
-	}
-	else if (key == "return")
-	{
-		Validator::requireSize(line, 3, key, ConfigValidator::validateReturn(atoi(line[1].c_str()), line[2]));
-		server.setReturn(line[1], line[2]);
-	}
-	else
-		throw std::runtime_error("Unknown directive: '" + key + "'");
-}
-
-void WebServer::setLocationAttributes(const std::vector<std::string> &line, t_location &location, std::string &key)
-{
-	if (line.empty())
-		return;
-
-	const std::string &directive = line[0];
-
-	if (directive == "location")
-	{
-		Validator::requireSize(line, 3, directive, true);
-		key = line[1];
-	}
-	else if (directive == "root")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		location._root = line[1];
-	}
-	else if (directive == "index")
-	{
-		Validator::requireMinSize(line, 2, directive, true);
-		for (size_t i = 1; i < line.size(); ++i)
-			location._index.push_back(line[i]);
-	}
-	else if (directive == "limit_except")
-	{
-		Validator::requireMinSize(line, 1, directive, true);
-		for (size_t i = 1; i < line.size(); ++i)
-			location._limit_except.push_back(line[i]);
-	}
-	else if (directive == "return")
-	{
-		Validator::requireSize(line, 3, directive, true);
-		location._return[line[1]] = line[2];
-	}
-	else if (directive == "autoindex")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		if (line[1] != "on" && line[1] != "off")
-			throw std::runtime_error("Invalid 'autoindex' value — expected 'on' or 'off'");
-		location._autoIndex = line[1];
-	}
-	else if (directive == "cgi_pass")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		location._cgiPass = line[1];
-	}
-	else if (directive == "cgi_ext")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		location._cgiExt = line[1];
-	}
-	else if (directive == "upload_store")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		location._uploadStore = line[1];
-	}
-	else if (directive == "proxy_pass")
-	{
-		Validator::requireSize(line, 2, directive, true);
-		location._proxy_pass = line[1];
-	}
-	else
-		throw std::runtime_error("Unknown location directive: '" + directive + "'");
-}
-
 void WebServer::setServer(std::string configFile)
 {
-	t_its it;
+	t_iterators it;
 	std::string target = "server {";
 
 	std::ifstream config(configFile.c_str());
@@ -306,12 +39,14 @@ void WebServer::setServer(std::string configFile)
 		std::stringstream ss;
 		ss << config.rdbuf();
 		std::string content = ss.str();
-		it = getIts(content, content.begin(), target, target);
+		it = Server::getIterators(content, content.begin(), target, target);
 		while (it.it1 != content.end())
 		{
-			getServerBlock(it);
+			Server server;
+			server.fetchSeverInfo(it);
+			addServer(server);
 			if (it.it2 != content.end())
-				it = getIts(content, it.it2, target, target);
+				it = Server::getIterators(content, it.it2, target, target);
 			else
 				break;
 		}
@@ -347,10 +82,22 @@ bool WebServer::isProxyPass(std::string urlPath, Server server)
 	return (false);
 }
 
+bool WebServer::isCGI(std::string urlPath, Server server)
+{
+	std::map<std::string, t_location>::const_iterator it = search_map_iterator(server.getLocation(), urlPath);
+
+	if (it != server.getLocation().end())
+	{
+		return ((it->second._isCgi));
+	}
+	return (false);
+}
+
 std::vector<Server> WebServer::getServers() const
 {
 	return _servers;
 }
+
 /*
 	send the request to the proxy server and get the response
 	create a new Response object with the response from server
@@ -442,6 +189,136 @@ const std::string WebServer::handleReverseProxy(const Request &req, const Server
 	std::cout << "Received " << bytes_received << " bytes from proxy" << std::endl;
 
 	return std::string(buffer);
+}
+
+std::map<std::string, t_location>::const_iterator getBestLocationMatch(const std::map<std::string, t_location> &locations,
+																	   const std::string &url)
+{
+	std::map<std::string, t_location>::const_iterator best = locations.end();
+	size_t bestLen = 0;
+
+	for (std::map<std::string, t_location>::const_iterator it = locations.begin();
+		 it != locations.end(); ++it)
+	{
+		if (url.find(it->first) == 0 && it->first.size() > bestLen)
+		{
+			best = it;
+			bestLen = it->first.size();
+		}
+	}
+	return best;
+}
+
+const std::string WebServer::handleRedirect(std::string redirUrlPath)
+{
+	std::string res;
+
+	res = "HTTP/1.1 302 Found\r\n";
+	res += "Location: " + redirUrlPath + "\r\n";
+	res += "Content-Type: text/html\r\n";
+	res += "Content-Length: 0\r\n";
+	res += "\r\n";
+
+	return res;
+}
+
+const std::string WebServer::handleAutoIndex(const Request &req, const Server &server)
+{
+	std::string fullPath;
+
+	if (req.getUrlPath()[req.getUrlPath().length() - 1] != '/')
+	{
+		return this->handleRedirect(req.getUrlPath() + "/");
+	}
+
+	// 1. Resolve full path from location or server root
+	t_location *loc = searchMapLongestMatch(server.getLocation(), req.getUrlPath());
+
+	if (loc)
+	{
+		if (!loc->_root.empty())
+			fullPath = loc->_root + req.getUrlPath();
+		else if (!server.getRoot().empty())
+			fullPath = server.getRoot() + req.getUrlPath();
+	}
+
+	std::cout << "[AUTOINDEX] fullPath: " << fullPath << std::endl;
+
+	/*
+		here check the requested path is a file or a folder
+		if folder => show auto index page
+		if file => serve the file
+	*/
+
+	// if (open(fullPath.c_str(), O_RDONLY) >= 0) {
+	// 	/*
+	// 		build response from the path and return
+	// 	*/
+	// }
+	// else {
+
+	// Check access
+	if (access(fullPath.c_str(), R_OK) == -1)
+	{
+		return "HTTP/1.1 403 Forbidden\r\n\r\n";
+	}
+
+	// Try opening directory
+	DIR *dir = opendir(fullPath.c_str());
+	if (!dir)
+	{
+		return "HTTP/1.1 404 Not Found\r\n\r\n";
+	}
+
+	// 2. Build HTML body
+	std::string body;
+	body += "<html><head><title>Index of " + req.getUrlPath() + "</title></head><body>";
+	body += "<h1>Index of " + req.getUrlPath() + "</h1><hr><pre>";
+
+	struct dirent *entry;
+
+	while ((entry = readdir(dir)) != NULL)
+	{
+		std::string name = entry->d_name;
+
+		if (name == "." || name == "..")
+			continue;
+
+		std::string itemFullPath = fullPath + "/" + name;
+
+		struct stat st;
+		if (stat(itemFullPath.c_str(), &st) == -1)
+			continue;
+
+		body += "<a href=\"" + req.getUrlPath();
+
+		// Ensure trailing slash for directory
+		if (*(req.getUrlPath().end()) != '/')
+			body += "/";
+
+		body += name;
+
+		if (S_ISDIR(st.st_mode))
+			body += "/";
+
+		body += "\">" + name + "</a>\n";
+	}
+
+	body += "</pre><hr></body></html>";
+
+	closedir(dir);
+
+	// 3. Build Raw HTTP Response
+	std::string response;
+	response += "HTTP/1.1 200 OK\r\n";
+	response += "Content-Type: text/html\r\n";
+	response += "Content-Length: " + intToString(body.size()) + "\r\n";
+	response += "\r\n"; // end of header
+	response += body;	// body
+
+	return response;
+	// }
+	// return "";
 }
 
 int WebServer::serve(void)
@@ -553,6 +430,9 @@ int WebServer::serve(void)
 				std::cout << "Proxy pass detected" << std::endl;
 				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
 				// Send the plain text to the client
+				std::cout << "================================= SERVER TEST START =====================" << std::endl;
+				std::cout << rawRes << std::endl;
+				std::cout << "================================= SERVER TEST END =====================" << std::endl;
 				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
 				if (sent < 0)
 				{
@@ -561,7 +441,22 @@ int WebServer::serve(void)
 				close(client_fd);
 				continue;
 			}
-
+			else if (req.isAutoIndex(_servers[idx]))
+			{
+				std::cout << "auto index" << std::endl;
+				std::string rawRes = handleAutoIndex(req, _servers[idx]);
+				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
+				if (sent < 0)
+				{
+					perror("send");
+				}
+				close(client_fd);
+				continue;
+			}
+			if (isCGI(req.getUrlPath(), _servers[idx]))
+			{
+				Cgi cgi(req, _servers[idx]);
+			}
 			// Handle normal request
 			std::cout << req << std::endl;
 			std::cout << "================================= RESPONSE =====================" << std::endl;

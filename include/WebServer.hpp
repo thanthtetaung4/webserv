@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/12 18:59:56 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/20 19:03:44 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,9 @@
 # include <poll.h>
 # include <sstream>
 # include <string>
+# include <dirent.h>
 # include <sys/epoll.h>
+# include <sys/stat.h>
 # include <unistd.h>
 # include "Request.hpp"
 # include "Response.hpp"
@@ -58,15 +60,11 @@ public:
 	void setUpSock(void);
 	int serve(void);
 	std::vector<Server> getServers() const;
-	const std::string	handleReverseProxy(const Request& req, const Server &server);
-	bool	isProxyPass(std::string urlPath, Server server);
-	void getServerBlock(t_its it);
-	void getLocationBlock(t_its it, Server &server);
-	void setAttributes(const std::vector<std::string> &line, Server &server);
-	void setLocationAttributes(const std::vector<std::string> &line,
-							   t_location &location, std::string &key);
-	t_its getIts(std::string &content, std::string::iterator start,
-				 const std::string &target1, const std::string &target2);
+	const std::string handleReverseProxy(const Request &req, const Server &server);
+	const std::string	handleAutoIndex(const Request& req, const Server &server);
+	bool isProxyPass(std::string urlPath, Server server);
+	bool isCGI(std::string urlPath, Server server);
+	const std::string	handleRedirect(std::string redirUrlPath);
 };
 
 #endif

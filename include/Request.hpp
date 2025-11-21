@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 00:42:43 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/08 20:48:16 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/16 20:45:23 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,8 +18,11 @@
 # include <ostream>
 # include <sstream>
 # include <fstream>
-#include "Server.hpp"
+# include <fcntl.h>
+# include <sys/stat.h>
+# include "Server.hpp"
 # include "ServerException.hpp"
+# include "utils.h"
 
 class Request{
 	private:
@@ -34,13 +37,14 @@ class Request{
 		Request(const std::string &raw);
 		bool hasHeader(const std::string &key) const;
 		bool checkHeaderValue(void) const;
+		bool	isAutoIndex(Server& server) const;
 		std::string getMethodType() const;
 		std::string getUrlPath() const;
 		std::string getHttpVersion() const;
 		std::string getBody() const;
 		const std::map<std::string, std::string> &getHeaders() const;
 		int validateAgainstConfig(Server &server);
-		
+
 };
 std::ostream& operator<<(std::ostream& os, const Request& req);
 # endif
