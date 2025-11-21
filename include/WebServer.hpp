@@ -15,6 +15,7 @@
 
 # include "Server.hpp"
 # include "ServerException.hpp"
+# include <fcntl.h>
 # include "Socket.hpp"
 # include <cstdlib>
 # include <cstring>
