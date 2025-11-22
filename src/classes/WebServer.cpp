@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 09:08:18 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/20 19:30:53 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,6 +97,7 @@ std::vector<Server> WebServer::getServers() const
 {
 	return _servers;
 }
+
 /*
 	send the request to the proxy server and get the response
 	create a new Response object with the response from server
@@ -190,6 +191,136 @@ const std::string WebServer::handleReverseProxy(const Request &req, const Server
 	return std::string(buffer);
 }
 
+std::map<std::string, t_location>::const_iterator getBestLocationMatch(const std::map<std::string, t_location> &locations,
+																	   const std::string &url)
+{
+	std::map<std::string, t_location>::const_iterator best = locations.end();
+	size_t bestLen = 0;
+
+	for (std::map<std::string, t_location>::const_iterator it = locations.begin();
+		 it != locations.end(); ++it)
+	{
+		if (url.find(it->first) == 0 && it->first.size() > bestLen)
+		{
+			best = it;
+			bestLen = it->first.size();
+		}
+	}
+	return best;
+}
+
+const std::string WebServer::handleRedirect(std::string redirUrlPath)
+{
+	std::string res;
+
+	res = "HTTP/1.1 302 Found\r\n";
+	res += "Location: " + redirUrlPath + "\r\n";
+	res += "Content-Type: text/html\r\n";
+	res += "Content-Length: 0\r\n";
+	res += "\r\n";
+
+	return res;
+}
+
+const std::string WebServer::handleAutoIndex(const Request &req, const Server &server)
+{
+	std::string fullPath;
+
+	if (req.getUrlPath()[req.getUrlPath().length() - 1] != '/')
+	{
+		return this->handleRedirect(req.getUrlPath() + "/");
+	}
+
+	// 1. Resolve full path from location or server root
+	t_location *loc = searchMapLongestMatch(server.getLocation(), req.getUrlPath());
+
+	if (loc)
+	{
+		if (!loc->_root.empty())
+			fullPath = loc->_root + req.getUrlPath();
+		else if (!server.getRoot().empty())
+			fullPath = server.getRoot() + req.getUrlPath();
+	}
+
+	std::cout << "[AUTOINDEX] fullPath: " << fullPath << std::endl;
+
+	/*
+		here check the requested path is a file or a folder
+		if folder => show auto index page
+		if file => serve the file
+	*/
+
+	// if (open(fullPath.c_str(), O_RDONLY) >= 0) {
+	// 	/*
+	// 		build response from the path and return
+	// 	*/
+	// }
+	// else {
+
+	// Check access
+	if (access(fullPath.c_str(), R_OK) == -1)
+	{
+		return "HTTP/1.1 403 Forbidden\r\n\r\n";
+	}
+
+	// Try opening directory
+	DIR *dir = opendir(fullPath.c_str());
+	if (!dir)
+	{
+		return "HTTP/1.1 404 Not Found\r\n\r\n";
+	}
+
+	// 2. Build HTML body
+	std::string body;
+	body += "<html><head><title>Index of " + req.getUrlPath() + "</title></head><body>";
+	body += "<h1>Index of " + req.getUrlPath() + "</h1><hr><pre>";
+
+	struct dirent *entry;
+
+	while ((entry = readdir(dir)) != NULL)
+	{
+		std::string name = entry->d_name;
+
+		if (name == "." || name == "..")
+			continue;
+
+		std::string itemFullPath = fullPath + "/" + name;
+
+		struct stat st;
+		if (stat(itemFullPath.c_str(), &st) == -1)
+			continue;
+
+		body += "<a href=\"" + req.getUrlPath();
+
+		// Ensure trailing slash for directory
+		if (*(req.getUrlPath().end()) != '/')
+			body += "/";
+
+		body += name;
+
+		if (S_ISDIR(st.st_mode))
+			body += "/";
+
+		body += "\">" + name + "</a>\n";
+	}
+
+	body += "</pre><hr></body></html>";
+
+	closedir(dir);
+
+	// 3. Build Raw HTTP Response
+	std::string response;
+	response += "HTTP/1.1 200 OK\r\n";
+	response += "Content-Type: text/html\r\n";
+	response += "Content-Length: " + intToString(body.size()) + "\r\n";
+	response += "\r\n"; // end of header
+	response += body;	// body
+
+	return response;
+	// }
+	// return "";
+}
+
 int WebServer::serve(void)
 {
 	int epoll_fd = epoll_create1(0);
@@ -198,14 +329,23 @@ int WebServer::serve(void)
 		perror("epoll_create1");
 		return 1;
 	}
+
 	// Register all server sockets with epoll
 	for (size_t i = 0; i < _sockets.size(); ++i)
 	{
-
 		int fd = _sockets[i].getServerFd();
+
+		// Set server socket to non-blocking
+		int flags = fcntl(fd, F_GETFL, 0);
+		fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
 		struct epoll_event ev;
-		ev.events = EPOLLIN;
-		ev.data.u32 = i; // Store index to map back to Server
+		ev.events = EPOLLIN | EPOLLET;
+
+		// Allocate memory to store the index
+		size_t *idx_ptr = new size_t(i);
+		ev.data.ptr = idx_ptr;
+
 		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
 		{
 			perror("epoll_ctl: listen_sock");
@@ -216,19 +356,22 @@ int WebServer::serve(void)
 	}
 
 	struct epoll_event events[MAX_EVENTS];
+
 	while (true)
 	{
-		// std::cout << "here" << std::endl;
-		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1);
+		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
 		if (nfds == -1)
 		{
 			perror("epoll_wait");
 			break;
 		}
+
 		for (int n = 0; n < nfds; ++n)
 		{
-			size_t idx = events[n].data.u32;
+			size_t idx = *(size_t *)events[n].data.ptr;
 			int listen_fd = _sockets[idx].getServerFd();
+
+			// Accept connection
 			sockaddr_in client_addr;
 			socklen_t client_len = sizeof(client_addr);
 			int client_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_len);
@@ -237,9 +380,14 @@ int WebServer::serve(void)
 				perror("accept");
 				continue;
 			}
+
+			// Set client socket to non-blocking (optional for this synchronous handling)
+			int flags = fcntl(client_fd, F_GETFL, 0);
+			fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+
+			// Read request
 			char buffer[4096];
 			std::cout << "=================REQUEST============================" << std::endl;
-
 			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 			if (bytes_received < 0)
 			{
@@ -247,26 +395,56 @@ int WebServer::serve(void)
 				close(client_fd);
 				continue;
 			}
+
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
 			std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
 			std::cout << buffer << std::endl;
 			std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
 
+			// Parse request
 			Request req(buffer);
 			std::cout << "================================= SEVER TEST =====================" << std::endl;
 			std::cout << _servers[idx] << std::endl;
 			std::cout << "================================= SERVER TEST END =====================" << std::endl;
 
-			int i = req.validateAgainstConfig(_servers[idx]);
-			if (i != 200)
-				Response res(i);
+			// Validate request
+			int validation_status = req.validateAgainstConfig(_servers[idx]);
+			if (validation_status != 200)
+			{
+				Response res(validation_status);
+				std::string httpResponse = res.toStr();
+				ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
+				if (sent < 0)
+				{
+					perror("send");
+				}
+				close(client_fd);
+				continue;
+			}
+
+			// Check for proxy pass
 			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
 			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
 			{
-				std::cout << "POST method detected" << std::endl;
+				std::cout << "Proxy pass detected" << std::endl;
 				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
-				// just send the plain text to the client no need to change it back to Response obj
+				// Send the plain text to the client
+				std::cout << "================================= SERVER TEST START =====================" << std::endl;
+				std::cout << rawRes << std::endl;
+				std::cout << "================================= SERVER TEST END =====================" << std::endl;
+				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
+				if (sent < 0)
+				{
+					perror("send");
+				}
+				close(client_fd);
+				continue;
+			}
+			else if (req.isAutoIndex(_servers[idx]))
+			{
+				std::cout << "auto index" << std::endl;
+				std::string rawRes = handleAutoIndex(req, _servers[idx]);
 				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
 				if (sent < 0)
 				{
@@ -279,17 +457,17 @@ int WebServer::serve(void)
 			{
 				Cgi cgi(req, _servers[idx]);
 			}
+			// Handle normal request
 			std::cout << req << std::endl;
 			std::cout << "================================= RESPONSE =====================" << std::endl;
-
 			std::cout << "creating res" << std::endl;
 			Response res(req, _servers[idx]);
 			std::cout << "printing res" << std::endl;
 			std::cout << res << std::endl;
 			std::cout << "res printed" << std::endl;
 			std::cout << "================================= RESPONSE END =====================" << std::endl;
-			std::string httpResponse = res.toStr();
 
+			std::string httpResponse = res.toStr();
 			std::cout << "================================= FINAL RESPONSE =====================" << std::endl;
 			std::cout << "http res: " << httpResponse << std::endl;
 			std::cout << "================================= FINAL RESPONSE END =====================" << std::endl;
@@ -302,7 +480,7 @@ int WebServer::serve(void)
 			close(client_fd);
 		}
 	}
-	close(epoll_fd);
 
+	close(epoll_fd);
 	return 0;
 }

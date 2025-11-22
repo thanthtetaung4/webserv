@@ -1,12 +1,13 @@
-# proxy_pass
-
-get the request from the client
-mod the request to match the ip of the proxy_pass
-send the request to the ip
-get the response from the server
-send it back to the client
-
-## problem
-
-how do we identify this is the proxy_pass
+# auto index
+	find the index in the location
+		if no index in found in the file
+			check auto_index is on
+				if on
+					save list dir in the array
+					loop the array
+						every index should be in the <a herf={dir_name}>dir_name</a>
+				else
+					return (404 Page)
+		else
+			process the request normally
 

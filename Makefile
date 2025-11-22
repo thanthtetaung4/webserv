@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+         #
+#    By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/11/17 08:41:59 by lshein           ###   ########.fr        #
+#    Updated: 2025/11/20 18:56:29 by taung            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -19,7 +19,8 @@ UTILS = ./src/utils
 SRCS = ./src/main.cpp \
 	${CLASSES}/WebServer.cpp ${CLASSES}/Server.cpp ${CLASSES}/Socket.cpp ${CLASSES}/Cgi.cpp\
 	${CLASSES}/Response.cpp ${CLASSES}/Request.cpp ${CLASSES}/Validator.cpp\
-	${EXCEPTIONS}/ServerExceptions.cpp ${UTILS}/parseProxyPass.cpp
+	${EXCEPTIONS}/ServerExceptions.cpp ${UTILS}/parseProxyPass.cpp ${UTILS}/buildPath.cpp \
+	${UTILS}/intToString.cpp ${UTILS}/searchMapLongestMatch.cpp
 OBJS = ${SRCS:.cpp=.o}
 
 CC = c++

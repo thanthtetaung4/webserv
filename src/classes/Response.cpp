@@ -3,21 +3,20 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/17 08:24:02 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/20 19:31:14 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "../../include/Response.hpp"
 
-std::string intToString(size_t n)
-{
-	std::ostringstream ss;
-	ss << n;
-	return ss.str();
-}
+// std::string intToString(size_t n) {
+// 	std::ostringstream ss;
+// 	ss << n;
+// 	return ss.str();
+// }
 
 bool safePath(std::string const &path)
 {
@@ -74,8 +73,7 @@ Response::Response(const Response &res)
 	this->_body = res._body;
 }
 
-bool Response::generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server &server)
-{
+bool	Response::generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server& server){
 	this->_statusCode = errorCode;
 	std::map<std::string, std::string> errorPages = server.getErrorPage();
 	std::map<std::string, std::string>::iterator it = errorPages.find(intToString(this->_statusCode));
@@ -144,8 +142,8 @@ bool Response::checkHttpError(const Request &req, size_t size, std::string path,
 	if (!file.is_open())
 		return (generateError(404, "Not Found", "404 Not Found", server));
 
-	if (access(path.c_str(), R_OK) < 0 || access(path.c_str(), W_OK) < 0 || access(path.c_str(), X_OK) < 0 || !safePath(path))
-		return (generateError(403, "Forbidden", "403 Forbidden", server));
+	if(access(path.c_str(), R_OK) < 0 || !safePath(path))
+		return (generateError(403,"Forbidden", "403 Forbidden", server));
 
 	if (req.getMethodType() != "GET" && req.getMethodType() != "POST" && req.getMethodType() != "DELETE")
 		return (generateError(405, "Method Not Allowed", "405 Method Not Allowed", server));
@@ -183,9 +181,13 @@ Response::Response(void)
 	throw UnableToCreateResponse();
 }
 
-Response::Response(unsigned int errorCode)
-{
-	this->_statusCode = errorCode;
+Response::Response(const std::string rawRes) {
+	(void)rawRes;
+}
+
+
+Response::Response(unsigned int errorCode){
+	this->_statusCode =  errorCode;
 }
 
 Response::Response(const Request &req, Server &server)
@@ -195,29 +197,35 @@ Response::Response(const Request &req, Server &server)
 	size_t size;
 	std::stringstream ss(server.getMaxByte());
 	ss >> size;
-	// find req.urlPath in server locations
+	//find req.urlPath in server locations
 
-	std::string path, index;
+	// std::string path, index;
 	std::map<std::string, t_location> locations = server.getLocation();
-	std::map<std::string, t_location>::iterator it = locations.find(req.getUrlPath());
+	t_location* loc = searchMapLongestMatch(locations, req.getUrlPath());
 
-	if (it != locations.end())
-	{
-		// std::cout << "root need to be " << (it->second)._root << std::endl;
-		path = it->second._root;
-		// std::cout << "HEY PATH IS " << std::endl;
-		for (std::vector<std::string>::iterator i = it->second._index.begin(); i != it->second._index.end(); i++)
-		{
-			if (access((path + "/" + *i).c_str(), R_OK) == 0)
-			{
-				path = path + "/" + *i;
-				break;
-			}
-		}
+	std::string	path = "";
+	// path building
+	if (loc) {
+		if (!loc->_root.empty())
+			path = loc->_root + req.getUrlPath();
+		else if (!server.getRoot().empty())
+			path = server.getRoot() + req.getUrlPath();
 	}
-	else
-		path = "";
-	// return error here
+	// if(it != locations.end()) {
+	// 		// std::cout << "root need to be " << (it->second)._root << std::endl;
+	// 		path = it->second._root;
+	// 		// std::cout << "HEY PATH IS " << std::endl;
+	// 		for (std::vector<std::string>::iterator i = it->second._index.begin(); i != it->second._index.end() ; i++) {
+	// 			if (access((path + "/" + *i).c_str(), R_OK) == 0) {
+	// 				path = path + "/" + *i;
+	// 				break;
+	// 		}
+	// 	}
+	// 	}
+	// else
+	// 	path = "";
+
+	//return error here
 	std::cout << "The real path " << path << std::endl;
 
 	// check config error here

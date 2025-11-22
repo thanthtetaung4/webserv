@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 04:47:58 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 08:56:36 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/20 19:29:21 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <string>
+# include <vector>
 #include "Location.h"
 #include <sstream>
 #include <vector>
@@ -35,6 +36,8 @@ private:
     std::string _maxBytes;
     std::string _root;
     std::vector<std::string> _index;
+        std::string _serverRoot;
+        std::vector<std::string> _serverIndices;
     std::map<std::string, std::string> _errorPage;
     std::map<std::string, t_location> _locations;
     std::map<std::string, std::string> _return;
@@ -69,11 +72,15 @@ public:
     void setReturn(const std::string &key, const std::string &value);
     void setRoot(const std::string &root);
     void setIndex(const std::string &index);
+        void setServerRoot(std::string sr);
+        void setServerIndex(const std::vector<std::string> &indices);
     std::string getPort() const;
     std::string getServerName() const;
     std::string getMaxByte() const;
-    std::string getRoot() const;
+    // std::string getRoot() const;
     std::vector<std::string> getIndex() const;
+        std::string getRoot() const;
+        const std::vector<std::string> &getServerIndex(void) const;
     const std::map<std::string, std::string> &getErrorPage() const;
     const std::map<std::string, t_location> &getLocation() const;
     const std::map<std::string, std::string> &getReturn() const;
