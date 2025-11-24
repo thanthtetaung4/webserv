@@ -6,7 +6,7 @@
 /*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/25 03:50:45 by hthant           ###   ########.fr       */
+/*   Updated: 2025/11/25 03:55:42 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,10 @@
 #include <map>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <cstdio>
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/epoll.h>
 #include <cstdio>
 #include <dirent.h>
 #include <fcntl.h>
