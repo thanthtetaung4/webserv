@@ -13,6 +13,10 @@
 #include "./../../include/WebServer.hpp"
 #include "../../include/Request.hpp"
 #include "../../include/Response.hpp"
+#include <cstdio>
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/epoll.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -323,10 +327,10 @@ const std::string WebServer::handleAutoIndex(const Request &req, const Server &s
 
 int WebServer::serve(void)
 {
-	int epoll_fd = epoll_create1(0);
+	int epoll_fd = epoll_create(1);
 	if (epoll_fd == -1)
 	{
-		perror("epoll_create1");
+		perror("epoll_create");
 		return 1;
 	}
 	// Register all server sockets with epoll
@@ -335,7 +339,7 @@ int WebServer::serve(void)
 
 		int fd = _sockets[i].getServerFd();
 		struct epoll_event ev;
-		ev.events = EPOLLIN;
+		ev.events = EPOLLIN | EPOLLRDHUP; 
 		ev.data.u32 = i; // Store index to map back to Server
 		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
 		{
@@ -350,7 +354,7 @@ int WebServer::serve(void)
 	while (true)
 	{
 		// std::cout << "here" << std::endl;
-		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1);
+		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 5000);
 		if (nfds == -1)
 		{
 			perror("epoll_wait");
@@ -368,6 +372,18 @@ int WebServer::serve(void)
 				perror("accept");
 				continue;
 			}
+			int flags = fcntl(client_fd, F_GETFL, 0);
+			if (flags == -1) {
+				perror("fcntl F_GETFL");
+				close(client_fd);
+				continue;
+			}
+			if(fcntl(client_fd, F_SETFL, flags | O_NONBLOCK) == -1){
+				perror("fcntl");
+				close(client_fd);
+				continue;
+			}
+
 			char buffer[4096];
 			std::cout << "=================REQUEST============================" << std::endl;
 

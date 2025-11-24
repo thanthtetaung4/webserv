@@ -12,6 +12,7 @@
 
 # include "../../include/Socket.hpp"
 # include "../../include/ServerException.hpp"
+#include <sys/socket.h>
 
 Socket::Socket() {
 	// throw InvalidSocket();
@@ -38,7 +39,7 @@ int		Socket::getServerFd(void) const {
 }
 
 void					Socket::openSock(void) {
-	this->serverFd = socket(AF_INET, SOCK_STREAM, 0);
+	this->serverFd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (this->serverFd < 0)
 		throw	UnableToOpenSocket();
 	std::cout << "socket open OK" << std::endl;
