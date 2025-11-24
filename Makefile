@@ -18,7 +18,7 @@ UTILS = ./src/utils
 
 SRCS = ./src/main.cpp \
 	${CLASSES}/WebServer.cpp ${CLASSES}/Server.cpp ${CLASSES}/Socket.cpp ${CLASSES}/Cgi.cpp\
-	${CLASSES}/Response.cpp ${CLASSES}/Request.cpp ${CLASSES}/Validator.cpp\
+	${CLASSES}/Response.cpp ${CLASSES}/Request.cpp ${CLASSES}/Validator.cpp ${CLASSES}/Client.cpp\
 	${EXCEPTIONS}/ServerExceptions.cpp ${UTILS}/parseProxyPass.cpp ${UTILS}/buildPath.cpp \
 	${UTILS}/intToString.cpp ${UTILS}/searchMapLongestMatch.cpp
 OBJS = ${SRCS:.cpp=.o}

@@ -6,13 +6,21 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 19:30:53 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/25 00:51:35 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./../../include/WebServer.hpp"
 #include "../../include/Request.hpp"
 #include "../../include/Response.hpp"
+#include <cerrno>
+#include <cstddef>
+#include <cstdio>
+#include <ctime>
+#include <fcntl.h>
+#include <map>
+#include <sys/epoll.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -321,6 +329,7 @@ const std::string WebServer::handleAutoIndex(const Request &req, const Server &s
 	// return "";
 }
 
+/*
 int WebServer::serve(void)
 {
 	int epoll_fd = epoll_create1(0);
@@ -451,4 +460,328 @@ int WebServer::serve(void)
 	close(epoll_fd);
 
 	return 0;
+}*/
+# define TIMEOUT 1000
+# include "../../include/Client.hpp"
+
+int makee_nonblock(int fd){
+	int flags = fcntl(fd, F_GETFL, 0);
+	if(flags == -1)
+		return  -1;
+	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+/*
+int WebServer::serve(){
+	int epoll_fd =  epoll_create(1);
+	if(epoll_fd == -1){
+		perror("epoll_create");
+		return 1;
+	}
+	std::map<int, client*> clients;
+	for(size_t i = 0; i < _sockets.size(); ++i){
+		int fd = _sockets[i].getServerFd();
+		makee_nonblock(fd);
+
+		epoll_event ev;
+		ev.events = EPOLLIN;
+		ev.data.u32 = i;
+		if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1) {
+			perror("epoll_ctl = listen_sock");
+			close(epoll_fd);
+			return 1;
+		}
+		std::cout << "Listening on port https://localhost:" << _servers[i].getPort() << std::endl;
+	}
+	epoll_event events[MAX_EVENTS];
+	while (true) {
+		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1000);
+		if(nfds < 0){
+			perror("epoll wait");
+			break;
+		}
+		for(int n  = 0; n < nfds; ++n){
+			int idx = events[n].data.u32;
+
+			if(idx < (int)_sockets.size()){
+				int listen_fd =	_sockets[idx].getServerFd();
+				while (true) {
+					int client_fd = accept(listen_fd, NULL, NULL);
+					if(client_fd < 0){
+						if(errno == EAGAIN || errno == EWOULDBLOCK)
+							break;
+						perror("accept");
+						break;
+					}
+					makee_nonblock(client_fd);
+
+					epoll_event client_ev;
+					client_ev.events = EPOLLIN;
+					client_ev.data.fd = client_fd;
+					if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &client_ev) == -1){
+						perror("epoll_ctl : add client");
+						close(client_fd);
+						continue;
+					}
+
+					clients[client_fd] = new client(client_fd, idx);
+					std::cout << "Client Connected : " << client_fd << std::endl;
+				}
+			}
+			else {
+				int client_fd = events[n].data.fd;
+				std::map<int, client*>::iterator it = clients.find(client_fd);
+				if(it == clients.end())
+					continue;
+				client* c =it->second;
+				c->update_activity();
+				size_t server_idx = c->server_idx;
+				if(events[n].events & EPOLLIN){
+					char buffer[40960];
+					int bytes = recv(client_fd, buffer, sizeof(buffer), 0);
+					if( bytes < 0  )
+					{
+						if(errno == EAGAIN || errno == EWOULDBLOCK)
+							break;
+						perror("recv");
+						close(client_fd);
+						epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
+						delete c;
+						clients.erase(it);
+						std::cout << "Client disconnected: " << client_fd << std::endl;
+						continue;
+					}
+					else if(bytes == 0){
+						close(client_fd);
+						epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
+						delete c;
+						clients.erase(it);
+						break;
+					}
+					buffer[bytes] = '\0';
+					c->read_buff.append(buffer, bytes);
+					
+					Request req(c->read_buff.c_str());
+					Response res(req, _servers[server_idx]);
+					std::string httpResponse =  res.toStr();
+					c->write_buff = httpResponse;
+					epoll_event mod_ev;
+					mod_ev.events = EPOLLIN | EPOLLOUT;
+					mod_ev.data.fd =  client_fd;			
+					epoll_ctl(epoll_fd, EPOLL_CTL_MOD,client_fd,&mod_ev);
+				}
+				if((events[n].events & EPOLLOUT) && c->has_write_data()) {
+					int byte_send = send(client_fd, c->write_buff.c_str(), c->write_buff.size(), 0);
+					if(byte_send > 0){
+						c->write_buff.erase(0, byte_send);
+					}
+					if(!c->has_write_data()) {
+						epoll_event mod_ev;
+						mod_ev.events = EPOLLIN;
+						mod_ev.data.fd =  client_fd;
+						epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client_fd, &mod_ev);
+					}
+				}
+			}
+		}
+		std::map<int, client*>::iterator it;
+		for(it = clients.begin(); it != clients.end();) {
+			client *c = it->second;
+			if(c->is_timeout(TIMEOUT)) {
+				close(c->fd);
+				epoll_ctl(epoll_fd, EPOLL_CTL_DEL, c->fd, NULL);
+				delete c;
+				std::cout << "Client Timeout : " << c->fd << std::endl;
+				std::map<int, client*>::iterator temp = it;
+				++it;
+				clients.erase(temp);
+			}
+			else {
+				++it;
+			}
+		}
+	}
+	close(epoll_fd);
+	return 0;
+}
+*/
+# include <set>
+
+int WebServer::serve(){
+    int epoll_fd = epoll_create(1);
+    if(epoll_fd == -1){
+        perror("epoll_create");
+        return 1;
+    }
+    std::map<int, client*> clients;
+    std::set<int> server_fds;
+    
+    for(size_t i = 0; i < _sockets.size(); ++i){
+        int fd = _sockets[i].getServerFd();
+        server_fds.insert(fd);
+        makee_nonblock(fd);
+        epoll_event ev;
+        ev.events = EPOLLIN;
+        ev.data.fd = fd;
+        if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1) {
+            perror("epoll_ctl: listen_sock");
+            close(epoll_fd);
+            return 1;
+        }
+        std::cout << "Listening on fd=" << fd << " port=" << _servers[i].getPort() << std::endl;
+    }
+    
+    epoll_event events[MAX_EVENTS];
+    
+    while (true) {
+        int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1000);
+        if(nfds < 0){
+            perror("epoll_wait");
+            break;
+        }
+        
+        for(int n = 0; n < nfds; ++n){
+            int event_fd = events[n].data.fd;
+            
+            if(server_fds.find(event_fd) != server_fds.end()){
+                // Find server index
+                size_t server_idx = 0;
+                for(size_t i = 0; i < _sockets.size(); ++i){
+                    if(_sockets[i].getServerFd() == event_fd){
+                        server_idx = i;
+                        break;
+                    }
+                }
+                
+                // Accept new connections
+                while (true) {
+                    int client_fd = accept(event_fd, NULL, NULL);
+                    if(client_fd < 0){
+                        if(errno == EAGAIN || errno == EWOULDBLOCK)
+                            break;
+                        perror("accept");
+                        break;
+                    }
+                    
+                    makee_nonblock(client_fd);
+                    epoll_event client_ev;
+                    client_ev.events = EPOLLIN;  // Level-triggered (default)
+                    client_ev.data.fd = client_fd;
+                    if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &client_ev) == -1){
+                        perror("epoll_ctl: add client");
+                        close(client_fd);
+                        continue;
+                    }
+                    clients[client_fd] = new client(client_fd, server_idx);
+                    std::cout << "Client Connected: " << client_fd << std::endl;
+                }
+            }
+            else {
+                // Handle client socket
+                int client_fd = event_fd;
+                
+                std::map<int, client*>::iterator it = clients.find(client_fd);
+                if(it == clients.end()){
+                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
+                    continue;
+                }
+                    
+                client* c = it->second;
+                c->update_activity();
+                size_t server_idx = c->server_idx;
+                
+                // Handle errors and hangups
+                if(events[n].events & (EPOLLERR | EPOLLHUP)){
+                    close(client_fd);
+                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
+                    delete c;
+                    clients.erase(it);
+                    std::cout << "Client disconnected (error): " << client_fd << std::endl;
+                    continue;
+                }
+                
+                if(events[n].events & EPOLLIN){
+                    char buffer[40960];
+                    int bytes = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+                    
+                    if(bytes < 0){
+                        if(errno == EAGAIN || errno == EWOULDBLOCK)
+                            continue;
+                        perror("recv");
+                        close(client_fd);
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
+                        delete c;
+                        clients.erase(it);
+                        std::cout << "Client disconnected: " << client_fd << std::endl;
+                        continue;
+                    }
+                    else if(bytes == 0){
+                        close(client_fd);
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
+                        delete c;
+                        clients.erase(it);
+                        std::cout << "Client disconnected: " << client_fd << std::endl;
+                        continue;
+                    }
+                    
+                    buffer[bytes] = '\0';
+                    c->read_buff.append(buffer, bytes);
+                    
+                    Request req(c->read_buff.c_str());
+                    Response res(req, _servers[server_idx]);
+                    std::string httpResponse = res.toStr();
+                    c->write_buff = httpResponse;
+                    
+                    epoll_event mod_ev;
+                    mod_ev.events = EPOLLIN | EPOLLOUT;
+                    mod_ev.data.fd = client_fd;
+                    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client_fd, &mod_ev);
+                }
+                
+                if((events[n].events & EPOLLOUT) && c->has_write_data()) {
+                    int byte_send = send(client_fd, c->write_buff.c_str(), c->write_buff.size(), 0);
+                    
+                    if(byte_send > 0){
+                        c->write_buff.erase(0, byte_send);
+                    }
+                    else if(byte_send < 0 && errno != EAGAIN && errno != EWOULDBLOCK){
+                        perror("send");
+                    }
+                    
+                    if(!c->has_write_data()) {
+                        epoll_event mod_ev;
+                        mod_ev.events = EPOLLIN;
+                        mod_ev.data.fd = client_fd;
+                        epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client_fd, &mod_ev);
+                    }
+                }
+            }
+        }
+        
+        // Timeout cleanup
+        std::map<int, client*>::iterator it = clients.begin();
+        while(it != clients.end()) {
+            client *c = it->second;
+            if(c->is_timeout(TIMEOUT)) {
+                int fd = c->fd;
+                close(fd);
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+                delete c;
+                std::cout << "Client Timeout: " << fd << std::endl;
+                std::map<int, client*>::iterator temp = it;
+                ++it;
+                clients.erase(temp);
+            }
+            else {
+                ++it;
+            }
+        }
+    }
+    
+    // Cleanup
+    for(std::map<int, client*>::iterator it = clients.begin(); it != clients.end(); ++it){
+        close(it->first);
+        delete it->second;
+    }
+    close(epoll_fd);
+    return 0;
 }
