@@ -32,6 +32,7 @@
 # include "utils.h"
 # include "proxyPass.h"
 # include "Validator.hpp"
+#include <sys/time.h>
 
 # define MAX_EVENTS 10
 
