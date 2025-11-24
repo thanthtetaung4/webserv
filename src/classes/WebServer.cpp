@@ -329,23 +329,14 @@ int WebServer::serve(void)
 		perror("epoll_create1");
 		return 1;
 	}
-
 	// Register all server sockets with epoll
 	for (size_t i = 0; i < _sockets.size(); ++i)
 	{
+
 		int fd = _sockets[i].getServerFd();
-
-		// Set server socket to non-blocking
-		int flags = fcntl(fd, F_GETFL, 0);
-		fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-
 		struct epoll_event ev;
-		ev.events = EPOLLIN | EPOLLET;
-
-		// Allocate memory to store the index
-		size_t *idx_ptr = new size_t(i);
-		ev.data.ptr = idx_ptr;
-
+		ev.events = EPOLLIN;
+		ev.data.u32 = i; // Store index to map back to Server
 		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
 		{
 			perror("epoll_ctl: listen_sock");
@@ -356,22 +347,19 @@ int WebServer::serve(void)
 	}
 
 	struct epoll_event events[MAX_EVENTS];
-
 	while (true)
 	{
-		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+		// std::cout << "here" << std::endl;
+		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1);
 		if (nfds == -1)
 		{
 			perror("epoll_wait");
 			break;
 		}
-
 		for (int n = 0; n < nfds; ++n)
 		{
-			size_t idx = *(size_t *)events[n].data.ptr;
+			size_t idx = events[n].data.u32;
 			int listen_fd = _sockets[idx].getServerFd();
-
-			// Accept connection
 			sockaddr_in client_addr;
 			socklen_t client_len = sizeof(client_addr);
 			int client_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_len);
@@ -380,14 +368,9 @@ int WebServer::serve(void)
 				perror("accept");
 				continue;
 			}
-
-			// Set client socket to non-blocking (optional for this synchronous handling)
-			int flags = fcntl(client_fd, F_GETFL, 0);
-			fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
-
-			// Read request
 			char buffer[4096];
 			std::cout << "=================REQUEST============================" << std::endl;
+
 			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 			if (bytes_received < 0)
 			{
@@ -395,41 +378,28 @@ int WebServer::serve(void)
 				close(client_fd);
 				continue;
 			}
-
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
 			std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
 			std::cout << buffer << std::endl;
 			std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
 
-			// Parse request
 			Request req(buffer);
 			std::cout << "================================= SEVER TEST =====================" << std::endl;
 			std::cout << _servers[idx] << std::endl;
 			std::cout << "================================= SERVER TEST END =====================" << std::endl;
 
-			// Validate request
-			int validation_status = req.validateAgainstConfig(_servers[idx]);
-			if (validation_status != 200)
-			{
-				Response res(validation_status);
-				std::string httpResponse = res.toStr();
-				ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
-				if (sent < 0)
-				{
-					perror("send");
-				}
-				close(client_fd);
-				continue;
-			}
+			// int i = req.validateAgainstConfig(_servers[idx]);
+			// if(i != 200) {
+			// 		Response res(i);
+			// }
 
-			// Check for proxy pass
 			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
 			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
 			{
-				std::cout << "Proxy pass detected" << std::endl;
+				std::cout << "POST method detected" << std::endl;
 				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
-				// Send the plain text to the client
+				// just send the plain text to the client no need to change it back to Response obj
 				std::cout << "================================= SERVER TEST START =====================" << std::endl;
 				std::cout << rawRes << std::endl;
 				std::cout << "================================= SERVER TEST END =====================" << std::endl;
@@ -440,11 +410,9 @@ int WebServer::serve(void)
 				}
 				close(client_fd);
 				continue;
-			}
-			else if (req.isAutoIndex(_servers[idx]))
-			{
+			} else if (req.isAutoIndex(_servers[idx])) {
 				std::cout << "auto index" << std::endl;
-				std::string rawRes = handleAutoIndex(req, _servers[idx]);
+				std::string	rawRes = handleAutoIndex(req, _servers[idx]);
 				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
 				if (sent < 0)
 				{
@@ -457,17 +425,17 @@ int WebServer::serve(void)
 			{
 				Cgi cgi(req, _servers[idx]);
 			}
-			// Handle normal request
 			std::cout << req << std::endl;
 			std::cout << "================================= RESPONSE =====================" << std::endl;
+
 			std::cout << "creating res" << std::endl;
 			Response res(req, _servers[idx]);
 			std::cout << "printing res" << std::endl;
 			std::cout << res << std::endl;
 			std::cout << "res printed" << std::endl;
 			std::cout << "================================= RESPONSE END =====================" << std::endl;
-
 			std::string httpResponse = res.toStr();
+
 			std::cout << "================================= FINAL RESPONSE =====================" << std::endl;
 			std::cout << "http res: " << httpResponse << std::endl;
 			std::cout << "================================= FINAL RESPONSE END =====================" << std::endl;
@@ -480,7 +448,7 @@ int WebServer::serve(void)
 			close(client_fd);
 		}
 	}
-
 	close(epoll_fd);
+
 	return 0;
 }
