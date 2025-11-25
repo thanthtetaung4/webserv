@@ -484,7 +484,7 @@ int WebServer::serve(void)
 # define TIMEOUT 1000
 # include "../../include/Client.hpp"
 
-int makee_nonblock(int fd){
+int make_nonblock(int fd){
 	int flags = fcntl(fd, F_GETFL, 0);
 	if(flags == -1)
 		return  -1;
@@ -500,7 +500,7 @@ int WebServer::serve(){
 	std::map<int, client*> clients;
 	for(size_t i = 0; i < _sockets.size(); ++i){
 		int fd = _sockets[i].getServerFd();
-		makee_nonblock(fd);
+		make_nonblock(fd);
 
 		epoll_event ev;
 		ev.events = EPOLLIN;
@@ -532,7 +532,7 @@ int WebServer::serve(){
 						perror("accept");
 						break;
 					}
-					makee_nonblock(client_fd);
+					make_nonblock(client_fd);
 
 					epoll_event client_ev;
 					client_ev.events = EPOLLIN;
@@ -638,7 +638,7 @@ int WebServer::serve(){
     for(size_t i = 0; i < _sockets.size(); ++i){
         int fd = _sockets[i].getServerFd();
         server_fds.insert(fd);
-        makee_nonblock(fd);
+        make_nonblock(fd);
         epoll_event ev;
         ev.events = EPOLLIN;
         ev.data.fd = fd;
@@ -663,6 +663,7 @@ int WebServer::serve(){
             int event_fd = events[n].data.fd;
             
             if(server_fds.find(event_fd) != server_fds.end()){
+		    std::cout << event_fd << std::endl;
                 // Find server index
                 size_t server_idx = 0;
                 for(size_t i = 0; i < _sockets.size(); ++i){
@@ -682,9 +683,9 @@ int WebServer::serve(){
                         break;
                     }
                     
-                    makee_nonblock(client_fd);
+                    make_nonblock(client_fd);
                     epoll_event client_ev;
-                    client_ev.events = EPOLLIN;  // Level-triggered (default)
+                    client_ev.events = EPOLLIN;
                     client_ev.data.fd = client_fd;
                     if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &client_ev) == -1){
                         perror("epoll_ctl: add client");
@@ -696,7 +697,7 @@ int WebServer::serve(){
                 }
             }
             else {
-                // Handle client socket
+                // Handle client socket 
                 int client_fd = event_fd;
                 
                 std::map<int, client*>::iterator it = clients.find(client_fd);
