@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/22 13:54:28 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/24 17:20:36 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include "Request.hpp"
 #include "Response.hpp"
-#include "utils.h"
 #include "proxyPass.h"
 #include "Validator.hpp"
 

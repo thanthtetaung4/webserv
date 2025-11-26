@@ -194,7 +194,7 @@ int WebServer::serve(void)
 			}
 
 			// Proxy pass
-			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
+			if (this->isProxyPass(req.getPath(), _servers[idx]))
 			{
 				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
 				send(fd, rawRes.c_str(), rawRes.size(), 0);
@@ -218,7 +218,7 @@ int WebServer::serve(void)
 			}
 
 			// CGI
-			if (isCGI(req.getUrlPath(), _servers[idx]))
+			if (isCGI(req.getPath(), _servers[idx]))
 			{
 				Cgi cgi(req, _servers[idx]);
 				close(fd);
@@ -346,8 +346,8 @@ int WebServer::serve(void)
 			}
 
 			// Check for proxy pass
-			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
-			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
+			std::cout << this->isProxyPass(req.getPath(), _servers[idx]) << std::endl;
+			if (this->isProxyPass(req.getPath(), _servers[idx]))
 			{
 				std::cout << "Proxy pass detected" << std::endl;
 				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
@@ -375,7 +375,7 @@ int WebServer::serve(void)
 				close(client_fd);
 				continue;
 			}
-			if (isCGI(req.getUrlPath(), _servers[idx]))
+			if (isCGI(req.getPath(), _servers[idx]))
 			{
 				Cgi cgi(req, _servers[idx]);
 			}
