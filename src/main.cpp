@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:41:50 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 19:03:57 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/24 17:16:52 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,10 +23,10 @@ int main(int argc, char **argv)
                 try
                 {
                         ws.setServer(argv[1]);
-                        for (int i = 0; i < (int)ws.getServers().size(); i++)
-                        {
-                                std::cout << ws.getServers()[i] << std::endl;
-                        }
+                        // for (int i = 0; i < (int)ws.getServers().size(); i++)
+                        // {
+                        //         std::cout << ws.getServers()[i] << std::endl;
+                        // }
                         ws.setUpSock();
                         ws.serve();
                 }
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
                 std::string path;
                 std::map<std::string, t_location> locations = server.getLocation();
                 std::map<std::string,
-                        t_location>::iterator it = locations.find(req._urlPath);
+                        t_location>::iterator it = locations.find(req._path);
                 if(it != locations.end())
                                 path = it->second._root;
                 else

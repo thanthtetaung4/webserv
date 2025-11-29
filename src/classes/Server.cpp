@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 19:25:41 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/22 13:53:41 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -237,8 +237,8 @@ void Server::setServerInfo(const std::vector<std::string> &line)
 	if (line.empty())
 		return;
 
-	const std::string &key = line[0];
-	std::map<std::string, AttrHandler>::iterator it = getServerHandlers().find(key);
+	const std::string &directive = line[0];
+	std::map<std::string, AttrHandler>::iterator it = getServerHandlers().find(directive);
 	if (it != getServerHandlers().end())
 	{
 		AttrHandler handler = it->second;

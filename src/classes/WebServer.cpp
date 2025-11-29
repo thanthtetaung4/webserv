@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/25 03:48:15 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/29 17:10:39 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -179,9 +179,9 @@ std::vector<Server> WebServer::getServers() const
 const std::string WebServer::handleReverseProxy(const Request &req, const Server &server)
 {
 	std::cout << "Handling reverse proxy..." << std::endl;
-	std::cout << search_map_iterator(server.getLocation(), req.getUrlPath())->second._proxy_pass << std::endl;
+	std::cout << search_map_iterator(server.getLocation(), req.getPath())->second._proxy_pass << std::endl;
 
-	t_proxyPass pp = parseProxyPass(search_map_iterator(server.getLocation(), req.getUrlPath())->second._proxy_pass);
+	t_proxyPass pp = parseProxyPass(search_map_iterator(server.getLocation(), req.getPath())->second._proxy_pass);
 
 	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
 
@@ -264,103 +264,22 @@ const std::string WebServer::handleReverseProxy(const Request &req, const Server
 	return std::string(buffer);
 }
 
-const std::string WebServer::handleRedirect(std::string redirUrlPath)
+std::map<std::string, t_location>::const_iterator getBestLocationMatch(const std::map<std::string, t_location> &locations,
+																	   const std::string &url)
 {
-	std::string res;
+	std::map<std::string, t_location>::const_iterator best = locations.end();
+	size_t bestLen = 0;
 
-	res = "HTTP/1.1 302 Found\r\n";
-	res += "Location: " + redirUrlPath + "\r\n";
-	res += "Content-Type: text/html\r\n";
-	res += "Content-Length: 0\r\n";
-	res += "\r\n";
-
-	return res;
-}
-
-const std::string WebServer::handleAutoIndex(const Request &req, const Server &server)
-{
-	std::string fullPath;
-
-	if (req.getUrlPath()[req.getUrlPath().length() - 1] != '/')
+	for (std::map<std::string, t_location>::const_iterator it = locations.begin();
+		 it != locations.end(); ++it)
 	{
-		return this->handleRedirect(req.getUrlPath() + "/");
+		if (url.find(it->first) == 0 && it->first.size() > bestLen)
+		{
+			best = it;
+			bestLen = it->first.size();
+		}
 	}
-
-	// 1. Resolve full path from location or server root
-	t_location *loc = searchMapLongestMatch(server.getLocation(), req.getUrlPath());
-
-	if (loc)
-	{
-		if (!loc->_root.empty())
-			fullPath = loc->_root + req.getUrlPath();
-		else if (!server.getRoot().empty())
-			fullPath = server.getRoot() + req.getUrlPath();
-	}
-
-	std::cout << "[AUTOINDEX] fullPath: " << fullPath << std::endl;
-
-	// Check access
-	if (access(fullPath.c_str(), R_OK) == -1)
-	{
-		return "HTTP/1.1 403 Forbidden\r\n\r\n";
-	}
-
-	// Try opening directory
-	DIR *dir = opendir(fullPath.c_str());
-	if (!dir)
-	{
-		return "HTTP/1.1 404 Not Found\r\n\r\n";
-	}
-
-	// 2. Build HTML body
-	std::string body;
-	body += "<html><head><title>Index of " + req.getUrlPath() + "</title></head><body>";
-	body += "<h1>Index of " + req.getUrlPath() + "</h1><hr><pre>";
-
-	struct dirent *entry;
-
-	while ((entry = readdir(dir)) != NULL)
-	{
-		std::string name = entry->d_name;
-
-		if (name == "." || name == "..")
-			continue;
-
-		std::string itemFullPath = fullPath + "/" + name;
-
-		struct stat st;
-		if (stat(itemFullPath.c_str(), &st) == -1)
-			continue;
-
-		body += "<a href=\"" + req.getUrlPath();
-
-		// Ensure trailing slash for directory
-		// if (*(req.getUrlPath().end()) != '/')
-		// 	body += "/";
-
-		body += name;
-
-		if (S_ISDIR(st.st_mode))
-			body += "/";
-
-		body += "\">" + name + "</a>\n";
-	}
-
-	body += "</pre><hr></body></html>";
-
-	closedir(dir);
-
-	// 3. Build Raw HTTP Response
-	std::string response;
-	response += "HTTP/1.1 200 OK\r\n";
-	response += "Content-Type: text/html\r\n";
-	response += "Content-Length: " + intToString(body.size()) + "\r\n";
-	response += "\r\n"; // end of header
-	response += body;	// body
-
-	return response;
-	// }
-	// return "";
+	return best;
 }
 
 int WebServer::serve(void)
@@ -411,7 +330,7 @@ int WebServer::serve(void)
 				continue;
 			}
 			char buffer[4096];
-			std::cout << "=================REQUEST============================" << std::endl;
+			// std::cout << "=================REQUEST============================" << std::endl;
 
 			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 			if (bytes_received < 0)
@@ -422,61 +341,57 @@ int WebServer::serve(void)
 			}
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
-			std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
-			std::cout << buffer << std::endl;
-			std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
+			// std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
+			// std::cout << buffer << std::endl;
+			// std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
 
-			Request req(buffer);
-			std::cout << "================================= SEVER TEST =====================" << std::endl;
-			std::cout << _servers[idx] << std::endl;
-			std::cout << "================================= SERVER TEST END =====================" << std::endl;
+			Request req(buffer, _servers[idx]);
+			// std::cout << "================================= SEVER TEST =====================" << std::endl;
+			// std::cout << _servers[idx] << std::endl;
+			// std::cout << "================================= SERVER TEST END =====================" << std::endl;
+			// std::cout << "================================= REQ OBJ =====================" << std::endl;
+			// std::cout << req << std::endl;
+			// std::cout << "================================= REQ OBJ =====================" << std::endl;
+			// int i = req.validateAgainstConfig(_servers[idx]);
+			// if(i != 200) {
+			// 		Response res(i);
+			// }
 
-			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
-			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
-			{
-				std::cout << "POST method detected" << std::endl;
-				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
-				// just send the plain text to the client no need to change it back to Response obj
-				std::cout << "================================= SERVER TEST START =====================" << std::endl;
-				std::cout << rawRes << std::endl;
-				std::cout << "================================= SERVER TEST END =====================" << std::endl;
-				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
-				if (sent < 0)
-				{
-					perror("send");
-				}
-				close(client_fd);
-				std::cout << "================================= PPASS SUCCESSFULL =================================" << std::endl;
-				continue;
-			} else if (this->isAutoIndex(req, idx)) {
-				std::cout << "auto index" << std::endl;
-				std::string	rawRes = handleAutoIndex(req, _servers[idx]);
-				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
-				if (sent < 0)
-				{
-					perror("send");
-				}
-				close(client_fd);
-				continue;
-			}
-			if (isCGI(req.getUrlPath(), _servers[idx]))
-			{
-				Cgi cgi(req, _servers[idx]);
-			}
-			std::cout << req << std::endl;
-			std::cout << "================================= RESPONSE =====================" << std::endl;
+			// std::cout << this->isProxyPass(req.getPath(), _servers[idx]) << std::endl;
+			// if (this->isProxyPass(req.getPath(), _servers[idx]))
+			// {
+			// 	std::cout << "POST method detected" << std::endl;
+			// 	std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
+			// 	// just send the plain text to the client no need to change it back to Response obj
+			// 	std::cout << "================================= SERVER TEST START =====================" << std::endl;
+			// 	std::cout << rawRes << std::endl;
+			// 	std::cout << "================================= SERVER TEST END =====================" << std::endl;
+			// 	ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
+			// 	if (sent < 0)
+			// 	{
+			// 		perror("send");
+			// 	}
+			// 	close(client_fd);
+			// 	continue;
+			// }
+			// if (isCGI(req.getPath(), _servers[idx]))
+			// {
+			// 	Cgi cgi(req, _servers[idx]);
+			// }
+			// std::cout << req << std::endl;
+			// std::cout << "================================= RESPONSE =====================" << std::endl;
 
-			std::cout << "creating res" << std::endl;
+			// std::cout << "creating res" << std::endl;
 			Response res(req, _servers[idx]);
-			std::cout << "printing res" << std::endl;
-			std::cout << res << std::endl;
-			std::cout << "res printed" << std::endl;
-			std::cout << "================================= RESPONSE END =====================" << std::endl;
+			// std::cout << "printing res" << std::endl;
+			// std::cout << res << std::endl;
+			// std::cout << "res printed" << std::endl;
+			// std::cout << "================================= RESPONSE END =====================" << std::endl;
 			std::string httpResponse = res.toStr();
 
-			std::cout << "================================= FINAL RESPONSE =====================" << std::endl;
-			std::cout << "http res: " << httpResponse << std::endl;
-			std::cout << "================================= FINAL RESPONSE END =====================" << std::endl;
+			// std::cout << "================================= FINAL RESPONSE =====================" << std::endl;
+			// std::cout << "http res: " << httpResponse << std::endl;
+			// std::cout << "================================= FINAL RESPONSE END =====================" << std::endl;
 
 			ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
 			if (sent < 0)
