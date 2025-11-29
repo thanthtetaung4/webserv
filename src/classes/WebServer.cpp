@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 19:30:53 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/25 03:48:15 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,6 +80,79 @@ bool WebServer::isProxyPass(std::string urlPath, Server server)
 		return (!(it->second._proxy_pass.empty()));
 	}
 	return (false);
+}
+
+bool	checkIndices(std::vector<std::string> indices, std::string locationRoot, std::string serverRoot) {
+	std::vector<std::string>::const_iterator it = indices.begin();
+	(void)locationRoot;
+	(void)serverRoot;
+	std::cout << "checking indices" << std::endl;
+	it == indices.end() ? std::cout << "fuck" : std::cout << "unfuck";
+	std::cout << std::endl;
+	while (it != indices.end()) {
+		std::string	index = *it;
+		if (!locationRoot.empty()) {
+			locationRoot.append(index);
+			index = locationRoot;
+		} else {
+			if (!serverRoot.empty()) {
+				serverRoot.append(index);
+				index = serverRoot;
+			} else
+				return (false);
+		}
+		if(access(index.c_str(), F_OK) == -1)
+			return (false);
+		it++;
+	}
+	return (true);
+}
+
+bool isDirectory(const std::string &path)
+{
+    struct stat s;
+    if (stat(path.c_str(), &s) == -1)
+        return false; // or handle error
+    return S_ISDIR(s.st_mode);
+}
+
+bool isRegularFile(const std::string &path)
+{
+    struct stat s;
+    if (stat(path.c_str(), &s) == -1)
+        return false;
+    return S_ISREG(s.st_mode);
+}
+
+bool	WebServer::isAutoIndex(const Request& req, int idx) const {
+	std::map<std::string, t_location>::const_iterator it;
+	std::map<std::string, t_location> locs = this->_servers[idx].getLocation();
+
+	std::cout << "=============== AUTO INDEX URL PATH START ===============" << std::endl;
+	std::cout << req.getUrlPath() << std::endl;
+	std::cout << "=============== AUTO INDEX URL PATH END ===============" << std::endl;
+	if (isRegularFile(_servers[idx].getRoot() + "/" + req.getUrlPath())) {
+		return false;
+	}
+
+	it = searchMapLongestMatchIt(locs, req.getUrlPath());
+
+	if (it->second._autoIndex != "on")
+		return (false);
+
+	if (it != locs.end()) {
+		std::cout << "checking auto index: " << it->first << std::endl;
+
+		if (it->second._index.empty() ||
+			!checkIndices(it->second._index, it->second._root, this->_servers[idx].getRoot()))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	return false;
 }
 
 bool WebServer::isCGI(std::string urlPath, Server server)
@@ -191,24 +264,6 @@ const std::string WebServer::handleReverseProxy(const Request &req, const Server
 	return std::string(buffer);
 }
 
-std::map<std::string, t_location>::const_iterator getBestLocationMatch(const std::map<std::string, t_location> &locations,
-																	   const std::string &url)
-{
-	std::map<std::string, t_location>::const_iterator best = locations.end();
-	size_t bestLen = 0;
-
-	for (std::map<std::string, t_location>::const_iterator it = locations.begin();
-		 it != locations.end(); ++it)
-	{
-		if (url.find(it->first) == 0 && it->first.size() > bestLen)
-		{
-			best = it;
-			bestLen = it->first.size();
-		}
-	}
-	return best;
-}
-
 const std::string WebServer::handleRedirect(std::string redirUrlPath)
 {
 	std::string res;
@@ -243,19 +298,6 @@ const std::string WebServer::handleAutoIndex(const Request &req, const Server &s
 	}
 
 	std::cout << "[AUTOINDEX] fullPath: " << fullPath << std::endl;
-
-	/*
-		here check the requested path is a file or a folder
-		if folder => show auto index page
-		if file => serve the file
-	*/
-
-	// if (open(fullPath.c_str(), O_RDONLY) >= 0) {
-	// 	/*
-	// 		build response from the path and return
-	// 	*/
-	// }
-	// else {
 
 	// Check access
 	if (access(fullPath.c_str(), R_OK) == -1)
@@ -293,8 +335,8 @@ const std::string WebServer::handleAutoIndex(const Request &req, const Server &s
 		body += "<a href=\"" + req.getUrlPath();
 
 		// Ensure trailing slash for directory
-		if (*(req.getUrlPath().end()) != '/')
-			body += "/";
+		// if (*(req.getUrlPath().end()) != '/')
+		// 	body += "/";
 
 		body += name;
 
@@ -389,11 +431,6 @@ int WebServer::serve(void)
 			std::cout << _servers[idx] << std::endl;
 			std::cout << "================================= SERVER TEST END =====================" << std::endl;
 
-			// int i = req.validateAgainstConfig(_servers[idx]);
-			// if(i != 200) {
-			// 		Response res(i);
-			// }
-
 			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
 			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
 			{
@@ -409,8 +446,9 @@ int WebServer::serve(void)
 					perror("send");
 				}
 				close(client_fd);
+				std::cout << "================================= PPASS SUCCESSFULL =================================" << std::endl;
 				continue;
-			} else if (req.isAutoIndex(_servers[idx])) {
+			} else if (this->isAutoIndex(req, idx)) {
 				std::cout << "auto index" << std::endl;
 				std::string	rawRes = handleAutoIndex(req, _servers[idx]);
 				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);

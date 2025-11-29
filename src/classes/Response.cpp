@@ -6,17 +6,11 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/20 19:31:14 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/24 18:33:28 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "../../include/Response.hpp"
-
-// std::string intToString(size_t n) {
-// 	std::ostringstream ss;
-// 	ss << n;
-// 	return ss.str();
-// }
 
 bool safePath(std::string const &path)
 {
@@ -53,7 +47,6 @@ std::string getMimeType(const std::string &path)
 
 std::string readFile(std::string &path)
 {
-	// path.erase(0,1);
 	std::ifstream file(path.c_str());
 	if (!file.is_open())
 		return "";
@@ -199,7 +192,6 @@ Response::Response(const Request &req, Server &server)
 	ss >> size;
 	//find req.urlPath in server locations
 
-	// std::string path, index;
 	std::map<std::string, t_location> locations = server.getLocation();
 	t_location* loc = searchMapLongestMatch(locations, req.getUrlPath());
 
@@ -211,19 +203,6 @@ Response::Response(const Request &req, Server &server)
 		else if (!server.getRoot().empty())
 			path = server.getRoot() + req.getUrlPath();
 	}
-	// if(it != locations.end()) {
-	// 		// std::cout << "root need to be " << (it->second)._root << std::endl;
-	// 		path = it->second._root;
-	// 		// std::cout << "HEY PATH IS " << std::endl;
-	// 		for (std::vector<std::string>::iterator i = it->second._index.begin(); i != it->second._index.end() ; i++) {
-	// 			if (access((path + "/" + *i).c_str(), R_OK) == 0) {
-	// 				path = path + "/" + *i;
-	// 				break;
-	// 		}
-	// 	}
-	// 	}
-	// else
-	// 	path = "";
 
 	//return error here
 	std::cout << "The real path " << path << std::endl;

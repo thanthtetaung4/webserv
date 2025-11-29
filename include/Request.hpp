@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 00:42:43 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/16 20:45:23 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/24 20:07:52 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ class Request{
 		Request(const std::string &raw);
 		bool hasHeader(const std::string &key) const;
 		bool checkHeaderValue(void) const;
-		bool	isAutoIndex(Server& server) const;
+		// bool	isAutoIndex(Server& server) const;
 		std::string getMethodType() const;
 		std::string getUrlPath() const;
 		std::string getHttpVersion() const;

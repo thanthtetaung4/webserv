@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 19:03:44 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/24 20:01:52 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,6 +64,7 @@ public:
 	const std::string	handleAutoIndex(const Request& req, const Server &server);
 	bool isProxyPass(std::string urlPath, Server server);
 	bool isCGI(std::string urlPath, Server server);
+	bool	isAutoIndex(const Request& req, int idx) const;
 	const std::string	handleRedirect(std::string redirUrlPath);
 };
 

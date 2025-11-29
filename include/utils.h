@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 19:48:22 by taung             #+#    #+#             */
-/*   Updated: 2025/11/20 18:59:10 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/24 20:24:54 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,8 +34,9 @@ typename std::map<K, V>::const_iterator search_map_iterator(const std::map<K, V>
 	return it;
 }
 
-t_location*	searchMapLongestMatch(const std::map<std::string,
-									t_location>& map, std::string key);
+t_location*	searchMapLongestMatch(const std::map<std::string, t_location>& map, std::string key);
+
+std::map<std::string, t_location>::const_iterator	searchMapLongestMatchIt(const std::map<std::string, t_location>& map, std::string key);
 
 t_proxyPass	parseProxyPass(const std::string &proxyPassStr);
 std::string	intToString(size_t n);
