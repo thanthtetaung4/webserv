@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/29 17:10:39 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/29 17:15:40 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -108,52 +108,37 @@ bool	checkIndices(std::vector<std::string> indices, std::string locationRoot, st
 	return (true);
 }
 
-bool isDirectory(const std::string &path)
-{
-    struct stat s;
-    if (stat(path.c_str(), &s) == -1)
-        return false; // or handle error
-    return S_ISDIR(s.st_mode);
-}
 
-bool isRegularFile(const std::string &path)
-{
-    struct stat s;
-    if (stat(path.c_str(), &s) == -1)
-        return false;
-    return S_ISREG(s.st_mode);
-}
+// bool	WebServer::isAutoIndex(const Request& req, int idx) const {
+// 	std::map<std::string, t_location>::const_iterator it;
+// 	std::map<std::string, t_location> locs = this->_servers[idx].getLocation();
 
-bool	WebServer::isAutoIndex(const Request& req, int idx) const {
-	std::map<std::string, t_location>::const_iterator it;
-	std::map<std::string, t_location> locs = this->_servers[idx].getLocation();
+// 	std::cout << "=============== AUTO INDEX URL PATH START ===============" << std::endl;
+// 	std::cout << req.getUrlPath() << std::endl;
+// 	std::cout << "=============== AUTO INDEX URL PATH END ===============" << std::endl;
+// 	if (isRegularFile(_servers[idx].getRoot() + "/" + req.getUrlPath())) {
+// 		return false;
+// 	}
 
-	std::cout << "=============== AUTO INDEX URL PATH START ===============" << std::endl;
-	std::cout << req.getUrlPath() << std::endl;
-	std::cout << "=============== AUTO INDEX URL PATH END ===============" << std::endl;
-	if (isRegularFile(_servers[idx].getRoot() + "/" + req.getUrlPath())) {
-		return false;
-	}
+// 	it = searchMapLongestMatchIt(locs, req.getUrlPath());
 
-	it = searchMapLongestMatchIt(locs, req.getUrlPath());
+// 	if (it->second._autoIndex != "on")
+// 		return (false);
 
-	if (it->second._autoIndex != "on")
-		return (false);
+// 	if (it != locs.end()) {
+// 		std::cout << "checking auto index: " << it->first << std::endl;
 
-	if (it != locs.end()) {
-		std::cout << "checking auto index: " << it->first << std::endl;
+// 		if (it->second._index.empty() ||
+// 			!checkIndices(it->second._index, it->second._root, this->_servers[idx].getRoot()))
+// 		{
+// 			return true;
+// 		}
 
-		if (it->second._index.empty() ||
-			!checkIndices(it->second._index, it->second._root, this->_servers[idx].getRoot()))
-		{
-			return true;
-		}
+// 		return false;
+// 	}
 
-		return false;
-	}
-
-	return false;
-}
+// 	return false;
+// }
 
 bool WebServer::isCGI(std::string urlPath, Server server)
 {
