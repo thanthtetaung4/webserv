@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/29 17:09:04 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/29 11:43:05 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,8 +56,10 @@ Request::Request(const std::string &raw, Server &server)
 		if (!_it->second._root.empty())
 			this->_finalPath = _it->second._root + (this->_path.substr(_it->first.length()).empty() ? "" : "/" + this->_path.substr(_it->first.length()));
 		else
-			this->_finalPath = server.getRoot() + "/" + this->_path;
+			this->_finalPath = server.getRoot() + (server.getRoot().at(server.getRoot().length() - 1) == '/' ? "" : "/") + this->_path;
 	}
+	else
+		this->_finalPath = server.getRoot() + (server.getRoot().at(server.getRoot().length() - 1) == '/' ? "" : "/") + this->_path;
 }
 
 std::string trim(const std::string &s)

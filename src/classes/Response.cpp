@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/29 11:20:05 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/29 11:44:39 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,50 +27,63 @@ Response::Response(Request &req, Server &server)
 	std::stringstream ss(server.getMaxByte());
 	ss >> size;
 	size_t i;
-	t_location loc = req.getIt()->second;
-
-	if (isDirectory(req.getFinalPath()))
+	if (req.getIt() != server.getLocation().end())
 	{
-		if (!loc._proxy_pass.empty())
+		t_location loc = req.getIt()->second;
+
+		if (isDirectory(req.getFinalPath()))
 		{
-			// handle proxypass
-		}
-		else if (!loc._index.empty())
-		{
-			for (i = 0; i < loc._index.size(); i++)
+			if (!loc._proxy_pass.empty())
 			{
-				if (isRegularFile(req.getFinalPath() + "/" + loc._index[i]))
-				{
-					path = req.getFinalPath() + "/" + loc._index[i];
-					break;
-				}
+				// handle proxypass
 			}
-			if (i == loc._index.size() && loc._autoIndex == "on")
-				handleAutoIndex(req.getPath(), req.getFinalPath());
-			else
+			else if (!loc._index.empty())
 			{
-				if (loc._isCgi && path.substr(path.size() - loc._cgiExt.size()) == loc._cgiExt)
+				for (i = 0; i < loc._index.size(); i++)
 				{
-					req.setFinalPath(path);
-					handleCGI(req, server);
+					if (isRegularFile(req.getFinalPath() + (req.getFinalPath().at(req.getFinalPath().length() - 1) == '/' ? "" : "/")  + loc._index[i]))
+					{
+						path = req.getFinalPath() + "/" + loc._index[i];
+						break;
+					}
 				}
+				if (i == loc._index.size() && loc._autoIndex == "on")
+					handleAutoIndex(req.getPath(), req.getFinalPath());
 				else
 				{
-					std::cout << "Requested Path: " << path << std::endl;
-					if (!checkHttpError(req, size, path, server))
-						serveFile(path);
-					if (this->_body.empty())
+					if (loc._isCgi && path.substr(path.size() - loc._cgiExt.size()) == loc._cgiExt)
 					{
-						std::cout << "Body is empty" << std::endl;
+						req.setFinalPath(path);
+						handleCGI(req, server);
+					}
+					else
+					{
+						std::cout << "Requested Path: " << path << std::endl;
+						if (!checkHttpError(req, size, path, server))
+							serveFile(path);
+						if (this->_body.empty())
+						{
+							std::cout << "Body is empty" << std::endl;
+						}
 					}
 				}
 			}
+			else if ((loc._index.empty()) && loc._autoIndex == "on")
+				handleAutoIndex(req.getPath(), req.getFinalPath());
 		}
-		else if ((loc._index.empty()) && loc._autoIndex == "on")
-			handleAutoIndex(req.getPath(), req.getFinalPath());
+		else if (isRegularFile(req.getFinalPath()) && loc._isCgi)
+			handleCGI(req, server);
+		else
+		{
+			std::cout << "Requested Path: " << path << std::endl;
+			if (!checkHttpError(req, size, path, server))
+				serveFile(path);
+			if (this->_body.empty())
+			{
+				std::cout << "Body is empty" << std::endl;
+			}
+		}
 	}
-	else if (isRegularFile(req.getFinalPath()) && loc._isCgi)
-		handleCGI(req, server);
 	else
 	{
 		std::cout << "Requested Path: " << path << std::endl;
