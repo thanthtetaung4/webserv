@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/29 19:21:29 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/29 19:59:53 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -247,24 +247,6 @@ const std::string WebServer::handleReverseProxy(const Request &req, const Server
 	std::cout << "Received " << bytes_received << " bytes from proxy" << std::endl;
 
 	return std::string(buffer);
-}
-
-std::map<std::string, t_location>::const_iterator getBestLocationMatch(const std::map<std::string, t_location> &locations,
-																	   const std::string &url)
-{
-	std::map<std::string, t_location>::const_iterator best = locations.end();
-	size_t bestLen = 0;
-
-	for (std::map<std::string, t_location>::const_iterator it = locations.begin();
-		 it != locations.end(); ++it)
-	{
-		if (url.find(it->first) == 0 && it->first.size() > bestLen)
-		{
-			best = it;
-			bestLen = it->first.size();
-		}
-	}
-	return best;
 }
 
 int WebServer::serve(void)

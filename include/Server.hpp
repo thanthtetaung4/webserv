@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 04:47:58 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/24 17:20:08 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/29 11:49:07 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,7 +78,6 @@ public:
     std::string getPort() const;
     std::string getServerName() const;
     std::string getMaxByte() const;
-    // std::string getRoot() const;
     std::vector<std::string> getIndex() const;
     std::string getRoot() const;
     const std::vector<std::string> &getServerIndex(void) const;
