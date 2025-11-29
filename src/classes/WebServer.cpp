@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/26 13:55:05 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/29 11:20:26 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,6 +81,64 @@ bool WebServer::isProxyPass(std::string urlPath, Server server)
 	}
 	return (false);
 }
+
+bool	checkIndices(std::vector<std::string> indices, std::string locationRoot, std::string serverRoot) {
+	std::vector<std::string>::const_iterator it = indices.begin();
+	(void)locationRoot;
+	(void)serverRoot;
+	std::cout << "checking indices" << std::endl;
+	it == indices.end() ? std::cout << "fuck" : std::cout << "unfuck";
+	std::cout << std::endl;
+	while (it != indices.end()) {
+		std::string	index = *it;
+		if (!locationRoot.empty()) {
+			locationRoot.append(index);
+			index = locationRoot;
+		} else {
+			if (!serverRoot.empty()) {
+				serverRoot.append(index);
+				index = serverRoot;
+			} else
+				return (false);
+		}
+		if(access(index.c_str(), F_OK) == -1)
+			return (false);
+		it++;
+	}
+	return (true);
+}
+
+
+// bool	WebServer::isAutoIndex(const Request& req, int idx) const {
+// 	std::map<std::string, t_location>::const_iterator it;
+// 	std::map<std::string, t_location> locs = this->_servers[idx].getLocation();
+
+// 	std::cout << "=============== AUTO INDEX URL PATH START ===============" << std::endl;
+// 	std::cout << req.getUrlPath() << std::endl;
+// 	std::cout << "=============== AUTO INDEX URL PATH END ===============" << std::endl;
+// 	if (isRegularFile(_servers[idx].getRoot() + "/" + req.getUrlPath())) {
+// 		return false;
+// 	}
+
+// 	it = searchMapLongestMatchIt(locs, req.getUrlPath());
+
+// 	if (it->second._autoIndex != "on")
+// 		return (false);
+
+// 	if (it != locs.end()) {
+// 		std::cout << "checking auto index: " << it->first << std::endl;
+
+// 		if (it->second._index.empty() ||
+// 			!checkIndices(it->second._index, it->second._root, this->_servers[idx].getRoot()))
+// 		{
+// 			return true;
+// 		}
+
+// 		return false;
+// 	}
+
+// 	return false;
+// }
 
 bool WebServer::isCGI(std::string urlPath, Server server)
 {

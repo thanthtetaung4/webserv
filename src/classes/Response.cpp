@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/26 14:01:55 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/29 11:20:05 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -320,7 +320,6 @@ std::string getMimeType(const std::string &path)
 
 std::string readFile(std::string &path)
 {
-	// path.erase(0,1);
 	std::ifstream file(path.c_str());
 	if (!file.is_open())
 		return "";
