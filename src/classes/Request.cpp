@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/29 17:09:04 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/29 19:38:32 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,6 +57,8 @@ Request::Request(const std::string &raw, Server &server)
 			this->_finalPath = _it->second._root + (this->_path.substr(_it->first.length()).empty() ? "" : "/" + this->_path.substr(_it->first.length()));
 		else
 			this->_finalPath = server.getRoot() + "/" + this->_path;
+	} else {
+		this->_finalPath = server.getRoot() + "/" + this->_path;
 	}
 }
 

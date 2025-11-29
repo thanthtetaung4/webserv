@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/29 17:15:40 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/29 19:21:29 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -326,9 +326,9 @@ int WebServer::serve(void)
 			}
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
-			// std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
-			// std::cout << buffer << std::endl;
-			// std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
+			std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
+			std::cout << buffer << std::endl;
+			std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
 
 			Request req(buffer, _servers[idx]);
 			// std::cout << "================================= SEVER TEST =====================" << std::endl;
