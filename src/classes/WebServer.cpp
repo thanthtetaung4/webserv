@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/29 19:59:53 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/01 03:06:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -248,6 +248,30 @@ const std::string WebServer::handleReverseProxy(const Request &req, const Server
 
 	return std::string(buffer);
 }
+int parseContentLength(const std::string &headers)
+{
+	std::string key = "Content-Length:";
+	size_t pos = headers.find(key);
+	if (pos == std::string::npos)
+		return 0;
+
+	pos += key.length();
+
+	// Skip spaces
+	while (pos < headers.size() && (headers[pos] == ' ' || headers[pos] == '\t'))
+		pos++;
+
+	// Read digits
+	int value = 0;
+	while (pos < headers.size() && isdigit(headers[pos]))
+	{
+		value = value * 10 + (headers[pos] - '0');
+		pos++;
+	}
+
+	return value;
+}
+
 
 int WebServer::serve(void)
 {
@@ -299,7 +323,27 @@ int WebServer::serve(void)
 			char buffer[4096];
 			// std::cout << "=================REQUEST============================" << std::endl;
 
-			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+			// ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+			std::string requestStr;
+			ssize_t bytes_received = 0;
+			while (true) {
+				ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer), 0);
+				if (bytes_received <= 0) break;
+				std::cout << "================================= BYTE RECIEVED START =====================" << std::endl;
+				std::cout << bytes_received << std::endl;
+				std::cout << "================================= BYTE RECIEVED END =====================" << std::endl;
+				requestStr.append(buffer, bytes_received);
+
+				// stop when the headers are received + full body matches Content-Length
+				if (requestStr.find("\r\n\r\n") != std::string::npos) {
+					size_t bodyStart = requestStr.find("\r\n\r\n") + 4;
+					std::string headers = requestStr.substr(0, bodyStart);
+					size_t contentLength = parseContentLength(headers);
+
+					if (requestStr.size() >= bodyStart + contentLength)
+						break;
+				}
+			}
 			if (bytes_received < 0)
 			{
 				perror("recv");
@@ -309,10 +353,10 @@ int WebServer::serve(void)
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
 			std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
-			std::cout << buffer << std::endl;
+			std::cout << requestStr << std::endl;
 			std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
 
-			Request req(buffer, _servers[idx]);
+			Request req(requestStr, _servers[idx]);
 			// std::cout << "================================= SEVER TEST =====================" << std::endl;
 			// std::cout << _servers[idx] << std::endl;
 			// std::cout << "================================= SERVER TEST END =====================" << std::endl;

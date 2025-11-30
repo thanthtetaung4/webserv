@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/29 19:59:29 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/01 05:25:01 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,9 +35,12 @@ Response::Response(Request &req, Server &server)
 
 		if (isDirectory(req.getFinalPath()))
 		{
+			std::cout << "=========== is file ===========" << std::endl;
 			if (!loc._proxy_pass.empty())
 			{
+				std::cout << "=========== ppass ===========" << std::endl;
 				// handle proxypass
+				handleReverseProxy(req);
 			}
 			else if (!loc._index.empty())
 			{
@@ -49,13 +52,16 @@ Response::Response(Request &req, Server &server)
 						break;
 					}
 				}
-				if (i == loc._index.size() && loc._autoIndex == "on")
+				if (i == loc._index.size() && loc._autoIndex == "on") {
+					std::cout << "=========== auto index ===========" << std::endl;
 					handleAutoIndex(req.getPath(), req.getFinalPath());
+				}
 				else
 				{
 					if (loc._isCgi && path.substr(path.size() - loc._cgiExt.size()) == loc._cgiExt)
 					{
 						req.setFinalPath(path);
+						std::cout << "=========== cgi ===========" << std::endl;
 						handleCGI(req, server);
 					}
 					else
@@ -73,21 +79,40 @@ Response::Response(Request &req, Server &server)
 			else if ((loc._index.empty()) && loc._autoIndex == "on")
 				handleAutoIndex(req.getPath(), req.getFinalPath());
 		}
-		else if (isRegularFile(req.getFinalPath()) && loc._isCgi)
+		else if (isRegularFile(req.getFinalPath()) && loc._isCgi) {
+			std::cout << "=========== is reg file ===========" << std::endl;
+			std::cout << "=========== cgi ===========" << std::endl;
 			handleCGI(req, server);
-		else
-		{
-			std::cout << "Requested Path: " << path << std::endl;
-			if (!checkHttpError(req, size, path, server))
-				serveFile(path);
-			if (this->_body.empty())
-			{
-				std::cout << "Body is empty" << std::endl;
+		}
+		else {
+			std::cout << "=========== is not file, not dir ===========" << std::endl;
+			if (!loc._proxy_pass.empty()) {
+				std::cout << "=========== ppass ===========" << std::endl;
+				// handle proxypass
+				handleReverseProxy(req);
+			} else if (!loc._uploadStore.empty()) {
+				std::cout << "upload store" << std::endl;
+				if (std::find(loc._limit_except.begin(), loc._limit_except.end(), req.getMethodType()) != loc._limit_except.end()) {
+					handleStore(loc, req);
+				} else {
+					std::cout << "408 Method not allowed" << std::endl;
+				}
+			} else {
+				std::cout << "=========== static ===========" << std::endl;
+				std::cout << "Requested Path: " << path << std::endl;
+				if (!checkHttpError(req, size, path, server))
+					serveFile(path);
+				if (this->_body.empty())
+				{
+					std::cout << "Body is empty" << std::endl;
+				}
 			}
 		}
 	}
 	else
 	{
+		std::cout << "=========== loc is end =========" << std::endl;
+		std::cout << "=========== static ===========" << std::endl;
 		std::cout << "Requested Path: " << path << std::endl;
 		if (!checkHttpError(req, size, path, server))
 			serveFile(path);
@@ -297,8 +322,37 @@ std::string Response::handleReverseProxy(const Request &req)
 	buffer[bytes_received] = '\0'; // Null-terminate the received data
 
 	std::cout << "Received " << bytes_received << " bytes from proxy" << std::endl;
-
+	std::cout << buffer << std::endl;
 	return std::string(buffer);
+}
+
+void	Response::doPost(std::string uploadPath, const Request &req) {
+	std::cout << "DO POST\n" << uploadPath << "\n" << req << std::endl;
+	std::string fileName;
+	std::string fileContent;
+	parseFile(req.getBody(), req.getContentType(), fileName, fileContent);
+	std::cout << "=====================================" << std::endl;
+	std::cout << "fileName: " + fileName + "\n" + "fileContent: " + fileContent << std::endl;
+}
+
+void	Response::doDelete(std::string uploadPath, const Request &req) {
+	std::cout << "DO DELETE\n"<< uploadPath << "\n" << req << std::endl;
+		std::string fileName;
+	/*
+		Do the parsing from the Request itself "DELETE /upload/test.txt" not from form upload
+	*/
+	std::cout << "=====================================" << std::endl;
+	std::cout << "fileName: " + fileName + "\n" + "fileContent: " << std::endl;
+
+}
+
+void Response::handleStore(t_location loc, const Request& req) {
+	std::cout << "Printing from handleStore\n" << req << std::endl;
+	if (req.getMethodType() == "POST") {
+		doPost(loc._uploadStore, req);
+	} else if (req.getMethodType() == "DELETE") {
+		doDelete(loc._uploadStore, req);
+	}
 }
 
 bool safePath(std::string const &path)

@@ -26,6 +26,7 @@
 #include <map>
 #include <unistd.h>
 #include <vector>
+#include <algorithm>
 #include <sys/types.h>
 #include <dirent.h>
 #include "Socket.hpp"
@@ -38,11 +39,14 @@ private:
 	std::string _statusTxt;
 	std::map<std::string, std::string> _headers;
 	std::string _body;
+	void	doPost(std::string uploadPath, const Request &req);
+	void	doDelete(std::string uploadPath, const Request &req);
 
 public:
 	Response(Request &req, Server &server);
 	Response(unsigned int errorCode);
 	void handleRedirect(const std::string &redirUrlPath);
+	void handleStore(t_location loc, const Request& req);
 	void handleAutoIndex(const std::string &urlPath, const std::string &fullPath);
 	void handleCGI(const Request &req, const Server &server);
 	std::string handleReverseProxy(const Request &req);

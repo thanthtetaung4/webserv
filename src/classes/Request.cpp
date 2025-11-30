@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/29 19:59:43 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/01 05:04:09 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,6 +106,15 @@ const std::map<std::string, std::string> &Request::getHeaders() const
 	return this->_headers;
 }
 
+std::string Request::getContentType() const {
+	std::map<std::string, std::string>::const_iterator it = search_map_iterator(this->_headers, std::string("Content-Type"));
+	if (it != this->_headers.end()) {
+		return (it->second);
+	}
+	return ("");
+}
+
+
 void Request::setFinalPath(const std::string &path)
 {
 	_finalPath = path;
@@ -122,5 +131,6 @@ std::ostream &operator<<(std::ostream &os, const Request &req)
 	{
 		os << "	[" << it->first << "]: " << it->second << std::endl;
 	}
+	os << "Body: \n" << req.getBody() << std::endl;
 	return os;
 }

@@ -6,7 +6,7 @@
 #    By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/11/29 17:06:36 by taung            ###   ########.fr        #
+#    Updated: 2025/12/01 01:41:38 by taung            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,7 +20,8 @@ SRCS = ./src/main.cpp \
 	${CLASSES}/WebServer.cpp ${CLASSES}/Server.cpp ${CLASSES}/Socket.cpp ${CLASSES}/Cgi.cpp\
 	${CLASSES}/Response.cpp ${CLASSES}/Request.cpp ${CLASSES}/Validator.cpp\
 	${EXCEPTIONS}/ServerExceptions.cpp ${UTILS}/parseProxyPass.cpp ${UTILS}/buildPath.cpp \
-	${UTILS}/intToString.cpp ${UTILS}/searchMapLongestMatch.cpp ${UTILS}/searchMapLongestMatchIt.cpp ${UTILS}/checkPath.cpp
+	${UTILS}/intToString.cpp ${UTILS}/searchMapLongestMatch.cpp ${UTILS}/searchMapLongestMatchIt.cpp \
+	${UTILS}/checkPath.cpp ${UTILS}/parseFile.cpp
 OBJS = ${SRCS:.cpp=.o}
 
 CC = c++
@@ -36,9 +37,11 @@ $(NAME): $(OBJS)
 
 clean:
 	@$(RM)  $(OBJS)
+	@echo clean
 
 fclean: clean
 	@$(RM) $(NAME)
+	@echo fclean
 
 re: fclean all
 
