@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/29 11:20:26 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/30 10:36:31 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,29 +28,51 @@ WebServer::~WebServer() {}
 // WebServer &WebServer::operator=(const WebServer &other) {}
 void WebServer::setServer(std::string configFile)
 {
-	t_iterators it;
-	std::string target = "server {";
-
 	std::ifstream config(configFile.c_str());
 	if (!config)
-		throw "Unable to open file!!";
-	else
+		throw std::runtime_error("Unable to open file!!");
+	
+	std::stringstream ss;
+	ss << config.rdbuf();
+	std::string content = ss.str();
+	config.close();
+
+	size_t pos = 0;
+	while (pos < content.length())
 	{
-		std::stringstream ss;
-		ss << config.rdbuf();
-		std::string content = ss.str();
-		it = Server::getIterators(content, content.begin(), target, target);
-		while (it.it1 != content.end())
+		size_t serverStart = content.find("server", pos);
+		if (serverStart == std::string::npos)
+			break;
+		size_t openBracePos = content.find('{', serverStart);
+		if (openBracePos == std::string::npos)
+			throw std::runtime_error("Missing opening brace after 'server' keyword");
+		int braceCount = 0;
+		size_t closeBracePos = openBracePos;
+		bool foundMatch = false;
+		for (size_t i = openBracePos; i < content.length(); ++i)
 		{
-			Server server;
-			server.fetchSeverInfo(it);
-			addServer(server);
-			if (it.it2 != content.end())
-				it = Server::getIterators(content, it.it2, target, target);
-			else
-				break;
+			if (content[i] == '{')
+				braceCount++;
+			else if (content[i] == '}')
+			{
+				braceCount--;
+				if (braceCount == 0)
+				{
+					closeBracePos = i;
+					foundMatch = true;
+					break;
+				}
+			}
 		}
-		config.close();
+		if (!foundMatch)
+			throw std::runtime_error("Mismatched braces in server block!");
+		t_iterators it;
+		it.it1 = content.begin() + openBracePos + 1;
+		it.it2 = content.begin() + closeBracePos;
+		Server server;
+		server.fetchSeverInfo(it);
+		addServer(server);
+		pos = closeBracePos + 1;
 	}
 }
 
@@ -108,59 +130,11 @@ bool	checkIndices(std::vector<std::string> indices, std::string locationRoot, st
 	return (true);
 }
 
-
-// bool	WebServer::isAutoIndex(const Request& req, int idx) const {
-// 	std::map<std::string, t_location>::const_iterator it;
-// 	std::map<std::string, t_location> locs = this->_servers[idx].getLocation();
-
-// 	std::cout << "=============== AUTO INDEX URL PATH START ===============" << std::endl;
-// 	std::cout << req.getUrlPath() << std::endl;
-// 	std::cout << "=============== AUTO INDEX URL PATH END ===============" << std::endl;
-// 	if (isRegularFile(_servers[idx].getRoot() + "/" + req.getUrlPath())) {
-// 		return false;
-// 	}
-
-// 	it = searchMapLongestMatchIt(locs, req.getUrlPath());
-
-// 	if (it->second._autoIndex != "on")
-// 		return (false);
-
-// 	if (it != locs.end()) {
-// 		std::cout << "checking auto index: " << it->first << std::endl;
-
-// 		if (it->second._index.empty() ||
-// 			!checkIndices(it->second._index, it->second._root, this->_servers[idx].getRoot()))
-// 		{
-// 			return true;
-// 		}
-
-// 		return false;
-// 	}
-
-// 	return false;
-// }
-
-bool WebServer::isCGI(std::string urlPath, Server server)
-{
-	std::map<std::string, t_location>::const_iterator it = search_map_iterator(server.getLocation(), urlPath);
-
-	if (it != server.getLocation().end())
-	{
-		return ((it->second._isCgi));
-	}
-	return (false);
-}
-
 std::vector<Server> WebServer::getServers() const
 {
 	return _servers;
 }
 
-/*
-	send the request to the proxy server and get the response
-	create a new Response object with the response from server
-	and return it
-*/
 const std::string WebServer::handleReverseProxy(const Request &req, const Server &server)
 {
 	std::cout << "Handling reverse proxy..." << std::endl;
