@@ -6,9 +6,10 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/01 16:32:43 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/01 17:51:21 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 
 #include "../../include/Response.hpp"
 
@@ -30,6 +31,14 @@ Response::Response(Request &req, Server &server)
 	if (req.getIt() != server.getLocation().end())
 	{
 		t_location loc = req.getIt()->second;
+		// `
+		if (!loc._proxy_pass.empty())
+		{
+			handleReverseProxy(req);
+		}
+		else if (isDirectory(req.getFinalPath()))
+		{
+			if (!loc._index.empty())
 		// `
 		if (!loc._proxy_pass.empty())
 		{
@@ -278,11 +287,31 @@ void Response::handleReverseProxy(const Request &req)
         this->_headers["Connection"] = "close";
         return;
     }
+    if (bytes_received == 0)
+    {
+        this->_statusCode = 502;
+        this->_statusTxt = "Bad Gateway";
+        this->_body = "";
+        this->_headers.clear();
+        this->_headers["Content-Type"] = "text/html";
+        this->_headers["Content-Length"] = "0";
+        this->_headers["Connection"] = "close";
+        return;
+    }
 
     buffer[bytes_received] = '\0'; // Null-terminate the received data
 
     std::cout << "Received " << bytes_received << " bytes from proxy" << std::endl;
+    std::cout << "Received " << bytes_received << " bytes from proxy" << std::endl;
 
+    // Set response state
+    this->_statusCode = 200;
+    this->_statusTxt = "OK";
+    this->_body = std::string(buffer);
+    this->_headers.clear();
+    this->_headers["Content-Type"] = "text/html"; // Could parse from proxy response if needed
+    this->_headers["Content-Length"] = intToString(this->_body.size());
+    this->_headers["Connection"] = "close";
     // Set response state
     this->_statusCode = 200;
     this->_statusTxt = "OK";
