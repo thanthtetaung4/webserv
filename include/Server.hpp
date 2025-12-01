@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 04:47:58 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/29 11:49:07 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/30 12:11:19 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,7 @@ private:
     std::vector<std::string> _serverIndices;
     std::map<std::string, std::string> _errorPage;
     std::map<std::string, t_location> _locations;
-    std::map<std::string, std::string> _return;
+    std::vector<std::string> _return;
     typedef void (Server::*AttrHandler)(const std::vector<std::string> &line);
     typedef void (Server::*LocAttrHandler)(const std::vector<std::string> &line, t_location &location, std::string &key);
     static std::map<std::string, AttrHandler> &getServerHandlers();
@@ -83,7 +83,7 @@ public:
     const std::vector<std::string> &getServerIndex(void) const;
     const std::map<std::string, std::string> &getErrorPage() const;
     const std::map<std::string, t_location> &getLocation() const;
-    const std::map<std::string, std::string> &getReturn() const;
+    const std::vector<std::string> &getReturn() const;
     static t_iterators getIterators(std::string &content, std::string::iterator start, const std::string &target1, const std::string &target2);
     void fetchSeverInfo(t_iterators it);
     void fetchLocationInfo(t_iterators it);

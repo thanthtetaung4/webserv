@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/02 00:35:08 by hthant           ###   ########.fr       */
+/*   Updated: 2025/12/01 18:12:07 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -219,76 +219,153 @@ void Response::handleReverseProxy(const Request &req)
 
     std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
 
-    // Create socket with the correct port
-    Socket proxySocket(std::atol(pp.port.c_str()));
-    proxySocket.openSock(); // Only create the socket, don't bind/listen
+    // Create a simple client socket (not a server socket)
+    int proxy_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (proxy_fd < 0)
+    {
+        std::cerr << "Failed to create proxy socket" << std::endl;
+        this->_statusCode = 502;
+        this->_statusTxt = "Bad Gateway";
+        this->_body = "<h1>502 Bad Gateway - Socket creation failed</h1>";
+        this->_headers.clear();
+        this->_headers["Content-Type"] = "text/html";
+        this->_headers["Content-Length"] = intToString(this->_body.size());
+        this->_headers["Connection"] = "close";
+        return;
+    }
 
-    std::cout << "Proxy socket: " << proxySocket.getServerFd() << std::endl;
+    std::cout << "Proxy socket created: " << proxy_fd << std::endl;
 
     // Setup address structure for the proxy server
     struct sockaddr_in server_addr;
     for (size_t i = 0; i < sizeof(server_addr); i++)
         ((char *)&server_addr)[i] = 0;
+    
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(std::atol(pp.port.c_str()));
-    server_addr.sin_addr.s_addr = inet_addr(pp.host.c_str());
-    if (server_addr.sin_addr.s_addr == INADDR_NONE)
-        throw std::runtime_error("Invalid proxy address");
+    
+    // Convert IP address
+    if (inet_pton(AF_INET, pp.host.c_str(), &server_addr.sin_addr) <= 0)
+    {
+        std::cerr << "Invalid proxy address: " << pp.host << std::endl;
+        close(proxy_fd);
+        this->_statusCode = 502;
+        this->_statusTxt = "Bad Gateway";
+        this->_body = "<h1>502 Bad Gateway - Invalid proxy address</h1>";
+        this->_headers.clear();
+        this->_headers["Content-Type"] = "text/html";
+        this->_headers["Content-Length"] = intToString(this->_body.size());
+        this->_headers["Connection"] = "close";
+        return;
+    }
+
+    // Set socket timeout
+    struct timeval timeout;
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
+    setsockopt(proxy_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    setsockopt(proxy_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 
     // Connect to proxy server
-    if (connect(proxySocket.getServerFd(), (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-        throw std::runtime_error("Unable to connect to proxy server");
+    std::cout << "Connecting to " << pp.host << ":" << pp.port << "..." << std::endl;
+    if (connect(proxy_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    {
+        std::cerr << "Unable to connect to proxy server: " << strerror(errno) << std::endl;
+        close(proxy_fd);
+        this->_statusCode = 502;
+        this->_statusTxt = "Bad Gateway";
+        this->_body = "<h1>502 Bad Gateway - Connection refused</h1>";
+        this->_headers.clear();
+        this->_headers["Content-Type"] = "text/html";
+        this->_headers["Content-Length"] = intToString(this->_body.size());
+        this->_headers["Connection"] = "close";
+        return;
+    }
 
     std::cout << "Connected successfully!" << std::endl;
 
     // Build the proxy request
     std::string proxyRequest = req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
+    proxyRequest += "Host: " + pp.host + "\r\n";
+    
     for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin();
          it != req.getHeaders().end(); ++it)
+    {
+        // Skip Host header as we already added it
+        if (it->first == "Host")
+            continue;
         proxyRequest += it->first + ": " + it->second + "\r\n";
+    }
+    proxyRequest += "Connection: close\r\n";
     proxyRequest += "\r\n" + req.getBody();
 
-    std::cout << "Proxy Request:\n" << proxyRequest << std::endl;
+    std::cout << "Sending proxy request (" << proxyRequest.size() << " bytes)" << std::endl;
 
     // Send the request to proxy server
-    ssize_t sent = send(proxySocket.getServerFd(), proxyRequest.c_str(), proxyRequest.size(), 0);
+    ssize_t sent = send(proxy_fd, proxyRequest.c_str(), proxyRequest.size(), 0);
     if (sent < 0)
-        throw std::runtime_error("Unable to send request to proxy server");
-
-    std::cout << "Request sent successfully (" << sent << " bytes)" << std::endl;
-
-    // Receive the response from proxy server
-    char buffer[4096];
-    for (size_t i = 0; i < sizeof(buffer); i++)
-        buffer[i] = 0;
-
-    ssize_t bytes_received = recv(proxySocket.getServerFd(), buffer, sizeof(buffer) - 1, 0);
-
-    if (bytes_received < 0)
-        throw std::runtime_error("Error receiving response from proxy server");
-
-    if (bytes_received == 0)
     {
+        std::cerr << "Failed to send to proxy server" << std::endl;
+        close(proxy_fd);
         this->_statusCode = 502;
         this->_statusTxt = "Bad Gateway";
-        this->_body = "";
+        this->_body = "<h1>502 Bad Gateway - Send failed</h1>";
         this->_headers.clear();
         this->_headers["Content-Type"] = "text/html";
-        this->_headers["Content-Length"] = "0";
+        this->_headers["Content-Length"] = intToString(this->_body.size());
         this->_headers["Connection"] = "close";
         return;
     }
 
-    buffer[bytes_received] = '\0'; // Null-terminate the received data
+    std::cout << "Request sent successfully (" << sent << " bytes)" << std::endl;
 
-    std::cout << "Received " << bytes_received << " bytes from proxy" << std::endl;
+    // Receive the response from proxy server
+    std::string responseData;
+    char buffer[4096];
+    ssize_t bytes_received;
 
-    // Set response state
+    while ((bytes_received = recv(proxy_fd, buffer, sizeof(buffer) - 1, 0)) > 0)
+    {
+        responseData.append(buffer, bytes_received);
+        std::cout << "Received " << bytes_received << " bytes (total: " << responseData.size() << ")" << std::endl;
+    }
+
+    close(proxy_fd);
+
+    if (bytes_received < 0)
+    {
+        std::cerr << "Error receiving response from proxy server" << std::endl;
+        this->_statusCode = 502;
+        this->_statusTxt = "Bad Gateway";
+        this->_body = "<h1>502 Bad Gateway - Receive failed</h1>";
+        this->_headers.clear();
+        this->_headers["Content-Type"] = "text/html";
+        this->_headers["Content-Length"] = intToString(this->_body.size());
+        this->_headers["Connection"] = "close";
+        return;
+    }
+
+    if (responseData.empty())
+    {
+        std::cerr << "No data received from proxy server" << std::endl;
+        this->_statusCode = 502;
+        this->_statusTxt = "Bad Gateway";
+        this->_body = "<h1>502 Bad Gateway - Empty response</h1>";
+        this->_headers.clear();
+        this->_headers["Content-Type"] = "text/html";
+        this->_headers["Content-Length"] = intToString(this->_body.size());
+        this->_headers["Connection"] = "close";
+        return;
+    }
+
+    std::cout << "Total received: " << responseData.size() << " bytes from proxy" << std::endl;
+
+    // Set response state with raw proxy response (includes headers and body)
     this->_statusCode = 200;
     this->_statusTxt = "OK";
-    this->_body = std::string(buffer);
+    this->_body = responseData;
     this->_headers.clear();
-    this->_headers["Content-Type"] = "text/html"; // Could parse from proxy response if needed
+    this->_headers["Content-Type"] = "text/html";
     this->_headers["Content-Length"] = intToString(this->_body.size());
     this->_headers["Connection"] = "close";
 }

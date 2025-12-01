@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/22 13:53:41 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/30 12:14:50 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,8 @@ void Server::setLocation(std::string key, const t_location &location)
 
 void Server::setReturn(const std::string &key, const std::string &value)
 {
-	_return[key] = value;
+	_return.push_back(key);
+	_return.push_back(value);
 }
 
 void Server::setRoot(const std::string &root)
@@ -87,7 +88,7 @@ const std::map<std::string, t_location> &Server::getLocation() const
 	return _locations;
 }
 
-const std::map<std::string, std::string> &Server::getReturn() const
+const std::vector<std::string> &Server::getReturn() const
 {
 	return _return;
 }
@@ -305,7 +306,8 @@ void Server::handleIndex(const std::vector<std::string> &line)
 void Server::handleReturn(const std::vector<std::string> &line)
 {
 	Validator::requireSize(line, 3, "return", ConfigValidator::validateReturn(atoi(line[1].c_str()), line[2]));
-	_return[line[1]] = line[2];
+	_return.push_back(line[1]);
+	_return.push_back(line[2]);
 }
 
 void Server::handleLocation(const std::vector<std::string> &line, t_location &loc, std::string &key)
@@ -348,7 +350,8 @@ void Server::handleLocReturn(const std::vector<std::string> &line, t_location &l
 {
 	(void)key;
 	Validator::requireSize(line, 3, "return", ConfigValidator::validateReturn(atoi(line[1].c_str()), line[2]));
-	loc._return[line[1]] = line[2];
+	loc._return.push_back(line[1]);
+	loc._return.push_back(line[2]);
 }
 
 void Server::handleAutoindex(const std::vector<std::string> &line, t_location &loc, std::string &key)
@@ -425,10 +428,7 @@ std::ostream &operator<<(std::ostream &os, const Server &s)
 			for (unsigned int i = 0; i < it->second._limit_except.size(); i++)
 				os << it->second._limit_except[i] << " ";
 			os << std::endl;
-			for (std::map<std::string, std::string>::const_iterator it1 = it->second._return.begin(); it1 != it->second._return.end(); ++it1)
-			{
-				os << "	return: [" << it1->first << "] = " << it1->second << std::endl;
-			}
+			os << "	return: [" << it->second._root[0] << "] = " << it->second._root[1] << std::endl;
 			os << "	autoIndex: " << it->second._autoIndex << std::endl;
 			os << "	cgiPass: " << it->second._cgiPass << std::endl;
 			os << "	cgiExt: " << it->second._cgiExt << std::endl;
