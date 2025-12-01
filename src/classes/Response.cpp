@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/29 11:44:39 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/01 16:32:43 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,20 +30,20 @@ Response::Response(Request &req, Server &server)
 	if (req.getIt() != server.getLocation().end())
 	{
 		t_location loc = req.getIt()->second;
-
-		if (isDirectory(req.getFinalPath()))
+		// `
+		if (!loc._proxy_pass.empty())
 		{
-			if (!loc._proxy_pass.empty())
-			{
-				// handle proxypass
-			}
-			else if (!loc._index.empty())
+			handleReverseProxy(req);
+		}
+		else if (isDirectory(req.getFinalPath()))
+		{
+			if (!loc._index.empty())
 			{
 				for (i = 0; i < loc._index.size(); i++)
 				{
 					if (isRegularFile(req.getFinalPath() + (req.getFinalPath().at(req.getFinalPath().length() - 1) == '/' ? "" : "/")  + loc._index[i]))
 					{
-						path = req.getFinalPath() + "/" + loc._index[i];
+						path = req.getFinalPath() + (req.getFinalPath().at(req.getFinalPath().length() - 1) == '/' ? "" : "/") + loc._index[i];
 						break;
 					}
 				}
@@ -213,89 +213,84 @@ void Response::handleCGI(const Request &req, const Server &server)
 	this->_headers["Connection"] = "close";
 }
 
-std::string Response::handleReverseProxy(const Request &req)
+void Response::handleReverseProxy(const Request &req)
 {
-	t_proxyPass pp = parseProxyPass(req.getIt()->second._proxy_pass);
+    t_proxyPass pp = parseProxyPass(req.getIt()->second._proxy_pass);
 
-	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
+    std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
 
-	// Create socket with the correct port
-	Socket proxySocket(std::atol(pp.port.c_str()));
-	proxySocket.openSock(); // Only create the socket, don't bind/listen
+    // Create socket with the correct port
+    Socket proxySocket(std::atol(pp.port.c_str()));
+    proxySocket.openSock(); // Only create the socket, don't bind/listen
 
-	std::cout << "Proxy socket: " << proxySocket.getServerFd() << std::endl;
+    std::cout << "Proxy socket: " << proxySocket.getServerFd() << std::endl;
 
-	// Setup address structure for the proxy server
-	struct sockaddr_in server_addr;
-	// Initialize to zero without memset
-	for (size_t i = 0; i < sizeof(server_addr); i++)
-	{
-		((char *)&server_addr)[i] = 0;
-	}
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(std::atol(pp.port.c_str()));
+    // Setup address structure for the proxy server
+    struct sockaddr_in server_addr;
+    for (size_t i = 0; i < sizeof(server_addr); i++)
+        ((char *)&server_addr)[i] = 0;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(std::atol(pp.port.c_str()));
+    server_addr.sin_addr.s_addr = inet_addr(pp.host.c_str());
+    if (server_addr.sin_addr.s_addr == INADDR_NONE)
+        throw std::runtime_error("Invalid proxy address");
 
-	// Convert IP address from string to binary using inet_addr
-	server_addr.sin_addr.s_addr = inet_addr(pp.host.c_str());
-	if (server_addr.sin_addr.s_addr == INADDR_NONE)
-	{
-		throw std::runtime_error("Invalid proxy address");
-	}
+    // Connect to proxy server
+    if (connect(proxySocket.getServerFd(), (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+        throw std::runtime_error("Unable to connect to proxy server");
 
-	// Connect to proxy server
-	if (connect(proxySocket.getServerFd(), (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-	{
-		throw std::runtime_error("Unable to connect to proxy server");
-	}
+    std::cout << "Connected successfully!" << std::endl;
 
-	std::cout << "Connected successfully!" << std::endl;
+    // Build the proxy request
+    std::string proxyRequest = req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
+    for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin();
+         it != req.getHeaders().end(); ++it)
+        proxyRequest += it->first + ": " + it->second + "\r\n";
+    proxyRequest += "\r\n" + req.getBody();
 
-	// Build the proxy request
-	std::string proxyRequest = req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
-	for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin();
-		 it != req.getHeaders().end(); ++it)
-	{
-		proxyRequest += it->first + ": " + it->second + "\r\n";
-	}
-	proxyRequest += "\r\n" + req.getBody();
+    std::cout << "Proxy Request:\n" << proxyRequest << std::endl;
 
-	std::cout << "Proxy Request:\n"
-			  << proxyRequest << std::endl;
+    // Send the request to proxy server
+    ssize_t sent = send(proxySocket.getServerFd(), proxyRequest.c_str(), proxyRequest.size(), 0);
+    if (sent < 0)
+        throw std::runtime_error("Unable to send request to proxy server");
 
-	// Send the request to proxy server
-	ssize_t sent = send(proxySocket.getServerFd(), proxyRequest.c_str(), proxyRequest.size(), 0);
-	if (sent < 0)
-	{
-		throw std::runtime_error("Unable to send request to proxy server");
-	}
+    std::cout << "Request sent successfully (" << sent << " bytes)" << std::endl;
 
-	std::cout << "Request sent successfully (" << sent << " bytes)" << std::endl;
+    // Receive the response from proxy server
+    char buffer[4096];
+    for (size_t i = 0; i < sizeof(buffer); i++)
+        buffer[i] = 0;
 
-	// Receive the response from proxy server
-	char buffer[4096];
-	// Initialize buffer to zero without memset
-	for (size_t i = 0; i < sizeof(buffer); i++)
-	{
-		buffer[i] = 0;
-	}
+    ssize_t bytes_received = recv(proxySocket.getServerFd(), buffer, sizeof(buffer) - 1, 0);
 
-	ssize_t bytes_received = recv(proxySocket.getServerFd(), buffer, sizeof(buffer) - 1, 0);
+    if (bytes_received < 0)
+        throw std::runtime_error("Error receiving response from proxy server");
 
-	if (bytes_received < 0)
-	{
-		throw std::runtime_error("Error receiving response from proxy server");
-	}
+    if (bytes_received == 0)
+    {
+        this->_statusCode = 502;
+        this->_statusTxt = "Bad Gateway";
+        this->_body = "";
+        this->_headers.clear();
+        this->_headers["Content-Type"] = "text/html";
+        this->_headers["Content-Length"] = "0";
+        this->_headers["Connection"] = "close";
+        return;
+    }
 
-	if (bytes_received == 0)
-	{
-		return ("");
-	}
+    buffer[bytes_received] = '\0'; // Null-terminate the received data
 
-	buffer[bytes_received] = '\0'; // Null-terminate the received data
+    std::cout << "Received " << bytes_received << " bytes from proxy" << std::endl;
 
-	std::cout << "Received " << bytes_received << " bytes from proxy" << std::endl;
-
-	return std::string(buffer);
+    // Set response state
+    this->_statusCode = 200;
+    this->_statusTxt = "OK";
+    this->_body = std::string(buffer);
+    this->_headers.clear();
+    this->_headers["Content-Type"] = "text/html"; // Could parse from proxy response if needed
+    this->_headers["Content-Length"] = intToString(this->_body.size());
+    this->_headers["Connection"] = "close";
 }
 
 bool safePath(std::string const &path)

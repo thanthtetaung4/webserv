@@ -45,7 +45,7 @@ public:
 	void handleRedirect(const std::string &redirUrlPath);
 	void handleAutoIndex(const std::string &urlPath, const std::string &fullPath);
 	void handleCGI(const Request &req, const Server &server);
-	std::string handleReverseProxy(const Request &req);
+	void handleReverseProxy(const Request &req);
 	bool generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server &server);
 	bool checkHttpError(const Request &req, size_t size, std::string path, Server &server);
 	void serveFile(const std::string &filePath);
