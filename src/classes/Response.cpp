@@ -261,7 +261,7 @@ void Response::handleReverseProxy(const Request &req)
 
     // Set socket timeout
     struct timeval timeout;
-    timeout.tv_sec = 5;
+    timeout.tv_sec = 50;
     timeout.tv_usec = 0;
     setsockopt(proxy_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
     setsockopt(proxy_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
