@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/17 13:51:18 by lshein           ###   ########.fr       */
+/*   Updated: 2025/11/26 13:49:04 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,33 +26,121 @@ Cgi::Cgi(const Request &request, const Server &server)
 		std::size_t pos = value.find(',');
 		contentType = it->second.substr(0, pos);
 	}
-	std::string filename = "";
-	std::map<std::string, t_location> paths = server.getLocation();
-	std::map<std::string, t_location>::const_iterator it1 = paths.find(request.getUrlPath());
-	if (it1 != paths.end())
-		filename = it1->second._root.empty() ? (server.getRoot() + request.getUrlPath()) : (it1->second._root + request.getUrlPath());
 	std::map<std::string, std::string> env;
 	env["REQUEST_METHOD"] = request.getMethodType();
-	env["SCRIPT_FILENAME"] = filename;
+	env["SCRIPT_FILENAME"] = request.getFinalPath();
 	env["CONTENT_LENGTH"] = intToString(request.getBody().size());
 	env["CONTENT_TYPE"] = contentType;
 	env["SERVER_NAME"] = server.getServerName().empty() ? "" : server.getServerName();
 	env["SERVER_PORT"] = server.getPort();
 	env["SERVER_PROTOCOL"] = request.getHttpVersion();
 	env["SERVER_SOFTWARE"] = "webserv/1.0";
-	std::cout << "env: " << std::endl;
-	for (std::map<std::string, std::string>::const_iterator it2 = env.begin(); it2 != env.end(); ++it2)
-	{
-		std::cout << "[" << it2->first << "] = " << it2->second << std::endl;
-	}
-	std::string fullpath = filename + "/test.py";
-	Cgi cgi(fullpath, it1->second._cgiPass, env, request.getBody());
+	// std::cout << "env: " << std::endl;
+	// for (std::map<std::string, std::string>::const_iterator it1 = env.begin(); it1 != env.end(); ++it1)
+	// {
+	// 	std::cout << "[" << it1->first << "] = " << it1->second << std::endl;
+	// }
+	_path = request.getFinalPath();
+	_interpreter = request.getIt()->second._cgiPass;
+	_env = env;
+	_body = request.getBody();
 }
 
 Cgi::~Cgi() {}
 
-void Cgi::execute()
+std::string Cgi::execute()
 {
+	int inPipe[2];
+	int outPipe[2];
+	if (pipe(inPipe) < 0 || pipe(outPipe) < 0)
+		return "Status: 500 Internal Server Error\r\n\r\nPipe creation failed";
+
+	pid_t pid = fork();
+	if (pid < 0)
+		return "Status: 500 Internal Server Error\r\n\r\nFork failed";
+
+	if (pid == 0)
+	{
+		// CHILD
+		dup2(inPipe[0], STDIN_FILENO);
+		dup2(outPipe[1], STDOUT_FILENO);
+		close(inPipe[1]);
+		close(outPipe[0]);
+
+		char **envArray = createEnvArray(_env);
+
+		char *argv[3];
+		argv[0] = const_cast<char *>(_interpreter.c_str());
+		argv[1] = const_cast<char *>(_path.c_str());
+		argv[2] = NULL;
+
+		execve(argv[0], argv, envArray);
+
+		perror("execve");
+		freeEnvArray(envArray);
+		exit(1);
+	}
+
+	// PARENT
+	close(inPipe[0]);
+	close(outPipe[1]);
+
+	if (!_body.empty())
+		write(inPipe[1], _body.c_str(), _body.size());
+	close(inPipe[1]);
+
+	std::string output;
+	char buffer[1024];
+	ssize_t bytesRead;
+	while ((bytesRead = read(outPipe[0], buffer, sizeof(buffer))) > 0)
+		output.append(buffer, bytesRead);
+
+	close(outPipe[0]);
+	waitpid(pid, NULL, 0);
+
+	return output;
+}
+
+CgiResult Cgi::parseCgiHeaders(const std::string &output)
+{
+	CgiResult result;
+
+	// Find the end of the CGI header block
+	size_t headerEnd = output.find("\r\n\r\n");
+	if (headerEnd == std::string::npos)
+	{
+		// No header delimiter found → treat everything as body
+		result.body = output;
+		return result;
+	}
+
+	std::string headerBlock = output.substr(0, headerEnd);
+	result.body = output.substr(headerEnd + 4); // skip "\r\n\r\n"
+
+	size_t start = 0;
+	while (start < headerBlock.size())
+	{
+		size_t end = headerBlock.find("\r\n", start);
+		if (end == std::string::npos)
+			end = headerBlock.size();
+
+		std::string line = headerBlock.substr(start, end - start);
+
+		// Parse "Key: Value"
+		size_t colon = line.find(':');
+		if (colon != std::string::npos)
+		{
+			std::string key = line.substr(0, colon);
+			std::string value = line.substr(colon + 1);
+			while (!value.empty() && (value[0] == ' ' || value[0] == '\t'))
+				value.erase(0, 1);
+
+			result.headers[key] = value;
+		}
+		start = end + 2; // skip "\r\n"
+	}
+
+	return result;
 }
 
 char **createEnvArray(const std::map<std::string, std::string> &env)

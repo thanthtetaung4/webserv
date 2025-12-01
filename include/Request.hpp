@@ -6,50 +6,51 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 00:42:43 by hthant            #+#    #+#             */
-/*   Updated: 2025/11/16 20:45:23 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/29 17:07:10 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-# ifndef REQUEST_HPP
-# define REQUEST_HPP
+#ifndef REQUEST_HPP
+#define REQUEST_HPP
 
-# include <iostream>
-# include <map>
-# include <ostream>
-# include <sstream>
-# include <fstream>
-# include <fcntl.h>
-# include <sys/stat.h>
-# include "Server.hpp"
-# include "ServerException.hpp"
-# include "utils.h"
+#include <iostream>
+#include <map>
+#include <ostream>
+#include <sstream>
+#include <fstream>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include "Server.hpp"
+#include "Location.h"
+#include "ServerException.hpp"
 
-class Request{
-	private:
-		std::string _method;
-		std::string _urlPath;
-		std::string _httpVersion;
-		std::map<std::string, std::string> _headers;
-		std::string _body;
+class Request
+{
+private:
+	std::string _method;
+	std::string _path;
+	std::string _finalPath;
+	std::string _httpVersion;
+	std::map<std::string, std::string> _headers;
+	std::string _body;
+	std::map<std::string, t_location>::const_iterator _it;
 
-	public:
-		Request(void);
-		Request(const std::string &raw);
-		bool hasHeader(const std::string &key) const;
-		bool checkHeaderValue(void) const;
-		bool	isAutoIndex(Server& server) const;
-		std::string getMethodType() const;
-		std::string getUrlPath() const;
-		std::string getHttpVersion() const;
-		std::string getBody() const;
-		const std::map<std::string, std::string> &getHeaders() const;
-		int validateAgainstConfig(Server &server);
-
+public:
+	Request(const std::string &raw, Server &server);
+	bool hasHeader(const std::string &key) const;
+	void setFinalPath(const std::string &path);
+	std::string getMethodType() const;
+	std::string getPath() const;
+	std::string getFinalPath() const;
+	std::string getHttpVersion() const;
+	std::string getBody() const;
+	std::map<std::string, t_location>::const_iterator getIt() const;
+	const std::map<std::string, std::string> &getHeaders() const;
 };
-std::ostream& operator<<(std::ostream& os, const Request& req);
-# endif
+std::string trim(const std::string &s);
+std::ostream &operator<<(std::ostream &os, const Request &req);
+#endif
 
-
-//check path if not error
-//if mathod check
-//if pass then go to response
+// check path if not error
+// if mathod check
+// if pass then go to response

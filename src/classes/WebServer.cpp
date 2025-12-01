@@ -6,7 +6,7 @@
 /*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/25 03:55:42 by hthant           ###   ########.fr       */
+/*   Updated: 2025/12/02 00:05:28 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,29 +44,51 @@ WebServer::~WebServer() {}
 // WebServer &WebServer::operator=(const WebServer &other) {}
 void WebServer::setServer(std::string configFile)
 {
-	t_iterators it;
-	std::string target = "server {";
-
 	std::ifstream config(configFile.c_str());
 	if (!config)
-		throw "Unable to open file!!";
-	else
+		throw std::runtime_error("Unable to open file!!");
+	
+	std::stringstream ss;
+	ss << config.rdbuf();
+	std::string content = ss.str();
+	config.close();
+
+	size_t pos = 0;
+	while (pos < content.length())
 	{
-		std::stringstream ss;
-		ss << config.rdbuf();
-		std::string content = ss.str();
-		it = Server::getIterators(content, content.begin(), target, target);
-		while (it.it1 != content.end())
+		size_t serverStart = content.find("server", pos);
+		if (serverStart == std::string::npos)
+			break;
+		size_t openBracePos = content.find('{', serverStart);
+		if (openBracePos == std::string::npos)
+			throw std::runtime_error("Missing opening brace after 'server' keyword");
+		int braceCount = 0;
+		size_t closeBracePos = openBracePos;
+		bool foundMatch = false;
+		for (size_t i = openBracePos; i < content.length(); ++i)
 		{
-			Server server;
-			server.fetchSeverInfo(it);
-			addServer(server);
-			if (it.it2 != content.end())
-				it = Server::getIterators(content, it.it2, target, target);
-			else
-				break;
+			if (content[i] == '{')
+				braceCount++;
+			else if (content[i] == '}')
+			{
+				braceCount--;
+				if (braceCount == 0)
+				{
+					closeBracePos = i;
+					foundMatch = true;
+					break;
+				}
+			}
 		}
-		config.close();
+		if (!foundMatch)
+			throw std::runtime_error("Mismatched braces in server block!");
+		t_iterators it;
+		it.it1 = content.begin() + openBracePos + 1;
+		it.it2 = content.begin() + closeBracePos;
+		Server server;
+		server.fetchSeverInfo(it);
+		addServer(server);
+		pos = closeBracePos + 1;
 	}
 }
 
@@ -98,15 +120,30 @@ bool WebServer::isProxyPass(std::string urlPath, Server server)
 	return (false);
 }
 
-bool WebServer::isCGI(std::string urlPath, Server server)
-{
-	std::map<std::string, t_location>::const_iterator it = search_map_iterator(server.getLocation(), urlPath);
-
-	if (it != server.getLocation().end())
-	{
-		return ((it->second._isCgi));
+bool	checkIndices(std::vector<std::string> indices, std::string locationRoot, std::string serverRoot) {
+	std::vector<std::string>::const_iterator it = indices.begin();
+	(void)locationRoot;
+	(void)serverRoot;
+	std::cout << "checking indices" << std::endl;
+	it == indices.end() ? std::cout << "fuck" : std::cout << "unfuck";
+	std::cout << std::endl;
+	while (it != indices.end()) {
+		std::string	index = *it;
+		if (!locationRoot.empty()) {
+			locationRoot.append(index);
+			index = locationRoot;
+		} else {
+			if (!serverRoot.empty()) {
+				serverRoot.append(index);
+				index = serverRoot;
+			} else
+				return (false);
+		}
+		if(access(index.c_str(), F_OK) == -1)
+			return (false);
+		it++;
 	}
-	return (false);
+	return (true);
 }
 
 std::vector<Server> WebServer::getServers() const
@@ -114,17 +151,12 @@ std::vector<Server> WebServer::getServers() const
 	return _servers;
 }
 
-/*
-	send the request to the proxy server and get the response
-	create a new Response object with the response from server
-	and return it
-*/
 const std::string WebServer::handleReverseProxy(const Request &req, const Server &server)
 {
 	std::cout << "Handling reverse proxy..." << std::endl;
-	std::cout << search_map_iterator(server.getLocation(), req.getUrlPath())->second._proxy_pass << std::endl;
+	std::cout << search_map_iterator(server.getLocation(), req.getPath())->second._proxy_pass << std::endl;
 
-	t_proxyPass pp = parseProxyPass(search_map_iterator(server.getLocation(), req.getUrlPath())->second._proxy_pass);
+	t_proxyPass pp = parseProxyPass(search_map_iterator(server.getLocation(), req.getPath())->second._proxy_pass);
 
 	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
 
@@ -398,7 +430,7 @@ int WebServer::serve(void)
 			}
 
 			char buffer[4096];
-			std::cout << "=================REQUEST============================" << std::endl;
+			// std::cout << "=================REQUEST============================" << std::endl;
 
 			ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 			if (bytes_received < 0)
@@ -409,65 +441,57 @@ int WebServer::serve(void)
 			}
 			buffer[bytes_received] = '\0';
 			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
-			std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
-			std::cout << buffer << std::endl;
-			std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
+			// std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
+			// std::cout << buffer << std::endl;
+			// std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
 
-			Request req(buffer);
-			std::cout << "================================= SEVER TEST =====================" << std::endl;
-			std::cout << _servers[idx] << std::endl;
-			std::cout << "================================= SERVER TEST END =====================" << std::endl;
-
+			Request req(buffer, _servers[idx]);
+			// std::cout << "================================= SEVER TEST =====================" << std::endl;
+			// std::cout << _servers[idx] << std::endl;
+			// std::cout << "================================= SERVER TEST END =====================" << std::endl;
+			// std::cout << "================================= REQ OBJ =====================" << std::endl;
+			// std::cout << req << std::endl;
+			// std::cout << "================================= REQ OBJ =====================" << std::endl;
 			// int i = req.validateAgainstConfig(_servers[idx]);
 			// if(i != 200) {
 			// 		Response res(i);
 			// }
 
-			std::cout << this->isProxyPass(req.getUrlPath(), _servers[idx]) << std::endl;
-			if (this->isProxyPass(req.getUrlPath(), _servers[idx]))
-			{
-				std::cout << "POST method detected" << std::endl;
-				std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
-				// just send the plain text to the client no need to change it back to Response obj
-				std::cout << "================================= SERVER TEST START =====================" << std::endl;
-				std::cout << rawRes << std::endl;
-				std::cout << "================================= SERVER TEST END =====================" << std::endl;
-				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
-				if (sent < 0)
-				{
-					perror("send");
-				}
-				close(client_fd);
-				continue;
-			} else if (req.isAutoIndex(_servers[idx])) {
-				std::cout << "auto index" << std::endl;
-				std::string	rawRes = handleAutoIndex(req, _servers[idx]);
-				ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
-				if (sent < 0)
-				{
-					perror("send");
-				}
-				close(client_fd);
-				continue;
-			}
-			if (isCGI(req.getUrlPath(), _servers[idx]))
-			{
-				Cgi cgi(req, _servers[idx]);
-			}
-			std::cout << req << std::endl;
-			std::cout << "================================= RESPONSE =====================" << std::endl;
+			// std::cout << this->isProxyPass(req.getPath(), _servers[idx]) << std::endl;
+			// if (this->isProxyPass(req.getPath(), _servers[idx]))
+			// {
+			// 	std::cout << "POST method detected" << std::endl;
+			// 	std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
+			// 	// just send the plain text to the client no need to change it back to Response obj
+			// 	std::cout << "================================= SERVER TEST START =====================" << std::endl;
+			// 	std::cout << rawRes << std::endl;
+			// 	std::cout << "================================= SERVER TEST END =====================" << std::endl;
+			// 	ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
+			// 	if (sent < 0)
+			// 	{
+			// 		perror("send");
+			// 	}
+			// 	close(client_fd);
+			// 	continue;
+			// }
+			// if (isCGI(req.getPath(), _servers[idx]))
+			// {
+			// 	Cgi cgi(req, _servers[idx]);
+			// }
+			// std::cout << req << std::endl;
+			// std::cout << "================================= RESPONSE =====================" << std::endl;
 
-			std::cout << "creating res" << std::endl;
+			// std::cout << "creating res" << std::endl;
 			Response res(req, _servers[idx]);
-			std::cout << "printing res" << std::endl;
-			std::cout << res << std::endl;
-			std::cout << "res printed" << std::endl;
-			std::cout << "================================= RESPONSE END =====================" << std::endl;
+			// std::cout << "printing res" << std::endl;
+			// std::cout << res << std::endl;
+			// std::cout << "res printed" << std::endl;
+			// std::cout << "================================= RESPONSE END =====================" << std::endl;
 			std::string httpResponse = res.toStr();
 
-			std::cout << "================================= FINAL RESPONSE =====================" << std::endl;
-			std::cout << "http res: " << httpResponse << std::endl;
-			std::cout << "================================= FINAL RESPONSE END =====================" << std::endl;
+			// std::cout << "================================= FINAL RESPONSE =====================" << std::endl;
+			// std::cout << "http res: " << httpResponse << std::endl;
+			// std::cout << "================================= FINAL RESPONSE END =====================" << std::endl;
 
 			ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
 			if (sent < 0)

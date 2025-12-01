@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 04:47:58 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/20 19:29:21 by taung            ###   ########.fr       */
+/*   Updated: 2025/11/29 11:49:07 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,13 +15,14 @@
 
 #include <algorithm>
 #include <string>
-# include <vector>
+#include <vector>
 #include "Location.h"
 #include <sstream>
 #include <vector>
 #include <map>
 #include <iostream>
 #include "Validator.hpp"
+#include "utils.h"
 
 typedef struct iterators
 {
@@ -36,8 +37,8 @@ private:
     std::string _maxBytes;
     std::string _root;
     std::vector<std::string> _index;
-        std::string _serverRoot;
-        std::vector<std::string> _serverIndices;
+    std::string _serverRoot;
+    std::vector<std::string> _serverIndices;
     std::map<std::string, std::string> _errorPage;
     std::map<std::string, t_location> _locations;
     std::map<std::string, std::string> _return;
@@ -72,15 +73,14 @@ public:
     void setReturn(const std::string &key, const std::string &value);
     void setRoot(const std::string &root);
     void setIndex(const std::string &index);
-        void setServerRoot(std::string sr);
-        void setServerIndex(const std::vector<std::string> &indices);
+    void setServerRoot(std::string sr);
+    void setServerIndex(const std::vector<std::string> &indices);
     std::string getPort() const;
     std::string getServerName() const;
     std::string getMaxByte() const;
-    // std::string getRoot() const;
     std::vector<std::string> getIndex() const;
-        std::string getRoot() const;
-        const std::vector<std::string> &getServerIndex(void) const;
+    std::string getRoot() const;
+    const std::vector<std::string> &getServerIndex(void) const;
     const std::map<std::string, std::string> &getErrorPage() const;
     const std::map<std::string, t_location> &getLocation() const;
     const std::map<std::string, std::string> &getReturn() const;

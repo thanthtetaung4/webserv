@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+         #
+#    By: hthant <hthant@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/11/25 21:04:30 by hthant           ###   ########.fr        #
+#    Updated: 2025/12/02 00:06:05 by hthant           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -22,7 +22,7 @@ SRCS = src/main.cpp \
     ${CLASSES}/WebServer.cpp ${CLASSES}/Server.cpp ${CLASSES}/Socket.cpp ${CLASSES}/Cgi.cpp \
     ${CLASSES}/Response.cpp ${CLASSES}/Request.cpp ${CLASSES}/Validator.cpp ${CLASSES}/Client.cpp \
     ${EXCEPTIONS}/ServerExceptions.cpp ${UTILS}/parseProxyPass.cpp ${UTILS}/buildPath.cpp \
-    ${UTILS}/intToString.cpp ${UTILS}/searchMapLongestMatch.cpp
+    ${UTILS}/intToString.cpp ${UTILS}/searchMapLongestMatch.cpp ${UTILS}/searchMapLongestMatchIt.cpp ${UTILS}/checkPath.cpp
 
 OBJS = $(SRCS:%.cpp=$(OBJDIR)/%.o)
 
