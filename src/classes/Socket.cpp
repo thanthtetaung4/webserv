@@ -13,16 +13,22 @@
 # include "../../include/Socket.hpp"
 # include "../../include/ServerException.hpp"
 #include <sys/socket.h>
+#include <cstring>
+#include <cerrno>
 
 Socket::Socket() {
 	// throw InvalidSocket();
 	this->addr_len = sizeof(addr);
+	// Zero the sockaddr_in to avoid any uninitialized fields
+	std::memset(&this->addr, 0, sizeof(this->addr));
 	this->addr.sin_family = AF_INET;
 	this->addr.sin_addr.s_addr = INADDR_ANY;
 }
 
 Socket::Socket(unsigned int port) {
 	this->addr_len = sizeof(addr);
+	// Zero the sockaddr_in to avoid any uninitialized fields
+	std::memset(&this->addr, 0, sizeof(this->addr));
 	this->addr.sin_family = AF_INET;
 	this->addr.sin_addr.s_addr = INADDR_ANY;
 	this->addr.sin_port = htons(port);
@@ -42,6 +48,14 @@ void					Socket::openSock(void) {
 	this->serverFd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (this->serverFd < 0)
 		throw	UnableToOpenSocket();
+	// Allow quick restart: reuse address (and port where supported)
+	int opt = 1;
+	if (setsockopt(this->serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+		std::cerr << "warning: setsockopt SO_REUSEADDR failed: " << std::strerror(errno) << std::endl;
+#if defined(SO_REUSEPORT)
+	if (setsockopt(this->serverFd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0)
+		std::cerr << "warning: setsockopt SO_REUSEPORT failed: " << std::strerror(errno) << std::endl;
+#endif
 	std::cout << "socket open OK" << std::endl;
 }
 
