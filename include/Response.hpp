@@ -28,6 +28,11 @@
 #include <vector>
 #include <sys/types.h>
 #include <dirent.h>
+#include <cstring>
+#include <cerrno>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "Socket.hpp"
 
 class Response

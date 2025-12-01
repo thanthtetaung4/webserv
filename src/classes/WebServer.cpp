@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/02 00:14:08 by hthant           ###   ########.fr       */
+/*   Updated: 2025/12/01 18:00:20 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -394,182 +394,275 @@ int WebServer::serve(){
 	return 0;
 }
 */
-# include <set>
+#include <set>
 
-int WebServer::serve(){
-    int epoll_fd = epoll_create(1);
-    if(epoll_fd == -1){
-        perror("epoll_create");
+int WebServer::serve()
+{
+    int epoll_fd = epoll_create1(0);
+    if (epoll_fd == -1)
+    {
+        perror("epoll_create1");
         return 1;
     }
+
     std::map<int, client*> clients;
-    std::set<int> server_fds;
-    
-    for(size_t i = 0; i < _sockets.size(); ++i){
+    std::map<int, size_t> fd_to_server_idx;
+
+    // Register all server sockets with epoll
+    for (size_t i = 0; i < _sockets.size(); ++i)
+    {
         int fd = _sockets[i].getServerFd();
-        server_fds.insert(fd);
-        make_nonblock(fd);
+        if (make_nonblock(fd) == -1)
+        {
+            perror("make_nonblock: server socket");
+            close(epoll_fd);
+            return 1;
+        }
+
+        fd_to_server_idx[fd] = i;
+        
         epoll_event ev;
-        ev.events = EPOLLIN;
+        ev.events = EPOLLIN | EPOLLET; // Edge-triggered for better performance
         ev.data.fd = fd;
-        if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1) {
+        
+        if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
+        {
             perror("epoll_ctl: listen_sock");
             close(epoll_fd);
             return 1;
         }
-        std::cout << "Listening on fd=" << fd << " port=" << _servers[i].getPort() << std::endl;
+        std::cout << "Listening on port " << _servers[i].getPort() 
+                  << " (fd=" << fd << ")" << std::endl;
     }
-    
+
     epoll_event events[MAX_EVENTS];
-    
-    while (true) {
+
+    while (true)
+    {
         int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1000);
-        if(nfds < 0){
+        if (nfds < 0)
+        {
+            if (errno == EINTR)
+                continue;
             perror("epoll_wait");
             break;
         }
-        
-        for(int n = 0; n < nfds; ++n){
+
+        // Process all events
+        for (int n = 0; n < nfds; ++n)
+        {
             int event_fd = events[n].data.fd;
-            
-            if(server_fds.find(event_fd) != server_fds.end()){
-		    std::cout << event_fd << std::endl;
-                // Find server index
-                size_t server_idx = 0;
-                for(size_t i = 0; i < _sockets.size(); ++i){
-                    if(_sockets[i].getServerFd() == event_fd){
-                        server_idx = i;
-                        break;
-                    }
-                }
-                
-                // Accept new connections
-                while (true) {
-                    int client_fd = accept(event_fd, NULL, NULL);
-                    if(client_fd < 0){
-                        if(errno == EAGAIN || errno == EWOULDBLOCK)
-                            break;
+
+            // Check if it's a server socket
+            std::map<int, size_t>::iterator server_it = fd_to_server_idx.find(event_fd);
+            if (server_it != fd_to_server_idx.end())
+            {
+                // Accept all pending connections
+                size_t server_idx = server_it->second;
+                while (true)
+                {
+                    sockaddr_in client_addr;
+                    socklen_t client_len = sizeof(client_addr);
+                    int client_fd = accept(event_fd, (struct sockaddr*)&client_addr, &client_len);
+                    
+                    if (client_fd < 0)
+                    {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK)
+                            break; // All connections accepted
                         perror("accept");
                         break;
                     }
-                    
-                    make_nonblock(client_fd);
+
+                    if (make_nonblock(client_fd) == -1)
+                    {
+                        perror("make_nonblock: client socket");
+                        close(client_fd);
+                        continue;
+                    }
+
                     epoll_event client_ev;
-                    client_ev.events = EPOLLIN;
+                    client_ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP; // Edge-triggered + hangup detection
                     client_ev.data.fd = client_fd;
-                    if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &client_ev) == -1){
+                    
+                    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &client_ev) == -1)
+                    {
                         perror("epoll_ctl: add client");
                         close(client_fd);
                         continue;
                     }
+
                     clients[client_fd] = new client(client_fd, server_idx);
-                    std::cout << "Client Connected: " << client_fd << std::endl;
+                    std::cout << "Client connected: fd=" << client_fd 
+                              << " on port " << _servers[server_idx].getPort() << std::endl;
+                }
+                continue;
+            }
+
+            // Handle client socket
+            std::map<int, client*>::iterator it = clients.find(event_fd);
+            if (it == clients.end())
+            {
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                continue;
+            }
+
+            client* c = it->second;
+            c->update_activity();
+            size_t server_idx = c->server_idx;
+
+            // Handle errors, hangups, or peer closed connection
+            if (events[n].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
+            {
+                std::cout << "Client disconnected: fd=" << event_fd << " (error/hangup)" << std::endl;
+                close(event_fd);
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                delete c;
+                clients.erase(it);
+                continue;
+            }
+
+            // Handle incoming data
+            if (events[n].events & EPOLLIN)
+            {
+                // Read all available data (edge-triggered mode)
+                while (true)
+                {
+                    char buffer[8192];
+                    ssize_t bytes = recv(event_fd, buffer, sizeof(buffer) - 1, 0);
+
+                    if (bytes > 0)
+                    {
+                        buffer[bytes] = '\0';
+                        c->read_buff.append(buffer, bytes);
+                    }
+                    else if (bytes == 0)
+                    {
+                        // Connection closed by client
+                        std::cout << "Client disconnected: fd=" << event_fd << " (closed)" << std::endl;
+                        close(event_fd);
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                        delete c;
+                        clients.erase(it);
+                        goto next_event;
+                    }
+                    else
+                    {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK)
+                            break; // All data read
+                        
+                        perror("recv");
+                        std::cout << "Client disconnected: fd=" << event_fd << " (error)" << std::endl;
+                        close(event_fd);
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                        delete c;
+                        clients.erase(it);
+                        goto next_event;
+                    }
+                }
+
+                // Check if we have a complete HTTP request
+                if (!c->read_buff.empty() && c->write_buff.empty())
+                {
+                    try
+                    {
+                        Request req(c->read_buff, _servers[server_idx]);
+                        Response res(req, _servers[server_idx]);
+                        c->write_buff = res.toStr();
+                        c->read_buff.clear();
+
+                        // Modify event to include EPOLLOUT
+                        epoll_event mod_ev;
+                        mod_ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+                        mod_ev.data.fd = event_fd;
+                        epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_fd, &mod_ev);
+                    }
+                    catch (const std::exception& e)
+                    {
+                        std::cerr << "Request/Response error: " << e.what() << std::endl;
+                        close(event_fd);
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                        delete c;
+                        clients.erase(it);
+                        continue;
+                    }
                 }
             }
-            else {
-                // Handle client socket 
-                int client_fd = event_fd;
-                
-                std::map<int, client*>::iterator it = clients.find(client_fd);
-                if(it == clients.end()){
-                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
-                    continue;
+
+            // Handle outgoing data
+            if ((events[n].events & EPOLLOUT) && c->has_write_data())
+            {
+                // Write all available data (edge-triggered mode)
+                while (!c->write_buff.empty())
+                {
+                    ssize_t bytes_sent = send(event_fd, c->write_buff.c_str(), 
+                                             c->write_buff.size(), MSG_NOSIGNAL);
+
+                    if (bytes_sent > 0)
+                    {
+                        c->write_buff.erase(0, bytes_sent);
+                    }
+                    else if (bytes_sent < 0)
+                    {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK)
+                            break; // Socket buffer full, try again later
+                        
+                        perror("send");
+                        std::cout << "Client disconnected: fd=" << event_fd << " (send error)" << std::endl;
+                        close(event_fd);
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                        delete c;
+                        clients.erase(it);
+                        goto next_event;
+                    }
                 }
-                    
-                client* c = it->second;
-                c->update_activity();
-                size_t server_idx = c->server_idx;
-                
-                // Handle errors and hangups
-                if(events[n].events & (EPOLLERR | EPOLLHUP)){
-                    close(client_fd);
-                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
+
+                // If all data sent, remove EPOLLOUT from events
+                if (!c->has_write_data())
+                {
+                    epoll_event mod_ev;
+                    mod_ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
+                    mod_ev.data.fd = event_fd;
+                    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_fd, &mod_ev);
+
+                    // Close connection after response sent (HTTP/1.0 style)
+                    std::cout << "Response sent, closing: fd=" << event_fd << std::endl;
+                    close(event_fd);
+                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                     delete c;
                     clients.erase(it);
-                    std::cout << "Client disconnected (error): " << client_fd << std::endl;
-                    continue;
-                }
-                
-                if(events[n].events & EPOLLIN){
-                    char buffer[40960];
-                    int bytes = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-                    
-                    if(bytes < 0){
-                        if(errno == EAGAIN || errno == EWOULDBLOCK)
-                            continue;
-                        perror("recv");
-                        close(client_fd);
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
-                        delete c;
-                        clients.erase(it);
-                        std::cout << "Client disconnected: " << client_fd << std::endl;
-                        continue;
-                    }
-                    else if(bytes == 0){
-                        close(client_fd);
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
-                        delete c;
-                        clients.erase(it);
-                        std::cout << "Client disconnected: " << client_fd << std::endl;
-                        continue;
-                    }
-                    
-                    buffer[bytes] = '\0';
-                    c->read_buff.append(buffer, bytes);
-                    
-                    Request req(c->read_buff, _servers[server_idx]);
-                    Response res(req, _servers[server_idx]);
-                    std::string httpResponse = res.toStr();
-                    c->write_buff = httpResponse;
-                    
-                    epoll_event mod_ev;
-                    mod_ev.events = EPOLLIN | EPOLLOUT;
-                    mod_ev.data.fd = client_fd;
-                    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client_fd, &mod_ev);
-                }
-                
-                if((events[n].events & EPOLLOUT) && c->has_write_data()) {
-                    int byte_send = send(client_fd, c->write_buff.c_str(), c->write_buff.size(), 0);
-                    
-                    if(byte_send > 0){
-                        c->write_buff.erase(0, byte_send);
-                    }
-                    else if(byte_send < 0 && errno != EAGAIN && errno != EWOULDBLOCK){
-                        perror("send");
-                    }
-                    
-                    if(!c->has_write_data()) {
-                        epoll_event mod_ev;
-                        mod_ev.events = EPOLLIN;
-                        mod_ev.data.fd = client_fd;
-                        epoll_ctl(epoll_fd, EPOLL_CTL_MOD, client_fd, &mod_ev);
-                    }
                 }
             }
+
+            next_event:
+            continue;
         }
-        
-        // Timeout cleanup
+
+        // Cleanup timed-out connections
         std::map<int, client*>::iterator it = clients.begin();
-        while(it != clients.end()) {
-            client *c = it->second;
-            if(c->is_timeout(TIMEOUT)) {
+        while (it != clients.end())
+        {
+            client* c = it->second;
+            if (c->is_timeout(TIMEOUT))
+            {
                 int fd = c->fd;
+                std::cout << "Client timeout: fd=" << fd << std::endl;
                 close(fd);
                 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
                 delete c;
-                std::cout << "Client Timeout: " << fd << std::endl;
                 std::map<int, client*>::iterator temp = it;
                 ++it;
                 clients.erase(temp);
             }
-            else {
+            else
+            {
                 ++it;
             }
         }
     }
-    
-    // Cleanup
-    for(std::map<int, client*>::iterator it = clients.begin(); it != clients.end(); ++it){
+
+    // Cleanup all remaining connections
+    for (std::map<int, client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+    {
         close(it->first);
         delete it->second;
     }
