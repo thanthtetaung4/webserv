@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/01 05:25:01 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/01 23:53:18 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -328,21 +328,22 @@ std::string Response::handleReverseProxy(const Request &req)
 
 void	Response::doPost(std::string uploadPath, const Request &req) {
 	std::cout << "DO POST\n" << uploadPath << "\n" << req << std::endl;
-	std::string fileName;
-	std::string fileContent;
-	parseFile(req.getBody(), req.getContentType(), fileName, fileContent);
+	std::vector<std::string> fileNames;
+	std::vector<std::string> fileContents;
+	parseFile(req.getBody(), req.getContentType(), fileNames, fileContents);
 	std::cout << "=====================================" << std::endl;
-	std::cout << "fileName: " + fileName + "\n" + "fileContent: " + fileContent << std::endl;
+
 }
 
 void	Response::doDelete(std::string uploadPath, const Request &req) {
 	std::cout << "DO DELETE\n"<< uploadPath << "\n" << req << std::endl;
-		std::string fileName;
+	std::string filePath;
 	/*
 		Do the parsing from the Request itself "DELETE /upload/test.txt" not from form upload
 	*/
+	parseFile(req.getPath(), req.getIt()->second._root, filePath);
 	std::cout << "=====================================" << std::endl;
-	std::cout << "fileName: " + fileName + "\n" + "fileContent: " << std::endl;
+	std::cout << "fileName: " + filePath << std::endl;
 
 }
 

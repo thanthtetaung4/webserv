@@ -6,15 +6,16 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/01 01:01:11 by taung             #+#    #+#             */
-/*   Updated: 2025/12/01 05:15:08 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/02 02:14:08 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "../../include/utils.h"
 
 bool	parseFile(std::string body, std::string contentType, std::string &fileName, std::string &fileContent) {
+	/*
 	std::cout << "parseFile POST" << body << contentType << fileName << fileContent << std::endl;
-	// Extract boundary from Content-Type
+	Extract boundary from Content-Type
 	std::string boundaryKey = "boundary=";
 	size_t bpos = contentType.find(boundaryKey);
 	if (bpos == std::string::npos)
@@ -83,48 +84,16 @@ bool	parseFile(std::string body, std::string contentType, std::string &fileName,
 	fileContent = body.substr(dataStart, dataEnd - dataStart);
 
 	return true;
+	*/
 }
 
-bool	parseFile(std::string body, std::string contentType, std::string &fileName) {
-	std::cout << "parseFile DELETE" << body << contentType << fileName << std::endl;
-	// Extract boundary from Content-Type
-	std::string boundaryKey = "boundary=";
-	size_t bpos = contentType.find(boundaryKey);
-	if (bpos == std::string::npos)
-		return false;
+bool	parseFile(std::string urlPath, std::string rootPath, std::string &filePath) {
+	std::cout << "parseFile DELETE: " << urlPath << "\n" << filePath << "\n" << rootPath << std::endl;
 
-	std::string boundary = "--" + contentType.substr(bpos + boundaryKey.length());
-
-	// 1) Find first boundary inside the body
-	size_t partStart = body.find(boundary);
-	if (partStart == std::string::npos)
-		return false;
-
-	partStart += boundary.length() + 2; // skip boundary + "\r\n"
-
-	// 2) Find Content-Disposition header
-	size_t cdPos = body.find("Content-Disposition:", partStart);
-	if (cdPos == std::string::npos)
-		return false;
-
-	size_t cdEnd = body.find("\r\n", cdPos);
-	if (cdEnd == std::string::npos)
-		return false;
-
-	std::string cdLine = body.substr(cdPos, cdEnd - cdPos);
-
-	// Extract filename
-	std::string filenameKey = "filename=\"";
-	size_t fpos = cdLine.find(filenameKey);
-	if (fpos == std::string::npos)
-		return false;
-
-	fpos += filenameKey.length();
-	size_t fend = cdLine.find("\"", fpos);
-	if (fend == std::string::npos)
-		return false;
-
-	fileName = cdLine.substr(fpos, fend - fpos);
-
-	return true;
+	// check if there is a ".." in the urlPath for safty
+	if (urlPath.find("..") == std::string::npos) {
+		filePath = rootPath + urlPath;
+		return (true);
+	}
+	return (false);
 }
