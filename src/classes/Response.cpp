@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/01 23:53:18 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/02 15:47:50 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -331,8 +331,11 @@ void	Response::doPost(std::string uploadPath, const Request &req) {
 	std::vector<std::string> fileNames;
 	std::vector<std::string> fileContents;
 	parseFile(req.getBody(), req.getContentType(), fileNames, fileContents);
-	std::cout << "=====================================" << std::endl;
+	std::cout << "===================================== FILE CONTENTS =====================================" << std::endl;
 
+	std::cout << fileContents[0] << fileContents[1] << std::endl;
+
+	std::cout << "===================================== FILE CONTENTS END =====================================" << std::endl;
 }
 
 void	Response::doDelete(std::string uploadPath, const Request &req) {

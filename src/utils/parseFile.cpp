@@ -3,16 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   parseFile.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/01 01:01:11 by taung             #+#    #+#             */
-/*   Updated: 2025/12/02 02:14:08 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/02 03:28:33 by hthant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "../../include/utils.h"
 
-bool	parseFile(std::string body, std::string contentType, std::string &fileName, std::string &fileContent) {
+bool	parseFile(std::string body, std::string contentType, std::vector<std::string> &fileNames, std::vector<std::string> &fileContents) {
 	/*
 	std::cout << "parseFile POST" << body << contentType << fileName << fileContent << std::endl;
 	Extract boundary from Content-Type
@@ -85,6 +85,107 @@ bool	parseFile(std::string body, std::string contentType, std::string &fileName,
 
 	return true;
 	*/
+
+	 // -----------------------
+    // 1. Extract boundary
+    // -----------------------
+    std::string boundaryKey = "boundary=";
+    size_t bpos = contentType.find(boundaryKey);
+    if (bpos == std::string::npos)
+        return false;
+
+    std::string boundary = "--" + contentType.substr(bpos + boundaryKey.length());
+    std::string endBoundary = boundary + "--";
+
+    // -----------------------
+    // 2. Loop through all parts
+    // -----------------------
+    size_t pos = 0;
+
+    while (true) {
+        // Find next boundary
+        size_t partStart = body.find(boundary, pos);
+        if (partStart == std::string::npos)
+            break;  // no more parts
+
+        partStart += boundary.length();
+        if (body.compare(partStart, 2, "\r\n") == 0)
+            partStart += 2; // skip CRLF
+
+        // Reached final boundary?
+        if (body.compare(partStart, 2, "--") == 0)
+            break;
+
+        // -----------------------------------------
+        // 3. Parse headers inside this part
+        // -----------------------------------------
+        size_t cdPos = body.find("Content-Disposition:", partStart);
+        if (cdPos == std::string::npos)
+            return false;
+
+        size_t cdEnd = body.find("\r\n", cdPos);
+        if (cdEnd == std::string::npos)
+            return false;
+
+        std::string cdLine = body.substr(cdPos, cdEnd - cdPos);
+
+        // Extract filename="..."
+        std::string filenameKey = "filename=\"";
+        size_t fpos = cdLine.find(filenameKey);
+        if (fpos == std::string::npos)
+            return false;
+
+        fpos += filenameKey.length();
+        size_t fend = cdLine.find("\"", fpos);
+        if (fend == std::string::npos)
+            return false;
+
+        std::string fileName = cdLine.substr(fpos, fend - fpos);
+
+        // -----------------------------------------
+        // 4. Find Content-Type (optional)
+        // -----------------------------------------
+        size_t ctPos = body.find("Content-Type:", cdEnd);
+        if (ctPos == std::string::npos)
+            return false;
+
+        size_t ctEnd = body.find("\r\n", ctPos);
+        if (ctEnd == std::string::npos)
+            return false;
+
+        // -----------------------------------------
+        // 5. Skip \r\n\r\n to reach file data
+        // -----------------------------------------
+        size_t dataStart = body.find("\r\n\r\n", ctEnd);
+        if (dataStart == std::string::npos)
+            return false;
+
+        dataStart += 4;
+
+        // -----------------------------------------
+        // 6. Find next boundary = end of this file
+        // -----------------------------------------
+        size_t dataEnd = body.find(boundary, dataStart);
+        if (dataEnd == std::string::npos)
+            return false;
+
+        // Remove trailing CRLF before boundary
+        if (dataEnd >= 2 && body.compare(dataEnd - 2, 2, "\r\n") == 0)
+            dataEnd -= 2;
+
+        std::string fileContent = body.substr(dataStart, dataEnd - dataStart);
+
+        // -----------------------------------------
+        // 7. Store results
+        // -----------------------------------------
+        fileNames.push_back(fileName);
+        fileContents.push_back(fileContent);
+
+        // Move cursor to continue parsing next part
+        pos = dataEnd;
+    }
+
+    return !fileNames.empty(); // return true if at least one file parsed
 }
 
 bool	parseFile(std::string urlPath, std::string rootPath, std::string &filePath) {
