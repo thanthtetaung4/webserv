@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/03 11:50:15 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/03 12:36:01 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,11 +36,6 @@ Response::Response(Request &req, Server &server)
 			return;
 		}
 
-		if (!loc._proxy_pass.empty())
-		{
-			handleReverseProxy(req);
-			return;
-		}
 		if (isDirectory(req.getFinalPath()))
 			processDirectoryRequest(req, loc, maxSize, server);
 		else if (isRegularFile(req.getFinalPath()) && loc._isCgi)
@@ -327,148 +322,6 @@ void Response::setResponseState(int statusCode, const std::string &statusTxt, co
 	this->_headers["Content-Type"] = contentType;
 	this->_headers["Content-Length"] = intToString(body.size());
 	this->_headers["Connection"] = "close";
-}
-
-void Response::handleReverseProxy(const Request &req)
-{
-	t_proxyPass pp = parseProxyPass(req.getIt()->second._proxy_pass);
-	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
-
-	// Create and connect to proxy server
-	int proxy_fd = createProxySocket(pp);
-	if (proxy_fd < 0)
-		return; // Error already set
-
-	// Build and send request
-	std::string proxyRequest = buildProxyRequest(req, pp);
-	std::cout << "Sending proxy request (" << proxyRequest.size() << " bytes)" << std::endl;
-
-	ssize_t sent = send(proxy_fd, proxyRequest.c_str(), proxyRequest.size(), 0);
-	if (sent < 0)
-	{
-		std::cerr << "Failed to send to proxy server" << std::endl;
-		close(proxy_fd);
-		std::pair<std::string, std::string> error = getErrorFromMap(502);
-		setResponseState(502, error.first, error.second, "text/html");
-		return;
-	}
-
-	std::cout << "Request sent successfully (" << sent << " bytes)" << std::endl;
-
-	// Receive response
-	std::string responseData = receiveProxyResponse(proxy_fd);
-	close(proxy_fd);
-
-	if (responseData.empty())
-		return; // Error already set
-
-	std::cout << "Total received: " << responseData.size() << " bytes from proxy" << std::endl;
-
-	// Set response with proxy data
-	setResponseState(200, "OK", responseData, "text/html");
-}
-
-int Response::createProxySocket(const t_proxyPass &pp)
-{
-	// Create socket
-	int proxy_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (proxy_fd < 0)
-	{
-		std::cerr << "Failed to create proxy socket" << std::endl;
-		std::pair<std::string, std::string> error = getErrorFromMap(502);
-		setResponseState(502, error.first, error.second, "text/html");
-		return -1;
-	}
-
-	std::cout << "Proxy socket created: " << proxy_fd << std::endl;
-
-	// Setup server address
-	struct sockaddr_in server_addr;
-	std::memset(&server_addr, 0, sizeof(server_addr));
-
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(static_cast<uint16_t>(std::atol(pp.port.c_str())));
-
-	// Convert IP address
-	if (inet_pton(AF_INET, pp.host.c_str(), &server_addr.sin_addr) <= 0)
-	{
-		std::cerr << "Invalid proxy address: " << pp.host << std::endl;
-		close(proxy_fd);
-		std::pair<std::string, std::string> error = getErrorFromMap(502);
-		setResponseState(502, error.first, error.second, "text/html");
-		return -1;
-	}
-
-	// Set socket timeout
-	struct timeval timeout;
-	timeout.tv_sec = 10;
-	timeout.tv_usec = 0;
-	setsockopt(proxy_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-	setsockopt(proxy_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-
-	// Connect to proxy server
-	std::cout << "Connecting to " << pp.host << ":" << pp.port << "..." << std::endl;
-	if (connect(proxy_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-	{
-		std::cerr << "Unable to connect to proxy server: " << strerror(errno) << std::endl;
-		close(proxy_fd);
-		std::pair<std::string, std::string> error = getErrorFromMap(502);
-		setResponseState(502, error.first, error.second, "text/html");
-		return -1;
-	}
-
-	std::cout << "Connected successfully!" << std::endl;
-	return proxy_fd;
-}
-
-std::string Response::buildProxyRequest(const Request &req, const t_proxyPass &pp)
-{
-	std::string proxyRequest = req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
-	proxyRequest += "Host: " + pp.host + "\r\n";
-
-	// Copy headers, skip Host as we already added it
-	for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin();
-		 it != req.getHeaders().end(); ++it)
-	{
-		if (it->first != "Host")
-			proxyRequest += it->first + ": " + it->second + "\r\n";
-	}
-
-	proxyRequest += "Connection: close\r\n";
-	proxyRequest += "\r\n" + req.getBody();
-
-	return proxyRequest;
-}
-
-std::string Response::receiveProxyResponse(int proxy_fd)
-{
-	std::string responseData;
-	char buffer[4096];
-	ssize_t bytes_received;
-
-	while ((bytes_received = recv(proxy_fd, buffer, sizeof(buffer), 0)) > 0)
-	{
-		responseData.append(buffer, bytes_received);
-		std::cout << "Received " << bytes_received << " bytes (total: " << responseData.size() << ")" << std::endl;
-	}
-
-	if (bytes_received < 0)
-	{
-		std::cerr << "Error receiving response from proxy server" << std::endl;
-		std::pair<std::string, std::string> error = getErrorFromMap(502);
-		setResponseState(502, error.first, error.second, "text/html");
-		return "";
-	}
-
-	if (responseData.empty())
-	{
-		std::cerr << "No data received from proxy server" << std::endl;
-		std::pair<std::string, std::string> error = getErrorFromMap(502);
-		setResponseState(502, error.first, error.second, "text/html");
-		return "";
-	}
-
-	return responseData;
 }
 
 bool safePath(const std::string &path)

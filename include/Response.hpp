@@ -53,9 +53,6 @@ private:
 	void setResponseState(int statusCode, const std::string &statusTxt, const std::string &body, const std::string &contentType);
 	void setRedirectResponse(int statusCode, const std::string &statusTxt, const std::string &location);
 	bool isRedirectStatus(int statusCode) const;
-	int createProxySocket(const t_proxyPass &pp);
-	std::string buildProxyRequest(const Request &req, const t_proxyPass &pp);
-	std::string receiveProxyResponse(int proxy_fd);
 
 public:
 	Response(Request &req, Server &server);
@@ -64,7 +61,6 @@ public:
 	void handleReturn(const std::vector<std::string> &returnDirective);
 	void handleAutoIndex(const std::string &urlPath, const std::string &fullPath);
 	void handleCGI(const Request &req, const Server &server);
-	void handleReverseProxy(const Request &req);
 	bool generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server &server);
 	bool checkHttpError(const Request &req, size_t size, std::string path, Server &server);
 	static std::map<int, std::pair<std::string, std::string> > getErrorMap();
