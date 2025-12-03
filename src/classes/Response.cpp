@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/02 15:47:50 by hthant           ###   ########.fr       */
+/*   Updated: 2025/12/02 16:27:06 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -330,6 +330,7 @@ void	Response::doPost(std::string uploadPath, const Request &req) {
 	std::cout << "DO POST\n" << uploadPath << "\n" << req << std::endl;
 	std::vector<std::string> fileNames;
 	std::vector<std::string> fileContents;
+
 	parseFile(req.getBody(), req.getContentType(), fileNames, fileContents);
 	std::cout << "===================================== FILE CONTENTS =====================================" << std::endl;
 

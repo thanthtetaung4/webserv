@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   utils.h                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hthant <hthant@student.42.fr>              +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 19:48:22 by taung             #+#    #+#             */
-/*   Updated: 2025/12/02 03:29:32 by hthant           ###   ########.fr       */
+/*   Updated: 2025/12/02 16:11:14 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,7 @@ t_proxyPass parseProxyPass(const std::string &proxyPassStr);
 std::string intToString(size_t n);
 
 bool	parseFile(std::string body, std::string contentType, std::vector<std::string> &fileNames, std::vector<std::string> &fileContents);
+// bool	parseFile(std::string body, std::string contentType, std::string &fileName, std::string &fileContent);
 bool	parseFile(std::string urlPath, std::string locationPath ,std::string &fileName);
 
 #endif
