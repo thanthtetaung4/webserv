@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/02 16:27:06 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/04 19:49:19 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -327,32 +327,123 @@ std::string Response::handleReverseProxy(const Request &req)
 }
 
 void	Response::doPost(std::string uploadPath, const Request &req) {
-	std::cout << "DO POST\n" << uploadPath << "\n" << req << std::endl;
+	// std::cout << "DO POST\n" << uploadPath << "\n" << req << std::endl;
 	std::vector<std::string> fileNames;
 	std::vector<std::string> fileContents;
 
 	parseFile(req.getBody(), req.getContentType(), fileNames, fileContents);
-	std::cout << "===================================== FILE CONTENTS =====================================" << std::endl;
+	std::vector<std::string>::const_iterator itFileContents;
+	std::vector<std::string>::const_iterator itFileNames;
 
-	std::cout << fileContents[0] << fileContents[1] << std::endl;
+	for (itFileContents = fileContents.begin(), itFileNames = fileNames.begin(); (itFileContents != fileContents.end()) && itFileNames != fileNames.end(); itFileContents++, itFileNames++) {
+		// std::cout << "===================================== FILE =====================================" << std::endl;
 
-	std::cout << "===================================== FILE CONTENTS END =====================================" << std::endl;
+		// std::cout << "File name: " << *itFileNames << std::endl;
+		// std::cout << "File content: \n" << *itFileContents << std::endl;
+
+		const std::string &fileName    = *itFileNames;
+		const std::string &fileContent = *itFileContents;
+
+		// Build full path (e.g. /upload/image.png)
+		std::string fullPath = uploadPath + "/" + fileName;
+		// std::cout << "File upload path: " << fullPath << std::endl;
+
+		// Open file (binary mode)
+		std::ofstream out(fullPath.c_str(), std::ios::binary);
+		if (!out)
+		{
+			std::cerr << "Upload error: failed to open " << fullPath << std::endl;
+			this->_statusCode = 500;
+			this->_body = "<!DOCTYPE html>\n"
+							"<html>\n"
+							"<head><title>KO</title></head>\n"
+							"<body>\n"
+							"<h1>Response from C++</h1>\n"
+							"<p>Upload of file" + fileName + " failed</p>\n"
+							"</body>\n"
+							"</html>";
+			return;
+		}
+
+		// Write raw content
+		out.write(fileContent.data(), fileContent.size());
+		out.close();
+
+		std::cout << "Uploaded: " << fullPath
+				<< " (" << fileContent.size() << " bytes)"
+				<< std::endl;
+		// std::cout << "===================================== FILE END =====================================" << std::endl;
+	}
+	this->_statusCode = 200;
+	this->_body = "<!DOCTYPE html>\n"
+					"<html>\n"
+					"<head><title>OK</title></head>\n"
+					"<body>\n"
+					"<h1>Response from C++</h1>\n"
+					"<p>Everything works!</p>\n"
+					"</body>\n"
+					"</html>";
 }
 
-void	Response::doDelete(std::string uploadPath, const Request &req) {
-	std::cout << "DO DELETE\n"<< uploadPath << "\n" << req << std::endl;
-	std::string filePath;
-	/*
-		Do the parsing from the Request itself "DELETE /upload/test.txt" not from form upload
-	*/
-	parseFile(req.getPath(), req.getIt()->second._root, filePath);
-	std::cout << "=====================================" << std::endl;
-	std::cout << "fileName: " + filePath << std::endl;
+// void	Response::doDelete(std::string uploadPath, const Request &req) {
+// 	std::cout << "DO DELETE\n"<< uploadPath << "\n" << req << std::endl;
+// 	std::string filePath;
+// 	/*
+// 		Do the parsing from the Request itself "DELETE /upload/test.txt" not from form upload
+// 	*/
+// 	parseFile(req.getPath(), req.getIt()->second._root, filePath);
+// 	std::cout << "=====================================" << std::endl;
+// 	std::cout << "fileName: " + filePath << std::endl;
 
+// }
+
+#include <sys/stat.h>
+#include <unistd.h>
+
+void	Response::doDelete(std::string uploadPath, const Request &req) {
+	// std::cout << "DO DELETE\n" << uploadPath << "\n" << req << std::endl;
+
+	std::string filePath;
+
+	// Parse from URL path (e.g. "DELETE /upload/test.txt")
+	// parseFile writes the relative path into filePath
+	parseFile(req.getPath(), req.getIt()->second._root, filePath);
+
+	// std::cout << "=====================================" << std::endl;
+	// std::cout << "fileName: " << filePath << std::endl;
+
+	// Construct the full path
+	std::string fullPath = uploadPath + filePath.substr(filePath.find_last_of('/'));
+
+	// Check existence
+	struct stat st;
+	if (stat(fullPath.c_str(), &st) != 0) {
+		// file doesn't exist
+		std::cerr << "File does not exist: " << fullPath << std::endl;
+		// You can set 404 here
+		this->_statusCode = 404;
+		this->_body = "File not found.\n";
+		return;
+	}
+
+	// Delete the file
+	if (unlink(fullPath.c_str()) != 0) {
+		// unlink failed → no permission or locked
+		std::cerr << "Failed to delete: " << fullPath << std::endl;
+		// set 500 or 403 depending on your logic
+		this->_statusCode = 500;
+		this->_body = "Failed to delete the file.\n";
+		return;
+	}
+
+	std::cout << "Deleted: " << fullPath << std::endl;
+
+	// Success
+	this->_statusCode = 200;
+	this->_body = "File deleted.\n";
 }
 
 void Response::handleStore(t_location loc, const Request& req) {
-	std::cout << "Printing from handleStore\n" << req << std::endl;
 	if (req.getMethodType() == "POST") {
 		doPost(loc._uploadStore, req);
 	} else if (req.getMethodType() == "DELETE") {
