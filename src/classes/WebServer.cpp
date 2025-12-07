@@ -6,18 +6,52 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/01 03:06:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/07 21:38:48 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./../../include/WebServer.hpp"
 #include "../../include/Request.hpp"
 #include "../../include/Response.hpp"
+#include <cerrno>
+#include <cstddef>
+#include <cstdio>
+#include <ctime>
+#include <set>
+#include <fcntl.h>
+#include <map>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <cstdio>
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/epoll.h>
+#include <cstdio>
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/epoll.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include "../../include/Validator.hpp"
 #include "../../include/Cgi.hpp"
+# define TIMEOUT 5000
+# include "../../include/Client.hpp"
+
+// Proxy connection state for asynchronous proxy handling
+struct ProxyConn {
+	int client_fd;
+	int upstream_fd;
+	std::string request_buffer;  // Data to send to upstream
+	std::string response_buffer; // Data received from upstream
+	bool connecting;             // True during non-blocking connect
+	size_t server_idx;
+
+	ProxyConn(int cfd, int ufd, const std::string &req, bool conn, size_t idx)
+		: client_fd(cfd), upstream_fd(ufd), request_buffer(req),
+		  response_buffer(""), connecting(conn), server_idx(idx) {}
+};
 
 WebServer::WebServer() {}
 
@@ -28,29 +62,51 @@ WebServer::~WebServer() {}
 // WebServer &WebServer::operator=(const WebServer &other) {}
 void WebServer::setServer(std::string configFile)
 {
-	t_iterators it;
-	std::string target = "server {";
-
 	std::ifstream config(configFile.c_str());
 	if (!config)
-		throw "Unable to open file!!";
-	else
+		throw std::runtime_error("Unable to open file!!");
+
+	std::stringstream ss;
+	ss << config.rdbuf();
+	std::string content = ss.str();
+	config.close();
+
+	size_t pos = 0;
+	while (pos < content.length())
 	{
-		std::stringstream ss;
-		ss << config.rdbuf();
-		std::string content = ss.str();
-		it = Server::getIterators(content, content.begin(), target, target);
-		while (it.it1 != content.end())
+		size_t serverStart = content.find("server", pos);
+		if (serverStart == std::string::npos)
+			break;
+		size_t openBracePos = content.find('{', serverStart);
+		if (openBracePos == std::string::npos)
+			throw std::runtime_error("Missing opening brace after 'server' keyword");
+		int braceCount = 0;
+		size_t closeBracePos = openBracePos;
+		bool foundMatch = false;
+		for (size_t i = openBracePos; i < content.length(); ++i)
 		{
-			Server server;
-			server.fetchSeverInfo(it);
-			addServer(server);
-			if (it.it2 != content.end())
-				it = Server::getIterators(content, it.it2, target, target);
-			else
-				break;
+			if (content[i] == '{')
+				braceCount++;
+			else if (content[i] == '}')
+			{
+				braceCount--;
+				if (braceCount == 0)
+				{
+					closeBracePos = i;
+					foundMatch = true;
+					break;
+				}
+			}
 		}
-		config.close();
+		if (!foundMatch)
+			throw std::runtime_error("Mismatched braces in server block!");
+		t_iterators it;
+		it.it1 = content.begin() + openBracePos + 1;
+		it.it2 = content.begin() + closeBracePos;
+		Server server;
+		server.fetchSeverInfo(it);
+		addServer(server);
+		pos = closeBracePos + 1;
 	}
 }
 
@@ -71,140 +127,40 @@ void WebServer::setUpSock(void)
 	}
 }
 
-bool WebServer::isProxyPass(std::string urlPath, Server server)
-{
-	std::map<std::string, t_location>::const_iterator it = search_map_iterator(server.getLocation(), urlPath);
-
-	if (it != server.getLocation().end())
-	{
-		return (!(it->second._proxy_pass.empty()));
-	}
-	return (false);
-}
-
-bool	checkIndices(std::vector<std::string> indices, std::string locationRoot, std::string serverRoot) {
-	std::vector<std::string>::const_iterator it = indices.begin();
-	(void)locationRoot;
-	(void)serverRoot;
-	std::cout << "checking indices" << std::endl;
-	it == indices.end() ? std::cout << "fuck" : std::cout << "unfuck";
-	std::cout << std::endl;
-	while (it != indices.end()) {
-		std::string	index = *it;
-		if (!locationRoot.empty()) {
-			locationRoot.append(index);
-			index = locationRoot;
-		} else {
-			if (!serverRoot.empty()) {
-				serverRoot.append(index);
-				index = serverRoot;
-			} else
-				return (false);
-		}
-		if(access(index.c_str(), F_OK) == -1)
-			return (false);
-		it++;
-	}
-	return (true);
-}
-
-
-// bool	WebServer::isAutoIndex(const Request& req, int idx) const {
-// 	std::map<std::string, t_location>::const_iterator it;
-// 	std::map<std::string, t_location> locs = this->_servers[idx].getLocation();
-
-// 	std::cout << "=============== AUTO INDEX URL PATH START ===============" << std::endl;
-// 	std::cout << req.getUrlPath() << std::endl;
-// 	std::cout << "=============== AUTO INDEX URL PATH END ===============" << std::endl;
-// 	if (isRegularFile(_servers[idx].getRoot() + "/" + req.getUrlPath())) {
-// 		return false;
-// 	}
-
-// 	it = searchMapLongestMatchIt(locs, req.getUrlPath());
-
-// 	if (it->second._autoIndex != "on")
-// 		return (false);
-
-// 	if (it != locs.end()) {
-// 		std::cout << "checking auto index: " << it->first << std::endl;
-
-// 		if (it->second._index.empty() ||
-// 			!checkIndices(it->second._index, it->second._root, this->_servers[idx].getRoot()))
-// 		{
-// 			return true;
-// 		}
-
-// 		return false;
-// 	}
-
-// 	return false;
-// }
-
-bool WebServer::isCGI(std::string urlPath, Server server)
-{
-	std::map<std::string, t_location>::const_iterator it = search_map_iterator(server.getLocation(), urlPath);
-
-	if (it != server.getLocation().end())
-	{
-		return ((it->second._isCgi));
-	}
-	return (false);
-}
-
 std::vector<Server> WebServer::getServers() const
 {
 	return _servers;
 }
 
-/*
-	send the request to the proxy server and get the response
-	create a new Response object with the response from server
-	and return it
-*/
-const std::string WebServer::handleReverseProxy(const Request &req, const Server &server)
+
+// Helper function: Set socket to non-blocking mode
+static int make_nonblock(int fd)
 {
-	std::cout << "Handling reverse proxy..." << std::endl;
-	std::cout << search_map_iterator(server.getLocation(), req.getPath())->second._proxy_pass << std::endl;
+	int flags = fcntl(fd, F_GETFL, 0);
+	if (flags == -1)
+		return -1;
+	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
 
-	t_proxyPass pp = parseProxyPass(search_map_iterator(server.getLocation(), req.getPath())->second._proxy_pass);
-
-	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
-
-	// Create socket with the correct port
-	Socket proxySocket(std::atol(pp.port.c_str()));
-	proxySocket.openSock(); // Only create the socket, don't bind/listen
-
-	std::cout << "Proxy socket: " << proxySocket.getServerFd() << std::endl;
-
-	// Setup address structure for the proxy server
-	struct sockaddr_in server_addr;
-	// Initialize to zero without memset
-	for (size_t i = 0; i < sizeof(server_addr); i++)
+// Helper function: Cleanup proxy connection
+static void cleanup_proxy(ProxyConn *pc, std::map<int, ProxyConn*> &proxies_by_upstream,
+                          std::map<int, ProxyConn*> &proxies_by_client, int epoll_fd)
+{
+	if (pc->upstream_fd >= 0)
 	{
-		((char *)&server_addr)[i] = 0;
+		close(pc->upstream_fd);
+		epoll_ctl(epoll_fd, EPOLL_CTL_DEL, pc->upstream_fd, NULL);
 	}
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(std::atol(pp.port.c_str()));
+	proxies_by_upstream.erase(pc->upstream_fd);
+	proxies_by_client.erase(pc->client_fd);
+	delete pc;
+}
 
-	// Convert IP address from string to binary using inet_addr
-	server_addr.sin_addr.s_addr = inet_addr(pp.host.c_str());
-	if (server_addr.sin_addr.s_addr == INADDR_NONE)
-	{
-		throw std::runtime_error("Invalid proxy address");
-	}
-
-	// Connect to proxy server
-	if (connect(proxySocket.getServerFd(), (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-	{
-		throw std::runtime_error("Unable to connect to proxy server");
-	}
-
-	std::cout << "Connected successfully!" << std::endl;
-
-	// Build the proxy request
-	std::string proxyRequest = req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
-	for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin();
-		 it != req.getHeaders().end(); ++it)
+// Helper function: Cleanup client connection
+static void cleanup_client(int client_fd, std::map<int, client*> &clients, int epoll_fd)
+{
+	std::map<int, client*>::iterator it = clients.find(client_fd);
+	if (it != clients.end())
 	{
 		proxyRequest += it->first + ": " + it->second + "\r\n";
 	}
@@ -284,31 +240,48 @@ int WebServer::serve(void)
 	// Register all server sockets with epoll
 	for (size_t i = 0; i < _sockets.size(); ++i)
 	{
-
 		int fd = _sockets[i].getServerFd();
-		struct epoll_event ev;
-		ev.events = EPOLLIN;
-		ev.data.u32 = i; // Store index to map back to Server
+		if (make_nonblock(fd) == -1)
+		{
+			perror("make_nonblock: server socket");
+			return false;
+		}
+
+		epoll_event ev;
+		ev.events = EPOLLIN | EPOLLET;
+		ev.data.fd = fd;
 		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
 		{
 			perror("epoll_ctl: listen_sock");
-			close(epoll_fd);
-			return 1;
+			return false;
 		}
+
+		server_fds.insert(fd);
+		fd_to_server_idx[fd] = i;
 		std::cout << "Listening on port: http://localhost:" << _servers[i].getPort() << std::endl;
 	}
+	return true;
+}
 
-	struct epoll_event events[MAX_EVENTS];
+// Handle new client connections
+void WebServer::handleNewConnection(int event_fd, size_t server_idx,
+                                    std::map<int, client*> &clients, int epoll_fd)
+{
 	while (true)
 	{
-		// std::cout << "here" << std::endl;
-		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1);
-		if (nfds == -1)
+		sockaddr_in client_addr;
+		socklen_t client_len = sizeof(client_addr);
+		int client_fd = accept(event_fd, (struct sockaddr*)&client_addr, &client_len);
+
+		if (client_fd < 0)
 		{
-			perror("epoll_wait");
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				break; // No more connections
+			perror("accept");
 			break;
 		}
-		for (int n = 0; n < nfds; ++n)
+
+		if (make_nonblock(client_fd) == -1)
 		{
 			size_t idx = events[n].data.u32;
 			int listen_fd = _sockets[idx].getServerFd();

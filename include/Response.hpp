@@ -29,6 +29,11 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <dirent.h>
+#include <cstring>
+#include <cerrno>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "Socket.hpp"
 
 class Response
@@ -42,16 +47,28 @@ private:
 	void	doPost(std::string uploadPath, const Request &req);
 	void	doDelete(std::string uploadPath, const Request &req);
 
+	// Private helper methods
+	void processFileRequest(Request &req, const std::string &path, size_t maxSize, Server &server);
+	void processDirectoryRequest(Request &req, const t_location &loc, size_t maxSize, Server &server);
+	std::string buildIndexPath(const std::string &basePath, const std::string &indexFile) const;
+	std::string buildDirectoryListingHTML(const std::string &urlPath, const std::string &fullPath);
+	void parseCgiStatus(const std::string &statusHeader);
+	void setResponseState(int statusCode, const std::string &statusTxt, const std::string &body, const std::string &contentType);
+	void setRedirectResponse(int statusCode, const std::string &statusTxt, const std::string &location);
+	bool isRedirectStatus(int statusCode) const;
+
 public:
 	Response(Request &req, Server &server);
 	Response(unsigned int errorCode);
 	void handleRedirect(const std::string &redirUrlPath);
 	void handleStore(t_location loc, const Request& req);
+	void handleReturn(const std::vector<std::string> &returnDirective);
 	void handleAutoIndex(const std::string &urlPath, const std::string &fullPath);
 	void handleCGI(const Request &req, const Server &server);
-	std::string handleReverseProxy(const Request &req);
 	bool generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server &server);
 	bool checkHttpError(const Request &req, size_t size, std::string path, Server &server);
+	static std::map<int, std::pair<std::string, std::string> > getErrorMap();
+	static std::pair<std::string, std::string> getErrorFromMap(int errorCode);
 	void serveFile(const std::string &filePath);
 	std::string toStr() const;
 
