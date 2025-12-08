@@ -6,47 +6,153 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/08 15:12:15 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/08 15:39:27 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../include/Response.hpp"
 
+// Response::Response(Request &req, Server &server)
+// {
+// 	size_t maxSize;
+// 	std::stringstream ss(server.getMaxByte());
+// 	ss >> maxSize;
+
+// 	this->_httpVersion = req.getHttpVersion();
+
+// 	if (!server.getReturn().empty())
+// 	{
+// 		handleReturn(server.getReturn());
+// 		return;
+// 	}
+// 	if (req.getIt() != server.getLocation().end())
+// 	{
+// 		t_location loc = req.getIt()->second;
+
+// 		// Handle return directive first
+// 		if (!loc._return.empty())
+// 		{
+// 			handleReturn(loc._return);
+// 			return;
+// 		}
+
+// 		if (isDirectory(req.getFinalPath()))
+// 			processDirectoryRequest(req, loc, maxSize, server);
+// 		else if (isRegularFile(req.getFinalPath()) && loc._isCgi)
+// 			handleCGI(req, server);
+// 		else
+// 			processFileRequest(req, req.getFinalPath(), maxSize, server);
+// 	}
+// 	else
+// 	{
+// 		processFileRequest(req, req.getFinalPath(), maxSize, server);
+// 	}
+// }
+
 Response::Response(Request &req, Server &server)
 {
-	size_t maxSize;
-	std::stringstream ss(server.getMaxByte());
-	ss >> maxSize;
-
+	std::cout << "=========== Res Start ===========" << std::endl;
+	size_t size;
+	std::string res;
+	std::string path = req.getFinalPath();
 	this->_httpVersion = req.getHttpVersion();
-
-	if (!server.getReturn().empty())
-	{
-		handleReturn(server.getReturn());
-		return;
-	}
+	std::stringstream ss(server.getMaxByte());
+	ss >> size;
+	std::cout << size << std::endl;
+	size_t i;
 	if (req.getIt() != server.getLocation().end())
 	{
 		t_location loc = req.getIt()->second;
 
-		// Handle return directive first
-		if (!loc._return.empty())
-		{
-			handleReturn(loc._return);
-			return;
-		}
-
 		if (isDirectory(req.getFinalPath()))
-			processDirectoryRequest(req, loc, maxSize, server);
-		else if (isRegularFile(req.getFinalPath()) && loc._isCgi)
+		{
+			std::cout << "=========== is file ===========" << std::endl;
+			if (!loc._proxy_pass.empty())
+			{
+				std::cout << "=========== ppass ===========" << std::endl;
+				// handle proxypass
+				// handleReverseProxy(req);
+			}
+			else if (!loc._index.empty())
+			{
+				for (i = 0; i < loc._index.size(); i++)
+				{
+					if (isRegularFile(req.getFinalPath() + (req.getFinalPath().at(req.getFinalPath().length() - 1) == '/' ? "" : "/")  + loc._index[i]))
+					{
+						path = req.getFinalPath() + "/" + loc._index[i];
+						break;
+					}
+				}
+				if (i == loc._index.size() && loc._autoIndex == "on") {
+					std::cout << "=========== auto index ===========" << std::endl;
+					handleAutoIndex(req.getPath(), req.getFinalPath());
+				}
+				else
+				{
+					if (loc._isCgi && path.substr(path.size() - loc._cgiExt.size()) == loc._cgiExt)
+					{
+						req.setFinalPath(path);
+						std::cout << "=========== cgi ===========" << std::endl;
+						handleCGI(req, server);
+					}
+					else
+					{
+						std::cout << "Requested Path: " << path << std::endl;
+						if (!checkHttpError(req, size, path, server))
+							serveFile(path);
+						if (this->_body.empty())
+						{
+							std::cout << "Body is empty" << std::endl;
+						}
+					}
+				}
+			}
+			else if ((loc._index.empty()) && loc._autoIndex == "on")
+				handleAutoIndex(req.getPath(), req.getFinalPath());
+		}
+		else if (isRegularFile(req.getFinalPath()) && loc._isCgi) {
+			std::cout << "=========== is reg file ===========" << std::endl;
+			std::cout << "=========== cgi ===========" << std::endl;
 			handleCGI(req, server);
-		else
-			processFileRequest(req, req.getFinalPath(), maxSize, server);
+		}
+		else {
+			std::cout << "=========== is not file, not dir ===========" << std::endl;
+			if (!loc._proxy_pass.empty()) {
+				std::cout << "=========== ppass ===========" << std::endl;
+				// handle proxypass
+				// handleReverseProxy(req);
+			} else if (!loc._uploadStore.empty()) {
+				std::cout << "upload store" << std::endl;
+				if (std::find(loc._limit_except.begin(), loc._limit_except.end(), req.getMethodType()) != loc._limit_except.end()) {
+					handleStore(loc, req);
+				} else {
+					std::cout << "408 Method not allowed" << std::endl;
+				}
+			} else {
+				std::cout << "=========== static ===========" << std::endl;
+				std::cout << "Requested Path: " << path << std::endl;
+				if (!checkHttpError(req, size, path, server))
+					serveFile(path);
+				if (this->_body.empty())
+				{
+					std::cout << "Body is empty" << std::endl;
+				}
+			}
+		}
 	}
 	else
 	{
-		processFileRequest(req, req.getFinalPath(), maxSize, server);
+		std::cout << "=========== loc is end =========" << std::endl;
+		std::cout << "=========== static ===========" << std::endl;
+		std::cout << "Requested Path: " << path << std::endl;
+		if (!checkHttpError(req, size, path, server))
+			serveFile(path);
+		if (this->_body.empty())
+		{
+			std::cout << "Body is empty" << std::endl;
+		}
 	}
+	std::cout << "=========== Res END ===========" << std::endl;
 }
 
 void Response::processFileRequest(Request &req, const std::string &path, size_t maxSize, Server &server)
@@ -93,6 +199,8 @@ void Response::processDirectoryRequest(Request &req, const t_location &loc, size
 		handleAutoIndex(req.getPath(), req.getFinalPath());
 	}
 }
+
+
 
 std::string Response::buildIndexPath(const std::string &basePath, const std::string &indexFile) const
 {
@@ -269,6 +377,119 @@ std::string Response::buildDirectoryListingHTML(const std::string &urlPath, cons
 	closedir(dir);
 	html += "</pre><hr></body></html>";
 	return html;
+}
+
+void	Response::doPost(std::string uploadPath, const Request &req) {
+	// std::cout << "DO POST\n" << uploadPath << "\n" << req << std::endl;
+	std::vector<std::string> fileNames;
+	std::vector<std::string> fileContents;
+
+	parseFile(req.getBody(), req.getContentType(), fileNames, fileContents);
+	std::vector<std::string>::const_iterator itFileContents;
+	std::vector<std::string>::const_iterator itFileNames;
+
+	for (itFileContents = fileContents.begin(), itFileNames = fileNames.begin(); (itFileContents != fileContents.end()) && itFileNames != fileNames.end(); itFileContents++, itFileNames++) {
+		// std::cout << "===================================== FILE =====================================" << std::endl;
+
+		// std::cout << "File name: " << *itFileNames << std::endl;
+		// std::cout << "File content: \n" << *itFileContents << std::endl;
+
+		const std::string &fileName    = *itFileNames;
+		const std::string &fileContent = *itFileContents;
+
+		// Build full path (e.g. /upload/image.png)
+		std::string fullPath = uploadPath + "/" + fileName;
+		// std::cout << "File upload path: " << fullPath << std::endl;
+
+		// Open file (binary mode)
+		std::ofstream out(fullPath.c_str(), std::ios::binary);
+		if (!out)
+		{
+			std::cerr << "Upload error: failed to open " << fullPath << std::endl;
+			this->_statusCode = 500;
+			this->_body = "<!DOCTYPE html>\n"
+							"<html>\n"
+							"<head><title>KO</title></head>\n"
+							"<body>\n"
+							"<h1>Response from C++</h1>\n"
+							"<p>Upload of file" + fileName + " failed</p>\n"
+							"</body>\n"
+							"</html>";
+			return;
+		}
+
+		// Write raw content
+		out.write(fileContent.data(), fileContent.size());
+		out.close();
+
+		std::cout << "Uploaded: " << fullPath
+				<< " (" << fileContent.size() << " bytes)"
+				<< std::endl;
+		// std::cout << "===================================== FILE END =====================================" << std::endl;
+	}
+	this->_statusCode = 200;
+	this->_body = "<!DOCTYPE html>\n"
+					"<html>\n"
+					"<head><title>OK</title></head>\n"
+					"<body>\n"
+					"<h1>Response from C++</h1>\n"
+					"<p>Everything works!</p>\n"
+					"</body>\n"
+					"</html>";
+}
+
+#include <sys/stat.h>
+#include <unistd.h>
+
+void	Response::doDelete(std::string uploadPath, const Request &req) {
+	// std::cout << "DO DELETE\n" << uploadPath << "\n" << req << std::endl;
+
+	std::string filePath;
+
+	// Parse from URL path (e.g. "DELETE /upload/test.txt")
+	// parseFile writes the relative path into filePath
+	parseFile(req.getPath(), req.getIt()->second._root, filePath);
+
+	// std::cout << "=====================================" << std::endl;
+	// std::cout << "fileName: " << filePath << std::endl;
+
+	// Construct the full path
+	std::string fullPath = uploadPath + filePath.substr(filePath.find_last_of('/'));
+
+	// Check existence
+	struct stat st;
+	if (stat(fullPath.c_str(), &st) != 0) {
+		// file doesn't exist
+		std::cerr << "File does not exist: " << fullPath << std::endl;
+		// You can set 404 here
+		this->_statusCode = 404;
+		this->_body = "File not found.\n";
+		return;
+	}
+
+	// Delete the file
+	if (unlink(fullPath.c_str()) != 0) {
+		// unlink failed → no permission or locked
+		std::cerr << "Failed to delete: " << fullPath << std::endl;
+		// set 500 or 403 depending on your logic
+		this->_statusCode = 500;
+		this->_body = "Failed to delete the file.\n";
+		return;
+	}
+
+	std::cout << "Deleted: " << fullPath << std::endl;
+
+	// Success
+	this->_statusCode = 200;
+	this->_body = "File deleted.\n";
+}
+
+void Response::handleStore(t_location loc, const Request& req) {
+	if (req.getMethodType() == "POST") {
+		doPost(loc._uploadStore, req);
+	} else if (req.getMethodType() == "DELETE") {
+		doDelete(loc._uploadStore, req);
+	}
 }
 
 void Response::handleCGI(const Request &req, const Server &server)
