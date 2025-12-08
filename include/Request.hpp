@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 00:42:43 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/08 14:33:24 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/08 15:48:20 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,6 @@ class Request {
 		std::string _body;
 		std::string _queryString;
 		std::map<std::string, t_location>::const_iterator _it;
-		std::vector<std::string> _acceptTypes;
 
 	public:
 		Request(const std::string &raw, Server &server);
@@ -48,7 +47,6 @@ class Request {
 		std::string getBody() const;
 		std::string getContentType() const;
 		std::string getQueryString() const;
-		std::vector<std::string> getAcceptTypes() const;
 		std::map<std::string, t_location>::const_iterator getIt() const;
 		const std::map<std::string, std::string> &getHeaders() const;
 };

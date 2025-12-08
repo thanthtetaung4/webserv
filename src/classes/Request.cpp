@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/08 14:33:12 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/08 15:48:28 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,10 +121,6 @@ const std::map<std::string, std::string> &Request::getHeaders() const
 
 std::string Request::getQueryString() const {
 	return (this->_queryString);
-}
-
-std::vector<std::string> Request::getAcceptTypes() const {
-	return (this->_acceptTypes);
 }
 
 std::string Request::getContentType() const {
