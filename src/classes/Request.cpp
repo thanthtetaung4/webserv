@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/07 21:43:06 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/08 14:33:12 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,19 @@ Request::Request(const std::string &raw, Server &server)
 		}
 	}
 	_it = searchLongestMatch(server.getLocation(), this->_path);
+
+	// handling queryString
+	if (_path.find("?") != _path.npos) {
+		this->_queryString = this->_path.substr(_path.find("?") , _path.npos);
+		std::cout << "first substr OK" << std::endl;
+		this->_path = _path.substr(0, _path.find("?"));
+		std::cout << "second substr OK" << std::endl;
+		// std::cout << _path << ", " << _queryString << std::endl;
+	} else {
+		this->_queryString = "";
+	}
+
+	// handling the actual path to find on the host
 	this->_finalPath = "";
 	if (_it != server.getLocation().end())
 	{
@@ -104,6 +117,14 @@ std::map<std::string, t_location>::const_iterator Request::getIt() const
 const std::map<std::string, std::string> &Request::getHeaders() const
 {
 	return this->_headers;
+}
+
+std::string Request::getQueryString() const {
+	return (this->_queryString);
+}
+
+std::vector<std::string> Request::getAcceptTypes() const {
+	return (this->_acceptTypes);
 }
 
 std::string Request::getContentType() const {
