@@ -3,14 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/08 14:33:12 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/09 13:13:30 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../include/Request.hpp"
+#include "../../include/Response.hpp"
 #include <cstddef>
 #include <map>
 #include <ostream>
@@ -48,7 +48,7 @@ Request::Request(const std::string &raw, Server &server)
 		}
 	}
 	_it = searchLongestMatch(server.getLocation(), this->_path);
-
+	
 	// handling queryString
 	if (_path.find("?") != _path.npos) {
 		this->_queryString = this->_path.substr(_path.find("?") , _path.npos);
@@ -73,6 +73,7 @@ Request::Request(const std::string &raw, Server &server)
 	}
 	else
 		this->_finalPath = server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path;
+	std::cout << "Final path: " << this->_finalPath << std::endl;
 }
 
 std::string trim(const std::string &s)
@@ -152,6 +153,6 @@ std::ostream &operator<<(std::ostream &os, const Request &req)
 	{
 		os << "	[" << it->first << "]: " << it->second << std::endl;
 	}
-	os << "Body: \n" << req.getBody() << std::endl;
+	// os << "Body: \n" << req.getBody() << std::endl;
 	return os;
 }

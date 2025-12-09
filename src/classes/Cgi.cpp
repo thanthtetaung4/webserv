@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Cgi.cpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/07 22:15:55 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/08 12:33:47 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,8 +65,10 @@ std::string Cgi::execute()
 		// CHILD
 		dup2(inPipe[0], STDIN_FILENO);
 		dup2(outPipe[1], STDOUT_FILENO);
+		close(inPipe[0]);
 		close(inPipe[1]);
 		close(outPipe[0]);
+		close(outPipe[1]);
 
 		char **envArray = createEnvArray(_env);
 
@@ -89,7 +91,7 @@ std::string Cgi::execute()
 	if (!_body.empty())
 		write(inPipe[1], _body.c_str(), _body.size());
 	close(inPipe[1]);
-
+	std::cout << "CGI body sent " << _body << std::endl;
 	std::string output;
 	char buffer[1024];
 	ssize_t bytesRead;

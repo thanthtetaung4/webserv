@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/08 15:12:15 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/09 13:13:19 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,37 +14,80 @@
 
 Response::Response(Request &req, Server &server)
 {
-	size_t maxSize;
+	// Parse max body size
+	size_t maxSize = 0;
 	std::stringstream ss(server.getMaxByte());
 	ss >> maxSize;
 
 	this->_httpVersion = req.getHttpVersion();
-
+	
+	// Handle server-level return directive (highest priority)
 	if (!server.getReturn().empty())
 	{
 		handleReturn(server.getReturn());
 		return;
 	}
-	if (req.getIt() != server.getLocation().end())
-	{
-		t_location loc = req.getIt()->second;
 
-		// Handle return directive first
+	// Get location configuration
+	std::map<std::string, t_location>::const_iterator locIt = req.getIt();
+	
+	// Location found - process with location rules
+	if (locIt != server.getLocation().end())
+	{
+		const t_location &loc = locIt->second;
+
+		// Handle location-level return directive (second priority)
 		if (!loc._return.empty())
 		{
 			handleReturn(loc._return);
 			return;
 		}
 
-		if (isDirectory(req.getFinalPath()))
+		const std::string &finalPath = req.getFinalPath();
+		const std::string &method = req.getMethodType();
+
+		// Check limit_except restrictions (method whitelist)
+		if (!loc._limit_except.empty())
+		{
+			bool methodAllowed = std::find(loc._limit_except.begin(), 
+			                               loc._limit_except.end(), 
+			                               method) != loc._limit_except.end();
+			
+			if (!methodAllowed)
+			{
+				generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
+				return;
+			}
+		}
+
+		// Handle upload/store operations (POST/DELETE to upload directories)
+		if (!loc._uploadStore.empty() && (method == "POST" || method == "DELETE"))
+		{
+			std::cout << "Upload/Store detected for method: " << method << std::endl;
+			handleStore(loc, req);
+			return;
+		}
+
+		// Handle directory requests (only for GET)
+		if (isDirectory(finalPath))
+		{
 			processDirectoryRequest(req, loc, maxSize, server);
-		else if (isRegularFile(req.getFinalPath()) && loc._isCgi)
+			return;
+		}
+
+		// Handle CGI requests (file must exist and be regular file)
+		if (isRegularFile(finalPath) && loc._isCgi)
+		{
 			handleCGI(req, server);
-		else
-			processFileRequest(req, req.getFinalPath(), maxSize, server);
+			return;
+		}
+
+		// Handle regular file requests
+		processFileRequest(req, finalPath, maxSize, server);
 	}
 	else
 	{
+		// No location match - use default file processing
 		processFileRequest(req, req.getFinalPath(), maxSize, server);
 	}
 }
@@ -60,37 +103,58 @@ void Response::processFileRequest(Request &req, const std::string &path, size_t 
 
 void Response::processDirectoryRequest(Request &req, const t_location &loc, size_t maxSize, Server &server)
 {
-	// Handle index files
+	const std::string &dirPath = req.getFinalPath();
+	
+	// Try to find and serve index files if configured
 	if (!loc._index.empty())
 	{
-		std::string indexPath;
 		for (size_t i = 0; i < loc._index.size(); i++)
 		{
-			indexPath = buildIndexPath(req.getFinalPath(), loc._index[i]);
+			std::string indexPath = buildIndexPath(dirPath, loc._index[i]);
+			
+			// Check if index file exists and is a regular file
 			if (isRegularFile(indexPath))
 			{
-				// Found index file - check if CGI
-				if (loc._isCgi && indexPath.size() >= loc._cgiExt.size() &&
-					indexPath.substr(indexPath.size() - loc._cgiExt.size()) == loc._cgiExt)
+				// Check if it's a CGI file
+				if (loc._isCgi && !loc._cgiExt.empty() &&
+				    indexPath.size() >= loc._cgiExt.size() &&
+				    indexPath.substr(indexPath.size() - loc._cgiExt.size()) == loc._cgiExt)
 				{
+					// Handle as CGI
 					req.setFinalPath(indexPath);
 					handleCGI(req, server);
 				}
 				else
 				{
+					// Handle as regular file
 					processFileRequest(req, indexPath, maxSize, server);
 				}
 				return;
 			}
 		}
-		// No index file found - try autoindex
+		
+		// No index file found - check if autoindex is enabled
 		if (loc._autoIndex == "on")
-			handleAutoIndex(req.getPath(), req.getFinalPath());
+		{
+			handleAutoIndex(req.getPath(), dirPath);
+		}
+		else
+		{
+			// No index file and autoindex disabled
+			generateError(403, "Forbidden", "403 Forbidden", server);
+		}
+		return;
 	}
-	else if (loc._autoIndex == "on")
+	
+	// No index configured - check autoindex
+	if (loc._autoIndex == "on")
 	{
-		// No index configured, but autoindex enabled
-		handleAutoIndex(req.getPath(), req.getFinalPath());
+		handleAutoIndex(req.getPath(), dirPath);
+	}
+	else
+	{
+		// Directory browsing not allowed
+		generateError(403, "Forbidden", "403 Forbidden", server);
 	}
 }
 
@@ -128,6 +192,117 @@ void Response::setRedirectResponse(int statusCode, const std::string &statusTxt,
 	this->_headers["Content-Type"] = "text/html";
 	this->_headers["Content-Length"] = "0";
 	this->_body = "";
+}
+
+void	Response::doPost(std::string uploadPath, const Request &req) {
+	// std::cout << "DO POST\n" << uploadPath << "\n" << req << std::endl;
+	std::vector<std::string> fileNames;
+	std::vector<std::string> fileContents;
+
+	parseFile(req.getBody(), req.getContentType(), fileNames, fileContents);
+	std::vector<std::string>::const_iterator itFileContents;
+	std::vector<std::string>::const_iterator itFileNames;
+
+	for (itFileContents = fileContents.begin(), itFileNames = fileNames.begin(); (itFileContents != fileContents.end()) && itFileNames != fileNames.end(); itFileContents++, itFileNames++) {
+		// std::cout << "===================================== FILE =====================================" << std::endl;
+
+		// std::cout << "File name: " << *itFileNames << std::endl;
+		// std::cout << "File content: \n" << *itFileContents << std::endl;
+
+		const std::string &fileName    = *itFileNames;
+		const std::string &fileContent = *itFileContents;
+
+		// Build full path (e.g. /upload/image.png)
+		std::string fullPath = uploadPath + "/" + fileName;
+		// std::cout << "File upload path: " << fullPath << std::endl;
+
+		// Open file (binary mode)
+		std::ofstream out(fullPath.c_str(), std::ios::binary);
+		if (!out)
+		{
+			std::cerr << "Upload error: failed to open " << fullPath << std::endl;
+			this->_statusCode = 500;
+			this->_body = "<!DOCTYPE html>\n"
+							"<html>\n"
+							"<head><title>KO</title></head>\n"
+							"<body>\n"
+							"<h1>Response from C++</h1>\n"
+							"<p>Upload of file" + fileName + " failed</p>\n"
+							"</body>\n"
+							"</html>";
+			return;
+		}
+
+		// Write raw content
+		out.write(fileContent.data(), fileContent.size());
+		out.close();
+
+		std::cout << "Uploaded: " << fullPath
+				<< " (" << fileContent.size() << " bytes)"
+				<< std::endl;
+		// std::cout << "===================================== FILE END =====================================" << std::endl;
+	}
+	this->_statusCode = 200;
+	this->_body = "<!DOCTYPE html>\n"
+					"<html>\n"
+					"<head><title>OK</title></head>\n"
+					"<body>\n"
+					"<h1>Response from C++</h1>\n"
+					"<p>Everything works!</p>\n"
+					"</body>\n"
+					"</html>";
+}
+
+void	Response::doDelete(std::string uploadPath, const Request &req) {
+	// std::cout << "DO DELETE\n" << uploadPath << "\n" << req << std::endl;
+
+	std::string filePath;
+
+	// Parse from URL path (e.g. "DELETE /upload/test.txt")
+	// parseFile writes the relative path into filePath
+	parseFile(req.getPath(), req.getIt()->second._root, filePath);
+
+	// std::cout << "=====================================" << std::endl;
+	// std::cout << "fileName: " << filePath << std::endl;
+
+	// Construct the full path
+	std::string fullPath = uploadPath + filePath.substr(filePath.find_last_of('/'));
+
+	// Check existence
+	struct stat st;
+	if (stat(fullPath.c_str(), &st) != 0) {
+		// file doesn't exist
+		std::cerr << "File does not exist: " << fullPath << std::endl;
+		// You can set 404 here
+		this->_statusCode = 404;
+		this->_body = "File not found.\n";
+		return;
+	}
+
+	// Delete the file
+	if (unlink(fullPath.c_str()) != 0) {
+		// unlink failed → no permission or locked
+		std::cerr << "Failed to delete: " << fullPath << std::endl;
+		// set 500 or 403 depending on your logic
+		this->_statusCode = 500;
+		this->_body = "Failed to delete the file.\n";
+		return;
+	}
+
+	std::cout << "Deleted: " << fullPath << std::endl;
+
+	// Success
+	this->_statusCode = 200;
+	this->_body = "File deleted.\n";
+}
+
+void Response::handleStore(t_location loc, const Request& req) {
+	std::cout << "handling store" << std::endl;
+	if (req.getMethodType() == "POST") {
+		doPost(loc._uploadStore, req);
+	} else if (req.getMethodType() == "DELETE") {
+		doDelete(loc._uploadStore, req);
+	}
 }
 
 void Response::handleReturn(const std::vector<std::string> &returnDirective)
@@ -456,51 +631,105 @@ std::pair<std::string, std::string> Response::getErrorFromMap(int errorCode)
 	return std::make_pair("Error", "<h1>Error</h1>");
 }
 
-bool Response::checkHttpError(const Request &req, size_t size, std::string path, Server &server)
+bool Response::checkHttpError(const Request &req, size_t maxSize, std::string path, Server &server)
 {
 	std::map<int, std::pair<std::string, std::string> > errorMap = getErrorMap();
 	int errorCode = 0;
+	const std::string &method = req.getMethodType();
+	const std::string &requestPath = req.getPath();
+	const std::string &httpVersion = req.getHttpVersion();
 
-	if (req.getMethodType().empty())
-		errorCode = 400;
-	else if (req.getPath().find("/private") == 0 && !req.hasHeader("Authorization"))
-		errorCode = 401;
-	else if (req.getPath().empty() || path.empty())
-		errorCode = 500;
-	else if (req.getHttpVersion() != "HTTP/1.0" && req.getHttpVersion() != "HTTP/1.1")
-		errorCode = 505;
-	else if (req.getPath() == "/teapot")
-		errorCode = 418;
-	else if (req.getPath().size() > 2048)
-		errorCode = 414;
-	else if (req.getMethodType() != "GET" && req.getMethodType() != "POST" && req.getMethodType() != "DELETE")
-		errorCode = 405;
-	else if (req.getMethodType() == "POST" && !req.hasHeader("Content-Length"))
-		errorCode = 411;
-	else if (req.getBody().size() > size)
-		errorCode = 413;
+	// Validate HTTP basics
+	if (method.empty())
+	{
+		errorCode = 400; // Bad Request - no method
+	}
+	else if (httpVersion != "HTTP/1.0" && httpVersion != "HTTP/1.1")
+	{
+		errorCode = 505; // HTTP Version Not Supported
+	}
+	else if (requestPath.empty() || path.empty())
+	{
+		errorCode = 500; // Internal Server Error - path resolution failed
+	}
+	else if (requestPath.size() > 2048)
+	{
+		errorCode = 414; // URI Too Long
+	}
+	// Validate HTTP method
+	else if (method != "GET" && method != "POST" && method != "DELETE")
+	{
+		errorCode = 405; // Method Not Allowed
+	}
+	// POST-specific validations
+	else if (method == "POST")
+	{
+		if (!req.hasHeader("Content-Length"))
+			errorCode = 411; // Length Required
+		else if (req.getBody().size() > maxSize)
+			errorCode = 413; // Content Too Large
+	}
+	// Check body size for all methods with body
+	else if (!req.getBody().empty() && req.getBody().size() > maxSize)
+	{
+		errorCode = 413; // Content Too Large
+	}
+	// Special endpoints
+	else if (requestPath == "/teapot")
+	{
+		errorCode = 418; // I'm a teapot (Easter egg)
+	}
+	// Authorization check for private paths
+	else if (requestPath.find("/private") == 0 && !req.hasHeader("Authorization"))
+	{
+		errorCode = 401; // Unauthorized
+	}
+	// Path safety and file access checks
+	else if (!safePath(path))
+	{
+		errorCode = 403; // Forbidden - unsafe path (e.g., contains ..)
+	}
 	else
 	{
+		// Check file existence and readability
 		std::ifstream file(path.c_str());
 		if (!file.is_open())
-			errorCode = 404;
-		else if (access(path.c_str(), R_OK) < 0 || !safePath(path))
-			errorCode = 403;
-		else if (req.getMethodType() == "POST")
 		{
-			std::string type = getMimeType(path);
-			if (!isSupportedType(type))
-				errorCode = 415;
+			errorCode = 404; // Not Found
+		}
+		else
+		{
+			file.close();
+			
+			// Check read permissions
+			if (access(path.c_str(), R_OK) < 0)
+			{
+				errorCode = 403; // Forbidden - no read permission
+			}
+			// POST-specific content type validation
+			else if (method == "POST")
+			{
+				std::string contentType = getMimeType(path);
+				if (!isSupportedType(contentType))
+				{
+					errorCode = 415; // Unsupported Media Type
+				}
+			}
 		}
 	}
+
+	// Generate error response if error detected
 	if (errorCode != 0)
 	{
 		std::map<int, std::pair<std::string, std::string> >::const_iterator it = errorMap.find(errorCode);
 		if (it != errorMap.end())
 			return generateError(errorCode, it->second.first, it->second.second, server);
+		
+		// Fallback for unmapped error codes
+		return generateError(errorCode, "Error", "<h1>Error " + intToString(errorCode) + "</h1>", server);
 	}
 
-	return false;
+	return false; // No error
 }
 
 Response::Response(unsigned int errorCode)
