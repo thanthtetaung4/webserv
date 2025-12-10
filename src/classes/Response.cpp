@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/08 15:39:27 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/09 01:09:58 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,7 +71,8 @@ Response::Response(Request &req, Server &server)
 			{
 				std::cout << "=========== ppass ===========" << std::endl;
 				// handle proxypass
-				// handleReverseProxy(req);
+				std::string rawRes = handleReverseProxy(req);
+				std::cout << rawRes << std::endl;
 			}
 			else if (!loc._index.empty())
 			{
@@ -119,8 +120,8 @@ Response::Response(Request &req, Server &server)
 			std::cout << "=========== is not file, not dir ===========" << std::endl;
 			if (!loc._proxy_pass.empty()) {
 				std::cout << "=========== ppass ===========" << std::endl;
-				// handle proxypass
-				// handleReverseProxy(req);
+				std::string rawRes = handleReverseProxy(req);
+				std::cout << rawRes << std::endl;
 			} else if (!loc._uploadStore.empty()) {
 				std::cout << "upload store" << std::endl;
 				if (std::find(loc._limit_except.begin(), loc._limit_except.end(), req.getMethodType()) != loc._limit_except.end()) {
@@ -236,6 +237,87 @@ void Response::setRedirectResponse(int statusCode, const std::string &statusTxt,
 	this->_headers["Content-Type"] = "text/html";
 	this->_headers["Content-Length"] = "0";
 	this->_body = "";
+}
+
+std::string Response::handleReverseProxy(const Request &req)
+{
+	// 1. Parse proxy_pass directive
+	t_proxyPass pp = parseProxyPass(req.getIt()->second._proxy_pass);
+	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
+
+	// 2. Create upstream client socket
+	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0)
+		throw std::runtime_error("Failed to create proxy socket");
+
+	// 3. Build remote address
+	struct sockaddr_in server_addr;
+	memset(&server_addr, 0, sizeof(server_addr));
+	server_addr.sin_family      = AF_INET;
+	server_addr.sin_port        = htons(std::atoi(pp.port.c_str()));
+	server_addr.sin_addr.s_addr = inet_addr(pp.host.c_str());
+
+	if (server_addr.sin_addr.s_addr == INADDR_NONE) {
+		close(sockfd);
+		throw std::runtime_error("Invalid proxy address");
+	}
+
+	// 4. Connect to upstream
+	if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+		perror("connect");
+		close(sockfd);
+		throw std::runtime_error("Unable to connect to proxy server");
+	}
+
+	std::cout << "Connected to upstream" << std::endl;
+
+	// 5. Build request to upstream
+	std::string proxyRequest;
+	proxyRequest += req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
+
+	// Copy client headers
+	for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin();
+			it != req.getHeaders().end(); ++it)
+	{
+		proxyRequest += it->first + ": " + it->second + "\r\n";
+	}
+
+	proxyRequest += "\r\n"; // end headers
+	proxyRequest += req.getBody();
+
+	std::cout << "Sending to upstream:\n" << proxyRequest << std::endl;
+
+	// 6. Send request to upstream
+	ssize_t sent = send(sockfd, proxyRequest.c_str(), proxyRequest.size(), 0);
+	if (sent < 0) {
+		close(sockfd);
+		throw std::runtime_error("Unable to send to proxy");
+	}
+
+	// 7. Receive full response
+	std::string fullResponse;
+	char buffer[4096];
+
+	while (true) {
+		ssize_t n = recv(sockfd, buffer, sizeof(buffer), 0);
+		if (n < 0) {
+			close(sockfd);
+			throw std::runtime_error("Error receiving from proxy");
+		}
+		if (n == 0)
+			break; // EOF
+
+		fullResponse.append(buffer, n);
+
+		// If Content-Length is known and we got all, we can break early
+		// (optional optimization later)
+	}
+
+	close(sockfd);
+
+	std::cout << "Received from upstream (" << fullResponse.size() << " bytes)" << std::endl;
+
+	return fullResponse;
 }
 
 void Response::handleReturn(const std::vector<std::string> &returnDirective)

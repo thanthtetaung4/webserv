@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:41:50 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/24 17:16:52 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/08 19:33:42 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,27 +16,43 @@
 
 int main(int argc, char **argv)
 {
-        WebServer ws;
+        // WebServer ws;
 
-        if (argc == 2)
-        {
-                try
-                {
-                        ws.setServer(argv[1]);
-                        // for (int i = 0; i < (int)ws.getServers().size(); i++)
-                        // {
-                        //         std::cout << ws.getServers()[i] << std::endl;
-                        // }
-                        ws.setUpSock();
-                        ws.serve();
-                }
-                catch (std::exception &e)
-                {
-                        std::cout << e.what() << std::endl;
-                }
-        }
-        else
+        // if (argc == 2)
+        // {
+        //         try
+        //         {
+        //                 ws.setServer(argv[1]);
+        //                 // for (int i = 0; i < (int)ws.getServers().size(); i++)
+        //                 // {
+        //                 //         std::cout << ws.getServers()[i] << std::endl;
+        //                 // }
+        //                 ws.setUpSock();
+        //                 ws.serve();
+        //         }
+        //         catch (std::exception &e)
+        //         {
+        //                 std::cout << e.what() << std::endl;
+        //         }
+        // }
+        // else
+        //         std::cerr << "Usage: ./webserv [config file]" << std::endl;
+
+        if (argc != 2) {
                 std::cerr << "Usage: ./webserv [config file]" << std::endl;
+                return 1;
+        }
+
+        try {
+                WebServer ws;
+                ws.setServer(argv[1]);   // read config
+                ws.setUpSock();          // bind/listen
+                return ws.run();         // event-driven loop
+        }
+        catch(const std::exception& e) {
+                std::cerr << "Fatal Error: " << e.what() << std::endl;
+                return 1;
+        }
 }
 
 // int main(int argc, char **argv)

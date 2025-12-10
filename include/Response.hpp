@@ -60,6 +60,7 @@ private:
 public:
 	Response(Request &req, Server &server);
 	Response(unsigned int errorCode);
+	std::string handleReverseProxy(const Request &req);
 	void handleRedirect(const std::string &redirUrlPath);
 	void handleStore(t_location loc, const Request& req);
 	void handleReturn(const std::vector<std::string> &returnDirective);
