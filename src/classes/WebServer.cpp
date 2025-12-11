@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/09 19:04:56 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/11 21:07:08 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -252,3 +252,207 @@ int WebServer::serve(void)
 /*
 	o
 */
+
+static void setNonBlocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1)
+        throw std::runtime_error(std::string("fcntl(F_GETFL): ") + std::strerror(errno));
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+        throw std::runtime_error(std::string("fcntl(F_SETFL): ") + std::strerror(errno));
+}
+
+bool WebServer::isUpStream(int fd) const {
+	std::vector<int>::const_iterator it;
+
+	for (it = _upstreamFds.begin(); it != _upstreamFds.end(); it++) {
+		if (fd == *it)
+			return (true);
+	}
+	return (false);
+}
+
+bool WebServer::isListenFd(int fd) const {
+	for (size_t i = 0; i < _sockets.size(); ++i) {
+		if (_sockets[i].getServerFd() == fd)
+			return true;
+	}
+	return false;
+}
+
+void WebServer::handleAccept(int listenfd) {
+	while (true) {
+		sockaddr_in addr;
+		socklen_t len = sizeof(addr);
+		int client_fd = accept(listenfd, (sockaddr*)&addr, &len);
+
+		if (client_fd < 0) {
+			if (errno == EAGAIN) break;
+			perror("accept");
+			break;
+		}
+
+		setNonBlocking(client_fd);
+
+		struct epoll_event ev;
+		ev.events = EPOLLIN;
+		ev.data.fd = client_fd;
+		epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev);
+	}
+}
+
+void WebServer::handleRead(int fd) {
+    Client* client = _clients[fd];
+    if (!client) return;
+
+    char buffer[4096];
+    ssize_t n = recv(fd, buffer, sizeof(buffer), 0);
+
+    if (n < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return;  // no data available, try again later
+        closeClient(fd);
+        return;
+    }
+
+    if (n == 0) {
+        // Client closed connection
+        closeClient(fd);
+        return;
+    }
+
+    // Append received data to client's receive buffer
+    client->appendRecvBuffer(buffer);
+
+    // Try to parse complete request
+    if (!client->isRequestComplete()) {
+        if (!client->buildReq()) {
+            // Parse error
+            closeClient(fd);
+            return;
+        }
+    }
+
+    // If request is complete, build response
+    if (client->isRequestComplete() && client->getState() == CLIENT_READING_REQUEST) {
+        client->setState(CLIENT_PROCESSING_REQUEST);
+
+        try {
+            // Build the response
+            client->buildRes();
+
+            // Check if this is a proxy request
+            if (client->isProxyRequest()) {
+                // Start non-blocking upstream connection
+                int upstreamFd = client->startProxyConnection(_epoll_fd);
+                if (upstreamFd < 0) {
+                    // Proxy connection failed, send error response
+                    std::string errorResp = "HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\nContent-Length: 11\r\n\r\nBad Gateway";
+                    client->setSendBuffer(errorResp);
+                    client->setState(CLIENT_WRITING_RESPONSE);
+                } else {
+                    // Proxy connection in progress
+                    client->setState(CLIENT_PROXY_CONNECTING);
+                }
+            } else {
+                // Regular response ready to send
+                client->setState(CLIENT_WRITING_RESPONSE);
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error building response: " << e.what() << std::endl;
+            std::string errorResp = "HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\nContent-Length: 21\r\n\r\nInternal Server Error";
+            client->setSendBuffer(errorResp);
+            client->setState(CLIENT_WRITING_RESPONSE);
+        }
+
+        // Switch epoll to monitor for write
+        struct epoll_event ev;
+        memset(&ev, 0, sizeof(ev));
+        ev.events = EPOLLOUT | EPOLLET;
+        ev.data.fd = fd;
+        epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, fd, &ev);
+    }
+}
+
+void WebServer::handleWrite(int fd) {
+
+}
+
+void WebServer::closeClient(int fd) {
+
+}
+
+int WebServer::run(void) {
+    // 1) Create epoll instance
+    _epoll_fd = epoll_create1(0);
+    if (_epoll_fd == -1)
+        throw std::runtime_error(std::string("epoll_create1 failed: ") + std::strerror(errno));
+
+    // 2) Register all listening sockets
+    for (size_t i = 0; i < _sockets.size(); ++i) {
+        int fd = _sockets[i].getServerFd();
+
+        // Make listening sockets non-blocking
+        setNonBlocking(fd);
+
+        struct epoll_event ev;
+        std::memset(&ev, 0, sizeof(ev));
+        ev.events  = EPOLLIN;     // ready to accept()
+        ev.data.fd = fd;
+
+        if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1) {
+            throw std::runtime_error(std::string("epoll_ctl ADD listen_fd failed: ") +
+                                     std::strerror(errno));
+        }
+
+        std::cout << "Listening on port: http://localhost:" << _servers[i].getPort() << std::endl;
+    }
+
+    // 3) Main event loop
+    struct epoll_event events[MAX_EVENTS];
+
+    while (true) {
+        int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
+        if (nfds == -1) {
+            if (errno == EINTR)
+                continue; // interrupted by signal, just retry
+            throw std::runtime_error(std::string("epoll_wait failed: ") + std::strerror(errno));
+        }
+
+        for (int i = 0; i < nfds; ++i) {
+            int      fd = events[i].data.fd;
+            uint32_t ev = events[i].events;
+
+            // 1) Listening sockets → incoming connections
+            if (isListenFd(fd)) {
+                handleAccept(fd);
+                continue;
+            }
+
+            // 2) Upstream sockets (proxy connections)
+            if (this->isUpStream(fd)) {
+                // Let a single handler decode EPOLLIN / EPOLLOUT / ERR
+                handleUpstreamEvent(fd, ev);
+                continue;
+            }
+
+            // 3) Normal client sockets
+            if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP)) {
+                // error / hangup
+                closeClient(fd);
+                continue;
+            }
+
+            if (ev & EPOLLIN) {
+                handleRead(fd);
+            }
+
+            if (ev & EPOLLOUT) {
+                handleWrite(fd);
+            }
+        }
+    }
+
+    // Usually unreachable in a daemon, but just in case:
+    close(_epoll_fd);
+    return 0;
+}

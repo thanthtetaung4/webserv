@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/25 00:04:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/09 17:51:48 by taung            ###   ########.fr       */
+/*   Created: 2025/12/11 14:08:59 by taung             #+#    #+#             */
+/*   Updated: 2025/12/11 20:49:32 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,69 +14,61 @@
 #define CLIENT_HPP
 
 #include <string>
-#include <cstdlib>
+#include <map>
+#include <cstddef> // size_t
 #include "Request.hpp"
 #include "Response.hpp"
+#include "Server.hpp"
 
+class Request;
+class Response;
+
+// States a client connection can be in
 enum ClientState {
-	STATE_READING_REQUEST,
-	STATE_BUILDING_RESPONSE,
-	STATE_WRITING_RESPONSE,
-	STATE_PROXYING_UPSTREAM,
-	STATE_PROXYING_RESPONSE,
-	STATE_CLOSED
+	READING_HEADERS,   // reading until \r\n\r\n
+	READING_BODY,      // reading request body (POST, PUT)
+	READY_TO_PROCESS,  // full request has been received; construct Request/Response
+	WAITING_UPSTREAM,  // reverse proxy: waiting for upstream server
+	READY_TO_WRITE,    // response prepared, ready to write to socket
+	WRITING_RESPONSE,  // epoll writes incomplete, continue writing
+	DONE               // response sent, ready to close or reuse
 };
 
 class Client {
-	private:
-		int					_fd;
-		std::string			_recvBuffer;
-		std::string			_sendBuffer;
-		bool				_headerComplete;
-		size_t				_contentLength;
-		size_t				_bodyReceived;
-		bool				_responseReady;
-		Server*				_server;
-		ClientState			_state;
-		Request*			_request;
-		Response*			_response;
 
-		// Reverse proxy state
-		int					_upstreamFd;
-		std::string			_upstreamBuffer;
-		std::string			_upstreamRequest;
-		bool				_upstreamConnecting;
+public:
+	int		fd;             // client socket fd
+	Server	server;
+	std::string	inBuffer;       // raw request data (headers + body)
+	std::string	outBuffer;      // serialized HTTP response
 
-	public:
-		Client();
-		Client(int fd, Server* server);
-		~Client();
+	Request*	request;        // parsed request
+	Response*	response;       // generated response
 
-	int					getFd() const;
-	int					getUpstreamFd() const;
-	ClientState			getState() const;
-	void				setState(ClientState state);
-	Server*				getServer() const;
-	void				setUpstreamFd(int fd);		bool				handleRead();
-		bool				handleWrite();
-		bool				handleUpstreamRead();
-		bool				handleUpstreamWrite();
+	ClientState	state;          // current state
 
-		bool				isResponseReady() const;
-		void				buildResponse();
-		void				startProxyConnection(const std::string& host, const std::string& port);
-		void				handleProxyConnected();
-		void				completeProxyResponse();
+	size_t	headerEndPos;   // position of "\r\n\r\n"
+	size_t	contentLength;  // body length from Content-Length
+	bool	hasContentLength;
 
-		bool				headerComplete() const;
-		void				parseHeader();
-		size_t				parseContentLength(const std::string& headers);
+	// Reverse proxy support
+	int		upstreamFd;     // fd of upstream server (if proxy_pass)
+	bool	isProxyClient;  // true if this request uses proxy_pass
 
-		void				appendToSendBuffer(const std::string& data);
-		void				closeClient();
-		void				closeUpstream();
-		std::string			getRawRequest() const;
+public:
+	Client(int fd, const Server& server);
+	~Client();
+
+	bool	buildRes();
+	bool	buildReq();
+	void	appendRecvBuffer(std::string buff);
+	void	addToOutBuffer(std::string buff);
+	bool	isRequestComplete(void);
+	ClientState	getState(void) const;
+	void	setState(ClientState cs);
+	bool	isProxyRequest();
+	void	setSendBuffer(std::string rawString);
+
 };
 
 #endif
-

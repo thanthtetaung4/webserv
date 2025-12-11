@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/09 01:46:54 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/11 19:47:06 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,9 +45,8 @@ private:
 	std::vector<Server> _servers;
 	std::vector<Socket> _sockets;
 	std::map<int, Client*> _clients;
-	std::map<int, int> _upstreamToClient;  // upstreamFd -> clientFd mapping
+	std::vector<int> _upstreamFds;
 	int _epoll_fd;
-	int findServerIndex(int listenfd);
 
 public:
 	WebServer();
@@ -63,11 +62,12 @@ public:
 	void handleAccept(int listenfd);
 	void handleRead(int fd);
 	void handleWrite(int fd);
+	void closeClient(int fd);
 	void handleUpstreamRead(int fd);
 	void handleUpstreamEvent(int fd, uint32_t events);
-	void closeClient(int fd);
 	void closeUpstream(int upstreamFd);
 
+	bool isUpStream(int fd) const;
 	bool isListenFd(int fd) const;
 	int startUpstreamConnection(int clientFd, const std::string& host, const std::string& port);
 };
