@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/01 17:44:49 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/08 15:48:28 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,19 @@ Request::Request(const std::string &raw, Server &server)
 		}
 	}
 	_it = searchLongestMatch(server.getLocation(), this->_path);
+
+	// handling queryString
+	if (_path.find("?") != _path.npos) {
+		this->_queryString = this->_path.substr(_path.find("?") , _path.npos);
+		std::cout << "first substr OK" << std::endl;
+		this->_path = _path.substr(0, _path.find("?"));
+		std::cout << "second substr OK" << std::endl;
+		// std::cout << _path << ", " << _queryString << std::endl;
+	} else {
+		this->_queryString = "";
+	}
+
+	// handling the actual path to find on the host
 	this->_finalPath = "";
 	if (_it != server.getLocation().end())
 	{
@@ -106,6 +119,19 @@ const std::map<std::string, std::string> &Request::getHeaders() const
 	return this->_headers;
 }
 
+std::string Request::getQueryString() const {
+	return (this->_queryString);
+}
+
+std::string Request::getContentType() const {
+	std::map<std::string, std::string>::const_iterator it = search_map_iterator(this->_headers, std::string("Content-Type"));
+	if (it != this->_headers.end()) {
+		return (it->second);
+	}
+	return ("");
+}
+
+
 void Request::setFinalPath(const std::string &path)
 {
 	_finalPath = path;
@@ -122,5 +148,6 @@ std::ostream &operator<<(std::ostream &os, const Request &req)
 	{
 		os << "	[" << it->first << "]: " << it->second << std::endl;
 	}
+	os << "Body: \n" << req.getBody() << std::endl;
 	return os;
 }

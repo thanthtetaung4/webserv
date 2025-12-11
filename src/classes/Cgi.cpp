@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Cgi.cpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/26 13:49:04 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/07 22:15:55 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,7 @@ Cgi::Cgi(const Request &request, const Server &server)
 	env["SERVER_PORT"] = server.getPort();
 	env["SERVER_PROTOCOL"] = request.getHttpVersion();
 	env["SERVER_SOFTWARE"] = "webserv/1.0";
+	env["QUERY_STRING"] = request.getQueryString();
 	// std::cout << "env: " << std::endl;
 	// for (std::map<std::string, std::string>::const_iterator it1 = env.begin(); it1 != env.end(); ++it1)
 	// {

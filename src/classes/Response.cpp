@@ -3,57 +3,97 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/01 18:12:07 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/09 01:09:58 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../include/Response.hpp"
 
-// std::string intToString(size_t n) {
-// 	std::ostringstream ss;
-// 	ss << n;
-// 	return ss.str();
+// Response::Response(Request &req, Server &server)
+// {
+// 	size_t maxSize;
+// 	std::stringstream ss(server.getMaxByte());
+// 	ss >> maxSize;
+
+// 	this->_httpVersion = req.getHttpVersion();
+
+// 	if (!server.getReturn().empty())
+// 	{
+// 		handleReturn(server.getReturn());
+// 		return;
+// 	}
+// 	if (req.getIt() != server.getLocation().end())
+// 	{
+// 		t_location loc = req.getIt()->second;
+
+// 		// Handle return directive first
+// 		if (!loc._return.empty())
+// 		{
+// 			handleReturn(loc._return);
+// 			return;
+// 		}
+
+// 		if (isDirectory(req.getFinalPath()))
+// 			processDirectoryRequest(req, loc, maxSize, server);
+// 		else if (isRegularFile(req.getFinalPath()) && loc._isCgi)
+// 			handleCGI(req, server);
+// 		else
+// 			processFileRequest(req, req.getFinalPath(), maxSize, server);
+// 	}
+// 	else
+// 	{
+// 		processFileRequest(req, req.getFinalPath(), maxSize, server);
+// 	}
 // }
 
 Response::Response(Request &req, Server &server)
 {
+	std::cout << "=========== Res Start ===========" << std::endl;
 	size_t size;
 	std::string res;
 	std::string path = req.getFinalPath();
 	this->_httpVersion = req.getHttpVersion();
 	std::stringstream ss(server.getMaxByte());
 	ss >> size;
+	std::cout << size << std::endl;
 	size_t i;
 	if (req.getIt() != server.getLocation().end())
 	{
 		t_location loc = req.getIt()->second;
-		// `
-		if (!loc._proxy_pass.empty())
+
+		if (isDirectory(req.getFinalPath()))
 		{
-			handleReverseProxy(req);
-		}
-		else if (isDirectory(req.getFinalPath()))
-		{
-			if (!loc._index.empty())
+			std::cout << "=========== is file ===========" << std::endl;
+			if (!loc._proxy_pass.empty())
+			{
+				std::cout << "=========== ppass ===========" << std::endl;
+				// handle proxypass
+				std::string rawRes = handleReverseProxy(req);
+				std::cout << rawRes << std::endl;
+			}
+			else if (!loc._index.empty())
 			{
 				for (i = 0; i < loc._index.size(); i++)
 				{
 					if (isRegularFile(req.getFinalPath() + (req.getFinalPath().at(req.getFinalPath().length() - 1) == '/' ? "" : "/")  + loc._index[i]))
 					{
-						path = req.getFinalPath() + (req.getFinalPath().at(req.getFinalPath().length() - 1) == '/' ? "" : "/") + loc._index[i];
+						path = req.getFinalPath() + "/" + loc._index[i];
 						break;
 					}
 				}
-				if (i == loc._index.size() && loc._autoIndex == "on")
+				if (i == loc._index.size() && loc._autoIndex == "on") {
+					std::cout << "=========== auto index ===========" << std::endl;
 					handleAutoIndex(req.getPath(), req.getFinalPath());
+				}
 				else
 				{
 					if (loc._isCgi && path.substr(path.size() - loc._cgiExt.size()) == loc._cgiExt)
 					{
 						req.setFinalPath(path);
+						std::cout << "=========== cgi ===========" << std::endl;
 						handleCGI(req, server);
 					}
 					else
@@ -71,21 +111,40 @@ Response::Response(Request &req, Server &server)
 			else if ((loc._index.empty()) && loc._autoIndex == "on")
 				handleAutoIndex(req.getPath(), req.getFinalPath());
 		}
-		else if (isRegularFile(req.getFinalPath()) && loc._isCgi)
+		else if (isRegularFile(req.getFinalPath()) && loc._isCgi) {
+			std::cout << "=========== is reg file ===========" << std::endl;
+			std::cout << "=========== cgi ===========" << std::endl;
 			handleCGI(req, server);
-		else
-		{
-			std::cout << "Requested Path: " << path << std::endl;
-			if (!checkHttpError(req, size, path, server))
-				serveFile(path);
-			if (this->_body.empty())
-			{
-				std::cout << "Body is empty" << std::endl;
+		}
+		else {
+			std::cout << "=========== is not file, not dir ===========" << std::endl;
+			if (!loc._proxy_pass.empty()) {
+				std::cout << "=========== ppass ===========" << std::endl;
+				std::string rawRes = handleReverseProxy(req);
+				std::cout << rawRes << std::endl;
+			} else if (!loc._uploadStore.empty()) {
+				std::cout << "upload store" << std::endl;
+				if (std::find(loc._limit_except.begin(), loc._limit_except.end(), req.getMethodType()) != loc._limit_except.end()) {
+					handleStore(loc, req);
+				} else {
+					std::cout << "408 Method not allowed" << std::endl;
+				}
+			} else {
+				std::cout << "=========== static ===========" << std::endl;
+				std::cout << "Requested Path: " << path << std::endl;
+				if (!checkHttpError(req, size, path, server))
+					serveFile(path);
+				if (this->_body.empty())
+				{
+					std::cout << "Body is empty" << std::endl;
+				}
 			}
 		}
 	}
 	else
 	{
+		std::cout << "=========== loc is end =========" << std::endl;
+		std::cout << "=========== static ===========" << std::endl;
 		std::cout << "Requested Path: " << path << std::endl;
 		if (!checkHttpError(req, size, path, server))
 			serveFile(path);
@@ -94,6 +153,63 @@ Response::Response(Request &req, Server &server)
 			std::cout << "Body is empty" << std::endl;
 		}
 	}
+	std::cout << "=========== Res END ===========" << std::endl;
+}
+
+void Response::processFileRequest(Request &req, const std::string &path, size_t maxSize, Server &server)
+{
+	std::cout << "Requested Path: " << path << std::endl;
+	if (!checkHttpError(req, maxSize, path, server))
+		serveFile(path);
+	if (this->_body.empty())
+		std::cout << "Body is empty" << std::endl;
+}
+
+void Response::processDirectoryRequest(Request &req, const t_location &loc, size_t maxSize, Server &server)
+{
+	// Handle index files
+	if (!loc._index.empty())
+	{
+		std::string indexPath;
+		for (size_t i = 0; i < loc._index.size(); i++)
+		{
+			indexPath = buildIndexPath(req.getFinalPath(), loc._index[i]);
+			if (isRegularFile(indexPath))
+			{
+				// Found index file - check if CGI
+				if (loc._isCgi && indexPath.size() >= loc._cgiExt.size() &&
+					indexPath.substr(indexPath.size() - loc._cgiExt.size()) == loc._cgiExt)
+				{
+					req.setFinalPath(indexPath);
+					handleCGI(req, server);
+				}
+				else
+				{
+					processFileRequest(req, indexPath, maxSize, server);
+				}
+				return;
+			}
+		}
+		// No index file found - try autoindex
+		if (loc._autoIndex == "on")
+			handleAutoIndex(req.getPath(), req.getFinalPath());
+	}
+	else if (loc._autoIndex == "on")
+	{
+		// No index configured, but autoindex enabled
+		handleAutoIndex(req.getPath(), req.getFinalPath());
+	}
+}
+
+
+
+std::string Response::buildIndexPath(const std::string &basePath, const std::string &indexFile) const
+{
+	if (basePath.empty())
+		return indexFile;
+	if (basePath[basePath.length() - 1] == '/')
+		return basePath + indexFile;
+	return basePath + "/" + indexFile;
 }
 
 void Response::handleRedirect(const std::string &redirUrlPath)
@@ -105,16 +221,189 @@ void Response::handleRedirect(const std::string &redirUrlPath)
 	this->_headers["Content-Length"] = "0";
 }
 
+bool Response::isRedirectStatus(int statusCode) const
+{
+	return (statusCode >= 301 && statusCode <= 308) &&
+	       (statusCode == 301 || statusCode == 302 || statusCode == 303 ||
+	        statusCode == 307 || statusCode == 308);
+}
+
+void Response::setRedirectResponse(int statusCode, const std::string &statusTxt, const std::string &location)
+{
+	this->_statusCode = statusCode;
+	this->_statusTxt = statusTxt;
+	this->_headers.clear();
+	this->_headers["Location"] = location;
+	this->_headers["Content-Type"] = "text/html";
+	this->_headers["Content-Length"] = "0";
+	this->_body = "";
+}
+
+std::string Response::handleReverseProxy(const Request &req)
+{
+	// 1. Parse proxy_pass directive
+	t_proxyPass pp = parseProxyPass(req.getIt()->second._proxy_pass);
+	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
+
+	// 2. Create upstream client socket
+	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0)
+		throw std::runtime_error("Failed to create proxy socket");
+
+	// 3. Build remote address
+	struct sockaddr_in server_addr;
+	memset(&server_addr, 0, sizeof(server_addr));
+	server_addr.sin_family      = AF_INET;
+	server_addr.sin_port        = htons(std::atoi(pp.port.c_str()));
+	server_addr.sin_addr.s_addr = inet_addr(pp.host.c_str());
+
+	if (server_addr.sin_addr.s_addr == INADDR_NONE) {
+		close(sockfd);
+		throw std::runtime_error("Invalid proxy address");
+	}
+
+	// 4. Connect to upstream
+	if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+		perror("connect");
+		close(sockfd);
+		throw std::runtime_error("Unable to connect to proxy server");
+	}
+
+	std::cout << "Connected to upstream" << std::endl;
+
+	// 5. Build request to upstream
+	std::string proxyRequest;
+	proxyRequest += req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
+
+	// Copy client headers
+	for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin();
+			it != req.getHeaders().end(); ++it)
+	{
+		proxyRequest += it->first + ": " + it->second + "\r\n";
+	}
+
+	proxyRequest += "\r\n"; // end headers
+	proxyRequest += req.getBody();
+
+	std::cout << "Sending to upstream:\n" << proxyRequest << std::endl;
+
+	// 6. Send request to upstream
+	ssize_t sent = send(sockfd, proxyRequest.c_str(), proxyRequest.size(), 0);
+	if (sent < 0) {
+		close(sockfd);
+		throw std::runtime_error("Unable to send to proxy");
+	}
+
+	// 7. Receive full response
+	std::string fullResponse;
+	char buffer[4096];
+
+	while (true) {
+		ssize_t n = recv(sockfd, buffer, sizeof(buffer), 0);
+		if (n < 0) {
+			close(sockfd);
+			throw std::runtime_error("Error receiving from proxy");
+		}
+		if (n == 0)
+			break; // EOF
+
+		fullResponse.append(buffer, n);
+
+		// If Content-Length is known and we got all, we can break early
+		// (optional optimization later)
+	}
+
+	close(sockfd);
+
+	std::cout << "Received from upstream (" << fullResponse.size() << " bytes)" << std::endl;
+
+	return fullResponse;
+}
+
+void Response::handleReturn(const std::vector<std::string> &returnDirective)
+{
+	// Return directive format: [status_code] or [status_code, url/text/file_path]
+	if (returnDirective.empty())
+		return;
+
+	int statusCode = atoi(returnDirective[0].c_str());
+	std::string statusTxt;
+	std::string body;
+
+	// Get status text and default body from error map
+	std::map<int, std::pair<std::string, std::string> > errorMap = getErrorMap();
+	std::map<int, std::pair<std::string, std::string> >::const_iterator it = errorMap.find(statusCode);
+	if (it != errorMap.end())
+	{
+		statusTxt = it->second.first;
+		body = it->second.second;
+	}
+	else
+	{
+		statusTxt = "Redirect";
+		body = "<h1>" + returnDirective[0] + " Redirect</h1>";
+	}
+
+	// No second parameter - use default body
+	if (returnDirective.size() <= 1 || returnDirective[1].empty())
+	{
+		setResponseState(statusCode, statusTxt, body, "text/html");
+		return;
+	}
+
+	std::string secondParam = returnDirective[1];
+
+	// External URL (http:// or https://) - always redirect
+	if (secondParam.find("http://") == 0 || secondParam.find("https://") == 0)
+	{
+		setRedirectResponse(statusCode, statusTxt, secondParam);
+		return;
+	}
+
+	// Path starting with / - behavior depends on status code
+	if (secondParam[0] == '/')
+	{
+		if (isRedirectStatus(statusCode))
+		{
+			// 3xx redirect codes - treat as internal redirect
+			setRedirectResponse(statusCode, statusTxt, secondParam);
+		}
+		else
+		{
+			// Non-redirect status - try to load custom error page from file
+			std::ifstream file(secondParam.c_str());
+			if (file.is_open())
+			{
+				std::stringstream buffer;
+				buffer << file.rdbuf();
+				body = buffer.str();
+				file.close();
+			}
+			// Use loaded content or fall back to default body
+			setResponseState(statusCode, statusTxt, body, "text/html");
+		}
+		return;
+	}
+
+	// Plain text - use as custom response body
+	body = "<h1>" + secondParam + "</h1>";
+	setResponseState(statusCode, statusTxt, body, "text/html");
+}
+
 void Response::handleAutoIndex(const std::string &urlPath, const std::string &fullPath)
 {
-	if (urlPath.at(urlPath.size() - 1) != '/')
-		return handleRedirect(urlPath + "/");
-	// Check access
+	// Ensure URL ends with slash
+	if (urlPath.empty() || urlPath[urlPath.size() - 1] != '/')
+	{
+		handleRedirect(urlPath + "/");
+		return;
+	}
+
+	// Check directory accessibility
 	if (access(fullPath.c_str(), R_OK) == -1)
 	{
-		this->_statusCode = 403;
-		this->_statusTxt = "Forbidden";
-		this->_body = "";
+		std::pair<std::string, std::string> error = getErrorFromMap(403);
+		setResponseState(403, error.first, error.second, "text/html");
 		return;
 	}
 
@@ -122,294 +411,263 @@ void Response::handleAutoIndex(const std::string &urlPath, const std::string &fu
 	DIR *dir = opendir(fullPath.c_str());
 	if (!dir)
 	{
-		this->_statusCode = 404;
-		this->_statusTxt = "Not Found";
-		this->_body = "";
+		std::pair<std::string, std::string> error = getErrorFromMap(404);
+		setResponseState(404, error.first, error.second, "text/html");
 		return;
 	}
 
-	// Build HTML body
-	std::string body;
-	body += "<html><head><title>Index of " + urlPath + "</title></head><body>";
-	body += "<h1>Index of " + urlPath + "</h1><hr><pre>";
+	// Build directory listing HTML
+	std::string body = buildDirectoryListingHTML(urlPath, fullPath);
+	closedir(dir);
+
+	// Set successful response
+	setResponseState(200, "OK", body, "text/html");
+}
+
+std::string Response::buildDirectoryListingHTML(const std::string &urlPath, const std::string &fullPath)
+{
+	std::string html;
+	html += "<html><head><title>Index of " + urlPath + "</title></head><body>";
+	html += "<h1>Index of " + urlPath + "</h1><hr><pre>";
+
+	DIR *dir = opendir(fullPath.c_str());
+	if (!dir)
+		return html + "</pre><hr></body></html>";
 
 	struct dirent *entry;
-
 	while ((entry = readdir(dir)) != NULL)
 	{
 		std::string name = entry->d_name;
 
+		// Skip . and ..
 		if (name == "." || name == "..")
 			continue;
 
+		// Get file info
 		std::string itemFullPath = fullPath + "/" + name;
-
 		struct stat st;
 		if (stat(itemFullPath.c_str(), &st) == -1)
 			continue;
 
-		body += "<a href=\"" + urlPath;
-		body += name;
-
+		// Build link
+		html += "<a href=\"" + urlPath + name;
 		if (S_ISDIR(st.st_mode))
-			body += "/";
-
-		body += "\">" + name + "</a>\n";
+			html += "/";
+		html += "\">" + name + "</a>\n";
 	}
 
-	body += "</pre><hr></body></html>";
 	closedir(dir);
+	html += "</pre><hr></body></html>";
+	return html;
+}
 
-	// Set response
+void	Response::doPost(std::string uploadPath, const Request &req) {
+	// std::cout << "DO POST\n" << uploadPath << "\n" << req << std::endl;
+	std::vector<std::string> fileNames;
+	std::vector<std::string> fileContents;
+
+	parseFile(req.getBody(), req.getContentType(), fileNames, fileContents);
+	std::vector<std::string>::const_iterator itFileContents;
+	std::vector<std::string>::const_iterator itFileNames;
+
+	for (itFileContents = fileContents.begin(), itFileNames = fileNames.begin(); (itFileContents != fileContents.end()) && itFileNames != fileNames.end(); itFileContents++, itFileNames++) {
+		// std::cout << "===================================== FILE =====================================" << std::endl;
+
+		// std::cout << "File name: " << *itFileNames << std::endl;
+		// std::cout << "File content: \n" << *itFileContents << std::endl;
+
+		const std::string &fileName    = *itFileNames;
+		const std::string &fileContent = *itFileContents;
+
+		// Build full path (e.g. /upload/image.png)
+		std::string fullPath = uploadPath + "/" + fileName;
+		// std::cout << "File upload path: " << fullPath << std::endl;
+
+		// Open file (binary mode)
+		std::ofstream out(fullPath.c_str(), std::ios::binary);
+		if (!out)
+		{
+			std::cerr << "Upload error: failed to open " << fullPath << std::endl;
+			this->_statusCode = 500;
+			this->_body = "<!DOCTYPE html>\n"
+							"<html>\n"
+							"<head><title>KO</title></head>\n"
+							"<body>\n"
+							"<h1>Response from C++</h1>\n"
+							"<p>Upload of file" + fileName + " failed</p>\n"
+							"</body>\n"
+							"</html>";
+			return;
+		}
+
+		// Write raw content
+		out.write(fileContent.data(), fileContent.size());
+		out.close();
+
+		std::cout << "Uploaded: " << fullPath
+				<< " (" << fileContent.size() << " bytes)"
+				<< std::endl;
+		// std::cout << "===================================== FILE END =====================================" << std::endl;
+	}
 	this->_statusCode = 200;
-	this->_statusTxt = "OK";
-	this->_body = body;
-	this->_headers["Content-Type"] = "text/html";
-	this->_headers["Content-Length"] = intToString(body.size());
-	this->_headers["Connection"] = "close";
+	this->_body = "<!DOCTYPE html>\n"
+					"<html>\n"
+					"<head><title>OK</title></head>\n"
+					"<body>\n"
+					"<h1>Response from C++</h1>\n"
+					"<p>Everything works!</p>\n"
+					"</body>\n"
+					"</html>";
+}
+
+#include <sys/stat.h>
+#include <unistd.h>
+
+void	Response::doDelete(std::string uploadPath, const Request &req) {
+	// std::cout << "DO DELETE\n" << uploadPath << "\n" << req << std::endl;
+
+	std::string filePath;
+
+	// Parse from URL path (e.g. "DELETE /upload/test.txt")
+	// parseFile writes the relative path into filePath
+	parseFile(req.getPath(), req.getIt()->second._root, filePath);
+
+	// std::cout << "=====================================" << std::endl;
+	// std::cout << "fileName: " << filePath << std::endl;
+
+	// Construct the full path
+	std::string fullPath = uploadPath + filePath.substr(filePath.find_last_of('/'));
+
+	// Check existence
+	struct stat st;
+	if (stat(fullPath.c_str(), &st) != 0) {
+		// file doesn't exist
+		std::cerr << "File does not exist: " << fullPath << std::endl;
+		// You can set 404 here
+		this->_statusCode = 404;
+		this->_body = "File not found.\n";
+		return;
+	}
+
+	// Delete the file
+	if (unlink(fullPath.c_str()) != 0) {
+		// unlink failed → no permission or locked
+		std::cerr << "Failed to delete: " << fullPath << std::endl;
+		// set 500 or 403 depending on your logic
+		this->_statusCode = 500;
+		this->_body = "Failed to delete the file.\n";
+		return;
+	}
+
+	std::cout << "Deleted: " << fullPath << std::endl;
+
+	// Success
+	this->_statusCode = 200;
+	this->_body = "File deleted.\n";
+}
+
+void Response::handleStore(t_location loc, const Request& req) {
+	if (req.getMethodType() == "POST") {
+		doPost(loc._uploadStore, req);
+	} else if (req.getMethodType() == "DELETE") {
+		doDelete(loc._uploadStore, req);
+	}
 }
 
 void Response::handleCGI(const Request &req, const Server &server)
 {
+	// Execute CGI and parse output
 	Cgi cgi(req, server);
 	std::string output = cgi.execute();
 	CgiResult parsed = cgi.parseCgiHeaders(output);
-	std::string contentType;
+
+	// Determine content type
+	std::string contentType = "text/html"; // Default fallback
 	if (parsed.headers.count("Content-Type"))
 		contentType = parsed.headers["Content-Type"];
-	else
-		contentType = "text/html"; // fallback (required by spec)
 
-	// 4. Body from CGI output
-	this->_body = parsed.body;
-
-	// 5. HTTP status code (use CGI header or default to 200)
+	// Parse status code from CGI output
 	if (parsed.headers.count("Status"))
-	{
-		// Example: "Status: 404 Not Found"
-		std::string status = parsed.headers["Status"];
-		size_t space = status.find(' ');
-		if (space != std::string::npos)
-		{
-			this->_statusCode = atoi(status.substr(0, space).c_str());
-			this->_statusTxt = status.substr(space + 1);
-		}
-		else
-		{
-			this->_statusCode = 200;
-			this->_statusTxt = "OK";
-		}
-	}
+		parseCgiStatus(parsed.headers["Status"]);
 	else
 	{
 		this->_statusCode = 200;
 		this->_statusTxt = "OK";
 	}
 
-	// 6. Build HTTP headers for the final response
+	// Set response state
+	setResponseState(this->_statusCode, this->_statusTxt, parsed.body, contentType);
+}
+
+void Response::parseCgiStatus(const std::string &statusHeader)
+{
+	// Parse "Status: 404 Not Found" format
+	size_t space = statusHeader.find(' ');
+	if (space != std::string::npos)
+	{
+		this->_statusCode = atoi(statusHeader.substr(0, space).c_str());
+		this->_statusTxt = statusHeader.substr(space + 1);
+	}
+	else
+	{
+		// Invalid format, default to 200
+		this->_statusCode = 200;
+		this->_statusTxt = "OK";
+	}
+}
+
+void Response::setResponseState(int statusCode, const std::string &statusTxt, const std::string &body, const std::string &contentType)
+{
+	this->_statusCode = statusCode;
+	this->_statusTxt = statusTxt;
+	this->_body = body;
 	this->_headers.clear();
 	this->_headers["Content-Type"] = contentType;
-	this->_headers["Content-Length"] = intToString(this->_body.size());
+	this->_headers["Content-Length"] = intToString(body.size());
 	this->_headers["Connection"] = "close";
 }
 
-void Response::handleReverseProxy(const Request &req)
+bool safePath(const std::string &path)
 {
-    t_proxyPass pp = parseProxyPass(req.getIt()->second._proxy_pass);
-
-    std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
-
-    // Create a simple client socket (not a server socket)
-    int proxy_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (proxy_fd < 0)
-    {
-        std::cerr << "Failed to create proxy socket" << std::endl;
-        this->_statusCode = 502;
-        this->_statusTxt = "Bad Gateway";
-        this->_body = "<h1>502 Bad Gateway - Socket creation failed</h1>";
-        this->_headers.clear();
-        this->_headers["Content-Type"] = "text/html";
-        this->_headers["Content-Length"] = intToString(this->_body.size());
-        this->_headers["Connection"] = "close";
-        return;
-    }
-
-    std::cout << "Proxy socket created: " << proxy_fd << std::endl;
-
-    // Setup address structure for the proxy server
-    struct sockaddr_in server_addr;
-    for (size_t i = 0; i < sizeof(server_addr); i++)
-        ((char *)&server_addr)[i] = 0;
-    
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(std::atol(pp.port.c_str()));
-    
-    // Convert IP address
-    if (inet_pton(AF_INET, pp.host.c_str(), &server_addr.sin_addr) <= 0)
-    {
-        std::cerr << "Invalid proxy address: " << pp.host << std::endl;
-        close(proxy_fd);
-        this->_statusCode = 502;
-        this->_statusTxt = "Bad Gateway";
-        this->_body = "<h1>502 Bad Gateway - Invalid proxy address</h1>";
-        this->_headers.clear();
-        this->_headers["Content-Type"] = "text/html";
-        this->_headers["Content-Length"] = intToString(this->_body.size());
-        this->_headers["Connection"] = "close";
-        return;
-    }
-
-    // Set socket timeout
-    struct timeval timeout;
-    timeout.tv_sec = 10;
-    timeout.tv_usec = 0;
-    setsockopt(proxy_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    setsockopt(proxy_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-
-    // Connect to proxy server
-    std::cout << "Connecting to " << pp.host << ":" << pp.port << "..." << std::endl;
-    if (connect(proxy_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-    {
-        std::cerr << "Unable to connect to proxy server: " << strerror(errno) << std::endl;
-        close(proxy_fd);
-        this->_statusCode = 502;
-        this->_statusTxt = "Bad Gateway";
-        this->_body = "<h1>502 Bad Gateway - Connection refused</h1>";
-        this->_headers.clear();
-        this->_headers["Content-Type"] = "text/html";
-        this->_headers["Content-Length"] = intToString(this->_body.size());
-        this->_headers["Connection"] = "close";
-        return;
-    }
-
-    std::cout << "Connected successfully!" << std::endl;
-
-    // Build the proxy request
-    std::string proxyRequest = req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
-    proxyRequest += "Host: " + pp.host + "\r\n";
-    
-    for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin();
-         it != req.getHeaders().end(); ++it)
-    {
-        // Skip Host header as we already added it
-        if (it->first == "Host")
-            continue;
-        proxyRequest += it->first + ": " + it->second + "\r\n";
-    }
-    proxyRequest += "Connection: close\r\n";
-    proxyRequest += "\r\n" + req.getBody();
-
-    std::cout << "Sending proxy request (" << proxyRequest.size() << " bytes)" << std::endl;
-
-    // Send the request to proxy server
-    ssize_t sent = send(proxy_fd, proxyRequest.c_str(), proxyRequest.size(), 0);
-    if (sent < 0)
-    {
-        std::cerr << "Failed to send to proxy server" << std::endl;
-        close(proxy_fd);
-        this->_statusCode = 502;
-        this->_statusTxt = "Bad Gateway";
-        this->_body = "<h1>502 Bad Gateway - Send failed</h1>";
-        this->_headers.clear();
-        this->_headers["Content-Type"] = "text/html";
-        this->_headers["Content-Length"] = intToString(this->_body.size());
-        this->_headers["Connection"] = "close";
-        return;
-    }
-
-    std::cout << "Request sent successfully (" << sent << " bytes)" << std::endl;
-
-    // Receive the response from proxy server
-    std::string responseData;
-    char buffer[4096];
-    ssize_t bytes_received;
-
-    while ((bytes_received = recv(proxy_fd, buffer, sizeof(buffer) - 1, 0)) > 0)
-    {
-        responseData.append(buffer, bytes_received);
-        std::cout << "Received " << bytes_received << " bytes (total: " << responseData.size() << ")" << std::endl;
-    }
-
-    close(proxy_fd);
-
-    if (bytes_received < 0)
-    {
-        std::cerr << "Error receiving response from proxy server" << std::endl;
-        this->_statusCode = 502;
-        this->_statusTxt = "Bad Gateway";
-        this->_body = "<h1>502 Bad Gateway - Receive failed</h1>";
-        this->_headers.clear();
-        this->_headers["Content-Type"] = "text/html";
-        this->_headers["Content-Length"] = intToString(this->_body.size());
-        this->_headers["Connection"] = "close";
-        return;
-    }
-
-    if (responseData.empty())
-    {
-        std::cerr << "No data received from proxy server" << std::endl;
-        this->_statusCode = 502;
-        this->_statusTxt = "Bad Gateway";
-        this->_body = "<h1>502 Bad Gateway - Empty response</h1>";
-        this->_headers.clear();
-        this->_headers["Content-Type"] = "text/html";
-        this->_headers["Content-Length"] = intToString(this->_body.size());
-        this->_headers["Connection"] = "close";
-        return;
-    }
-
-    std::cout << "Total received: " << responseData.size() << " bytes from proxy" << std::endl;
-
-    // Set response state with raw proxy response (includes headers and body)
-    this->_statusCode = 200;
-    this->_statusTxt = "OK";
-    this->_body = responseData;
-    this->_headers.clear();
-    this->_headers["Content-Type"] = "text/html";
-    this->_headers["Content-Length"] = intToString(this->_body.size());
-    this->_headers["Connection"] = "close";
-}
-
-bool safePath(std::string const &path)
-{
-	if (path.find("..") == std::string::npos)
-		return true;
-	return false;
+	return path.find("..") == std::string::npos;
 }
 
 std::string getMimeType(const std::string &path)
 {
 	size_t deliPos = path.rfind('.');
 
+	// No extension or extension is at the end
+	if (deliPos == std::string::npos || deliPos >= path.length() - 1)
+		return "text/plain";
+
 	std::string type = path.substr(deliPos + 1);
 
 	if (type == "html")
 		return "text/html";
-	else if (type == "css")
+	if (type == "css")
 		return "text/css";
-	else if (type == "js")
+	if (type == "js")
 		return "application/javascript";
-	else if (type == "png")
+	if (type == "png")
 		return "image/png";
-	else if (type == "jpg" || type == "jpeg")
+	if (type == "jpg" || type == "jpeg")
 		return "image/jpeg";
-	else if (type == "ico")
+	if (type == "ico")
 		return "image/x-icon";
-	else if (deliPos == std::string::npos || deliPos == path.length() - 1)
-	{
-		return "text/plain";
-	}
-	else
-		return "text/plain";
+	if (type == "json")
+		return "application/json";
+
+	return "text/plain";
 }
 
-std::string readFile(std::string &path)
+std::string readFile(const std::string &path)
 {
-	std::ifstream file(path.c_str());
+	std::ifstream file(path.c_str(), std::ios::binary);
 	if (!file.is_open())
 		return "";
 	std::stringstream buffer;
 	buffer << file.rdbuf();
+	file.close();
 	return buffer.str();
 }
 
@@ -418,26 +676,27 @@ bool Response::generateError(int errorCode, std::string const errorMsg, std::str
 	this->_statusCode = errorCode;
 	std::map<std::string, std::string> errorPages = server.getErrorPage();
 	std::map<std::string, std::string>::iterator it = errorPages.find(intToString(this->_statusCode));
+	std::string body;
+
 	if (it != errorPages.end())
 	{
 		std::cout << "Custom error page found for " << this->_statusCode << ": " << it->second << std::endl;
-		this->_body = readFile(it->second);
-		std::cout << "Cuastom page path: " << it->second << std::endl;
-		if (this->_body.empty())
+		body = readFile(it->second);
+		std::cout << "Custom page path: " << it->second << std::endl;
+		if (body.empty())
 		{
 			std::cout << "Failed to read custom error page: " << it->second << std::endl;
-			this->_body = "<h1>" + bodyMsg + "</h1>";
 		}
 	}
-	else
+
+	// Use simple default error page if no custom page loaded
+	if (body.empty())
 	{
-		std::cout << "No custom error page found for " << this->_statusCode << ", using default message." << std::endl;
-		this->_body = "<h1>" + bodyMsg + "</h1>";
+		std::cout << "Using default error page for " << this->_statusCode << std::endl;
+		body = bodyMsg;
 	}
-	this->_statusTxt = errorMsg;
-	this->_headers["Content-Type"] = "text/html";
-	this->_headers["Content-Length"] = intToString(this->_body.size());
-	this->_headers["Connection"] = "close";
+
+	setResponseState(errorCode, errorMsg, body, "text/html");
 	return true;
 }
 
@@ -471,48 +730,78 @@ bool isSupportedType(const std::string &type)
 			type == "application/json");
 }
 
+std::map<int, std::pair<std::string, std::string> > Response::getErrorMap()
+{
+	std::map<int, std::pair<std::string, std::string> > errorMap;
+	errorMap[400] = std::make_pair("Bad Request", "<h1>400 Bad Request</h1>");
+	errorMap[401] = std::make_pair("Unauthorized", "<h1>401 Unauthorized</h1>");
+	errorMap[403] = std::make_pair("Forbidden", "<h1>403 Forbidden</h1>");
+	errorMap[404] = std::make_pair("Not Found", "<h1>404 Not Found</h1>");
+	errorMap[405] = std::make_pair("Method Not Allowed", "<h1>405 Method Not Allowed</h1>");
+	errorMap[411] = std::make_pair("Length Required", "<h1>411 Length Required</h1>");
+	errorMap[413] = std::make_pair("Content Too Large", "<h1>413 Content Too Large</h1>");
+	errorMap[414] = std::make_pair("URI Too Long", "<h1>414 URI Too Long</h1>");
+	errorMap[415] = std::make_pair("Unsupported Media Type", "<h1>415 Unsupported Media Type</h1>");
+	errorMap[418] = std::make_pair("I'm a teapot", "<h1>418 I'm a teapot</h1>");
+	errorMap[500] = std::make_pair("Internal Server Error", "<h1>500 Internal Server Error</h1>");
+	errorMap[502] = std::make_pair("Bad Gateway", "<h1>502 Bad Gateway</h1>");
+	errorMap[505] = std::make_pair("HTTP Version Not Supported", "<h1>505 HTTP Version Not Supported</h1>");
+	return errorMap;
+}
+
+std::pair<std::string, std::string> Response::getErrorFromMap(int errorCode)
+{
+	std::map<int, std::pair<std::string, std::string> > errorMap = getErrorMap();
+	std::map<int, std::pair<std::string, std::string> >::const_iterator it = errorMap.find(errorCode);
+	if (it != errorMap.end())
+		return it->second;
+	// Default fallback
+	return std::make_pair("Error", "<h1>Error</h1>");
+}
+
 bool Response::checkHttpError(const Request &req, size_t size, std::string path, Server &server)
 {
+	std::map<int, std::pair<std::string, std::string> > errorMap = getErrorMap();
+	int errorCode = 0;
+
 	if (req.getMethodType().empty())
-		return (generateError(400, "Bad Request", "400 Bad Request", server));
-
-	if (req.getPath().find("/private") == 0 && !req.hasHeader("Authorization"))
-		return (generateError(401, "Unauthorized", "401 Unauthorized", server));
-
-	std::ifstream file(path.c_str());
-	if (!file.is_open())
-		return (generateError(404, "Not Found", "404 Not Found", server));
-
-	if (access(path.c_str(), R_OK) < 0 || !safePath(path))
-		return (generateError(403, "Forbidden", "403 Forbidden", server));
-
-	if (req.getMethodType() != "GET" && req.getMethodType() != "POST" && req.getMethodType() != "DELETE")
-		return (generateError(405, "Method Not Allowed", "405 Method Not Allowed", server));
-
-	if (req.getMethodType() == "POST" && !req.hasHeader("Content-Length"))
-		return (generateError(411, "Required Length", "411 Required Length", server));
-
-	if (req.getBody().size() > size)
-		return (generateError(413, "Content Too Large", "413 Content Too Large", server));
-
-	if (req.getPath().size() > 2048)
-		return (generateError(414, "URL Too Long", "414 URL Too Long", server));
-
-	if (req.getMethodType() == "POST")
+		errorCode = 400;
+	else if (req.getPath().find("/private") == 0 && !req.hasHeader("Authorization"))
+		errorCode = 401;
+	else if (req.getPath().empty() || path.empty())
+		errorCode = 500;
+	else if (req.getHttpVersion() != "HTTP/1.0" && req.getHttpVersion() != "HTTP/1.1")
+		errorCode = 505;
+	else if (req.getPath() == "/teapot")
+		errorCode = 418;
+	else if (req.getPath().size() > 2048)
+		errorCode = 414;
+	else if (req.getMethodType() != "GET" && req.getMethodType() != "POST" && req.getMethodType() != "DELETE")
+		errorCode = 405;
+	else if (req.getMethodType() == "POST" && !req.hasHeader("Content-Length"))
+		errorCode = 411;
+	else if (req.getBody().size() > size)
+		errorCode = 413;
+	else
 	{
-		std::string type = getMimeType(path);
-		if (!isSupportedType(type))
-			return (generateError(415, "Unsupported Media Type", "415 Unsupported Media Type", server));
+		std::ifstream file(path.c_str());
+		if (!file.is_open())
+			errorCode = 404;
+		else if (access(path.c_str(), R_OK) < 0 || !safePath(path))
+			errorCode = 403;
+		else if (req.getMethodType() == "POST")
+		{
+			std::string type = getMimeType(path);
+			if (!isSupportedType(type))
+				errorCode = 415;
+		}
 	}
-
-	if (req.getPath() == "/teapot")
-		return (generateError(418, "I'm a teapot", "418 I'm a teapot", server));
-
-	if (req.getPath().empty() || path.empty())
-		return (generateError(500, "Internal Server Error", "500 Internal Server Error", server));
-
-	if (req.getHttpVersion() != "HTTP/1.0" && req.getHttpVersion() != "HTTP/1.1")
-		return (generateError(505, "HTTP Version not Supported", "505 HTTP Version Not Supported", server));
+	if (errorCode != 0)
+	{
+		std::map<int, std::pair<std::string, std::string> >::const_iterator it = errorMap.find(errorCode);
+		if (it != errorMap.end())
+			return generateError(errorCode, it->second.first, it->second.second, server);
+	}
 
 	return false;
 }
@@ -527,12 +816,9 @@ void Response::serveFile(const std::string &filePath)
 	std::ifstream file(filePath.c_str(), std::ios::binary);
 	std::ostringstream os;
 	os << file.rdbuf();
-	this->_body = os.str();
-	this->_statusCode = 200;
-	this->_statusTxt = "OK";
-	this->_headers["Content-Type"] = getMimeType(filePath);
-	this->_headers["Content-Length"] = intToString(this->_body.size());
-	this->_headers["Connection"] = "close";
+	std::string body = os.str();
+	std::string contentType = getMimeType(filePath);
+	setResponseState(200, "OK", body, contentType);
 }
 
 std::string Response::getHttpVersion() const

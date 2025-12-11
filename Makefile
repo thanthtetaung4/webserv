@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: hthant <hthant@student.42.fr>              +#+  +:+       +#+         #
+#    By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/12/02 00:06:05 by hthant           ###   ########.fr        #
+#    Updated: 2025/12/07 21:41:34 by taung            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -22,7 +22,8 @@ SRCS = src/main.cpp \
     ${CLASSES}/WebServer.cpp ${CLASSES}/Server.cpp ${CLASSES}/Socket.cpp ${CLASSES}/Cgi.cpp \
     ${CLASSES}/Response.cpp ${CLASSES}/Request.cpp ${CLASSES}/Validator.cpp ${CLASSES}/Client.cpp \
     ${EXCEPTIONS}/ServerExceptions.cpp ${UTILS}/parseProxyPass.cpp ${UTILS}/buildPath.cpp \
-    ${UTILS}/intToString.cpp ${UTILS}/searchMapLongestMatch.cpp ${UTILS}/searchMapLongestMatchIt.cpp ${UTILS}/checkPath.cpp
+    ${UTILS}/intToString.cpp ${UTILS}/searchMapLongestMatch.cpp ${UTILS}/searchMapLongestMatchIt.cpp \
+	${UTILS}/checkPath.cpp ${UTILS}/parseFile.cpp
 
 OBJS = $(SRCS:%.cpp=$(OBJDIR)/%.o)
 
@@ -45,10 +46,12 @@ $(NAME): $(OBJS)
 	$(CC) $(OBJS) $(CFLAGS) -o $(NAME)
 
 clean:
-	rm -rf $(OBJDIR)
+	@$(RM)  $(OBJS)
+	@echo clean
 
 fclean: clean
-	rm -f $(NAME)
+	@$(RM) $(NAME)
+	@echo fclean
 
 re: fclean all
 

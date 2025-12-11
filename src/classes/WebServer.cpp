@@ -3,53 +3,24 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/01 18:00:20 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/09 19:04:56 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./../../include/WebServer.hpp"
 #include "../../include/Request.hpp"
 #include "../../include/Response.hpp"
-#include <cerrno>
-#include <cstddef>
-#include <cstdio>
-#include <ctime>
-#include <set>
-#include <fcntl.h>
-#include <map>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <cstdio>
-#include <dirent.h>
-#include <fcntl.h>
-#include <sys/epoll.h>
-#include <cstdio>
-#include <dirent.h>
-#include <fcntl.h>
-#include <sys/epoll.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include "../../include/Validator.hpp"
 #include "../../include/Cgi.hpp"
-# define TIMEOUT 5000
-# include "../../include/Client.hpp"
-
-// Simple proxy connection state tracked by the main event loop
-struct ProxyConn {
-    int client_fd;                // original client fd
-    int upstream_fd;              // fd connected to upstream
-    std::string up_req_buf;       // data to send to upstream
-    std::string up_resp_buf;      // data received from upstream (to forward to client)
-    bool connecting;              // true if connect() is in progress
-    size_t server_idx;            // which server config this belongs to
-    ProxyConn(int cfd, int ufd, const std::string &req, bool conn, size_t idx)
-        : client_fd(cfd), upstream_fd(ufd), up_req_buf(req), up_resp_buf(""), connecting(conn), server_idx(idx) {}
-};
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <errno.h>
 
 WebServer::WebServer() {}
 
@@ -60,51 +31,29 @@ WebServer::~WebServer() {}
 // WebServer &WebServer::operator=(const WebServer &other) {}
 void WebServer::setServer(std::string configFile)
 {
+	t_iterators it;
+	std::string target = "server {";
+
 	std::ifstream config(configFile.c_str());
 	if (!config)
-		throw std::runtime_error("Unable to open file!!");
-	
-	std::stringstream ss;
-	ss << config.rdbuf();
-	std::string content = ss.str();
-	config.close();
-
-	size_t pos = 0;
-	while (pos < content.length())
+		throw "Unable to open file!!";
+	else
 	{
-		size_t serverStart = content.find("server", pos);
-		if (serverStart == std::string::npos)
-			break;
-		size_t openBracePos = content.find('{', serverStart);
-		if (openBracePos == std::string::npos)
-			throw std::runtime_error("Missing opening brace after 'server' keyword");
-		int braceCount = 0;
-		size_t closeBracePos = openBracePos;
-		bool foundMatch = false;
-		for (size_t i = openBracePos; i < content.length(); ++i)
+		std::stringstream ss;
+		ss << config.rdbuf();
+		std::string content = ss.str();
+		it = Server::getIterators(content, content.begin(), target, target);
+		while (it.it1 != content.end())
 		{
-			if (content[i] == '{')
-				braceCount++;
-			else if (content[i] == '}')
-			{
-				braceCount--;
-				if (braceCount == 0)
-				{
-					closeBracePos = i;
-					foundMatch = true;
-					break;
-				}
-			}
+			Server server;
+			server.fetchSeverInfo(it);
+			addServer(server);
+			if (it.it2 != content.end())
+				it = Server::getIterators(content, it.it2, target, target);
+			else
+				break;
 		}
-		if (!foundMatch)
-			throw std::runtime_error("Mismatched braces in server block!");
-		t_iterators it;
-		it.it1 = content.begin() + openBracePos + 1;
-		it.it2 = content.begin() + closeBracePos;
-		Server server;
-		server.fetchSeverInfo(it);
-		addServer(server);
-		pos = closeBracePos + 1;
+		config.close();
 	}
 }
 
@@ -130,496 +79,176 @@ std::vector<Server> WebServer::getServers() const
 	return _servers;
 }
 
-int make_nonblock(int fd){
-	int flags = fcntl(fd, F_GETFL, 0);
-	if(flags == -1)
-		return  -1;
-	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+int parseContentLength(const std::string &headers)
+{
+	std::string key = "Content-Length:";
+	size_t pos = headers.find(key);
+	if (pos == std::string::npos)
+		return 0;
+
+	pos += key.length();
+
+	// Skip spaces
+	while (pos < headers.size() && (headers[pos] == ' ' || headers[pos] == '\t'))
+		pos++;
+
+	// Read digits
+	int value = 0;
+	while (pos < headers.size() && isdigit(headers[pos]))
+	{
+		value = value * 10 + (headers[pos] - '0');
+		pos++;
+	}
+
+	return value;
 }
+
 
 int WebServer::serve(void)
 {
-    int epoll_fd = epoll_create(1);
-    if (epoll_fd == -1)
-    {
-        perror("epoll_create");
-        return 1;
-    }
-    std::map<int, client*> clients;
-    std::map<int, ProxyConn*> proxies_by_upstream; // upstream_fd -> ProxyConn*
-    std::map<int, ProxyConn*> proxies_by_client;   // client_fd -> ProxyConn*
-    std::set<int> server_fds;
-    std::map<int, size_t> fd_to_server_idx;
+	int epoll_fd = epoll_create1(0);
+	if (epoll_fd == -1)
+	{
+		perror("epoll_create1");
+		return 1;
+	}
+	// Register all server sockets with epoll
+	for (size_t i = 0; i < _sockets.size(); ++i)
+	{
 
-    for (size_t i = 0; i < _sockets.size(); ++i)
-    {
-        int fd = _sockets[i].getServerFd();
-        if (make_nonblock(fd) == -1)
-        {
-            perror("make_nonblock: server socket");
-            close(epoll_fd);
-            return 1;
-        }
+		int fd = _sockets[i].getServerFd();
+		struct epoll_event ev;
+		ev.events = EPOLLIN;
+		ev.data.u32 = i; // Store index to map back to Server
+		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
+		{
+			perror("epoll_ctl: listen_sock");
+			close(epoll_fd);
+			return 1;
+		}
+		std::cout << "Listening on port: http://localhost:" << _servers[i].getPort() << std::endl;
+	}
 
-        epoll_event ev;
-        ev.events = EPOLLIN | EPOLLET;
-        ev.data.fd = fd;
-        if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
-        {
-            perror("epoll_ctl: listen_sock");
-            close(epoll_fd);
-            return 1;
-        }
-        server_fds.insert(fd);
-        fd_to_server_idx[fd] = i;
-        std::cout << "Listening on port: http://localhost:" << _servers[i].getPort() << std::endl;
-    }
+	struct epoll_event events[MAX_EVENTS];
+	while (true)
+	{
+		// std::cout << "here" << std::endl;
+		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1);
+		if (nfds == -1)
+		{
+			perror("epoll_wait");
+			break;
+		}
+		for (int n = 0; n < nfds; ++n)
+		{
+			size_t idx = events[n].data.u32;
+			int listen_fd = _sockets[idx].getServerFd();
+			sockaddr_in client_addr;
+			socklen_t client_len = sizeof(client_addr);
+			int client_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_len);
+			if (client_fd < 0)
+			{
+				perror("accept");
+				continue;
+			}
+			char buffer[4096];
+			// std::cout << "=================REQUEST============================" << std::endl;
 
-    struct epoll_event events[MAX_EVENTS];
-    while (true)
-    {
-        int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1000);
-        if (nfds < 0)
-        {
-            if (errno == EINTR)
-                continue;
-            perror("epoll_wait");
-            break;
-        }
+			// ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+			std::string requestStr;
+			ssize_t bytes_received = 0;
+			while (true) {
+				ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer), 0);
+				if (bytes_received <= 0) break;
+				std::cout << "================================= BYTE RECIEVED START =====================" << std::endl;
+				std::cout << bytes_received << std::endl;
+				std::cout << "================================= BYTE RECIEVED END =====================" << std::endl;
+				requestStr.append(buffer, bytes_received);
 
-        for (int n = 0; n < nfds; ++n)
-        {
-            int event_fd = events[n].data.fd;
+				// stop when the headers are received + full body matches Content-Length
+				if (requestStr.find("\r\n\r\n") != std::string::npos) {
+					size_t bodyStart = requestStr.find("\r\n\r\n") + 4;
+					std::string headers = requestStr.substr(0, bodyStart);
+					size_t contentLength = parseContentLength(headers);
 
-            // If event is on an upstream proxy socket, handle proxy state
-            std::map<int, ProxyConn*>::iterator pit_up = proxies_by_upstream.find(event_fd);
-            if (pit_up != proxies_by_upstream.end())
-            {
-                ProxyConn *pc = pit_up->second;
+					if (requestStr.size() >= bodyStart + contentLength)
+						break;
+				}
+			}
+			if (bytes_received < 0)
+			{
+				perror("recv");
+				close(client_fd);
+				continue;
+			}
+			buffer[bytes_received] = '\0';
+			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
+			std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
+			std::cout << requestStr << std::endl;
+			std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
 
-                // Error/hangup handling for upstream
-                if (events[n].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
-                {
-                    // upstream closed or errored — forward any remaining data and close both sides
-                    if (!pc->up_resp_buf.empty())
-                    {
-                        std::map<int, client*>::iterator cit = clients.find(pc->client_fd);
-                        if (cit != clients.end())
-                        {
-                            client *cclient = cit->second;
-                            cclient->write_buff.append(pc->up_resp_buf);
-                            // request EPOLLOUT for client
-                            epoll_event mod_ev;
-                            mod_ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-                            mod_ev.data.fd = pc->client_fd;
-                            epoll_ctl(epoll_fd, EPOLL_CTL_MOD, pc->client_fd, &mod_ev);
-                        }
-                    }
-                    close(pc->upstream_fd);
-                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, pc->upstream_fd, NULL);
-                    proxies_by_upstream.erase(pit_up);
-                    proxies_by_client.erase(pc->client_fd);
-                    delete pc;
-                    continue;
-                }
+			Request req(requestStr, _servers[idx]);
+			// std::cout << "================================= SEVER TEST =====================" << std::endl;
+			// std::cout << _servers[idx] << std::endl;
+			// std::cout << "================================= SERVER TEST END =====================" << std::endl;
+			// std::cout << "================================= REQ OBJ =====================" << std::endl;
+			// std::cout << req << std::endl;
+			// std::cout << "================================= REQ OBJ =====================" << std::endl;
+			// int i = req.validateAgainstConfig(_servers[idx]);
+			// if(i != 200) {
+			// 		Response res(i);
+			// }
 
-                // Writable: either connect completed or ready to send request
-                if (events[n].events & EPOLLOUT)
-                {
-                    if (pc->connecting)
-                    {
-                        // Check connect result
-                        int err = 0;
-                        socklen_t len = sizeof(err);
-                        if (getsockopt(pc->upstream_fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0 || err != 0)
-                        {
-                            std::cerr << "Proxy upstream connect failed: " << strerror(err) << std::endl;
-                            // close and cleanup
-                            close(pc->upstream_fd);
-                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, pc->upstream_fd, NULL);
-                            proxies_by_upstream.erase(pit_up);
-                            proxies_by_client.erase(pc->client_fd);
-                            delete pc;
-                            continue;
-                        }
-                        pc->connecting = false;
-                    }
+			// std::cout << this->isProxyPass(req.getPath(), _servers[idx]) << std::endl;
+			// if (this->isProxyPass(req.getPath(), _servers[idx]))
+			// {
+			// 	std::cout << "POST method detected" << std::endl;
+			// 	std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
+			// 	// just send the plain text to the client no need to change it back to Response obj
+			// 	std::cout << "================================= SERVER TEST START =====================" << std::endl;
+			// 	std::cout << rawRes << std::endl;
+			// 	std::cout << "================================= SERVER TEST END =====================" << std::endl;
+			// 	ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
+			// 	if (sent < 0)
+			// 	{
+			// 		perror("send");
+			// 	}
+			// 	close(client_fd);
+			// 	continue;
+			// }
+			// if (isCGI(req.getPath(), _servers[idx]))
+			// {
+			// 	Cgi cgi(req, _servers[idx]);
+			// }
+			// std::cout << req << std::endl;
+			// std::cout << "================================= RESPONSE =====================" << std::endl;
 
-                    // Send pending request data to upstream
-                    while (!pc->up_req_buf.empty())
-                    {
-                        ssize_t sent = send(pc->upstream_fd, pc->up_req_buf.c_str(), pc->up_req_buf.size(), 0);
-                        if (sent > 0)
-                        {
-                            pc->up_req_buf.erase(0, sent);
-                        }
-                        else if (sent < 0)
-                        {
-                            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                                break;
-                            perror("send to upstream");
-                            // error — close upstream and notify client
-                            close(pc->upstream_fd);
-                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, pc->upstream_fd, NULL);
-                            proxies_by_upstream.erase(pit_up);
-                            proxies_by_client.erase(pc->client_fd);
-                            delete pc;
-                            break;
-                        }
-                    }
-                }
+			// std::cout << "creating res" << std::endl;
+			Response res(req, _servers[idx]);
+			// std::cout << "printing res" << std::endl;
+			// std::cout << res << std::endl;
+			// std::cout << "res printed" << std::endl;
+			// std::cout << "================================= RESPONSE END =====================" << std::endl;
+			std::string httpResponse = res.toStr();
 
-                // Read from upstream
-                if (events[n].events & EPOLLIN)
-                {
-                    while (true)
-                    {
-                        char buf[8192];
-                        ssize_t r = recv(pc->upstream_fd, buf, sizeof(buf), 0);
-                        if (r > 0)
-                        {
-                            // forward immediately to client write buffer
-                            std::map<int, client*>::iterator cit = clients.find(pc->client_fd);
-                            if (cit != clients.end())
-                            {
-                                client *cclient = cit->second;
-                                cclient->write_buff.append(buf, r);
-                                epoll_event mod_ev;
-                                mod_ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-                                mod_ev.data.fd = pc->client_fd;
-                                epoll_ctl(epoll_fd, EPOLL_CTL_MOD, pc->client_fd, &mod_ev);
-                            }
-                        }
-                        else if (r == 0)
-                        {
-                            // upstream closed — close upstream and remove mapping
-                            close(pc->upstream_fd);
-                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, pc->upstream_fd, NULL);
-                            proxies_by_upstream.erase(pit_up);
-                            proxies_by_client.erase(pc->client_fd);
-                            delete pc;
-                            break;
-                        }
-                        else
-                        {
-                            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                                break;
-                            perror("recv from upstream");
-                            close(pc->upstream_fd);
-                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, pc->upstream_fd, NULL);
-                            proxies_by_upstream.erase(pit_up);
-                            proxies_by_client.erase(pc->client_fd);
-                            delete pc;
-                            break;
-                        }
-                    }
-                }
-                continue;
-            }
+			// std::cout << "================================= FINAL RESPONSE =====================" << std::endl;
+			// std::cout << "http res: " << httpResponse << std::endl;
+			// std::cout << "================================= FINAL RESPONSE END =====================" << std::endl;
 
-            // If event is on a listening socket, accept loop
-            if (server_fds.find(event_fd) != server_fds.end())
-            {
-                size_t server_idx = fd_to_server_idx[event_fd];
-                while (true)
-                {
-                    sockaddr_in client_addr;
-                    socklen_t client_len = sizeof(client_addr);
-                    int client_fd = accept(event_fd, (struct sockaddr*)&client_addr, &client_len);
-                    if (client_fd < 0)
-                    {
-                        if (errno == EAGAIN || errno == EWOULDBLOCK)
-                            break; // no more connections
-                        perror("accept");
-                        break;
-                    }
+			ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
+			if (sent < 0)
+			{
+				perror("send");
+			}
+			close(client_fd);
+		}
+	}
+	close(epoll_fd);
 
-                    if (make_nonblock(client_fd) == -1)
-                    {
-                        perror("make_nonblock: client socket");
-                        close(client_fd);
-                        continue;
-                    }
-
-                    epoll_event client_ev;
-                    client_ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
-                    client_ev.data.fd = client_fd;
-                    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &client_ev) == -1)
-                    {
-                        perror("epoll_ctl: add client");
-                        close(client_fd);
-                        continue;
-                    }
-
-                    clients[client_fd] = new client(client_fd, server_idx);
-                    std::cout << "Client Connected : " << client_fd << std::endl;
-                }
-                continue;
-            }
-
-            // Handle client socket
-            std::map<int, client*>::iterator it = clients.find(event_fd);
-            if (it == clients.end())
-            {
-                // Not a tracked client, remove
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                continue;
-            }
-            client* c = it->second;
-            c->update_activity();
-            size_t server_idx = c->server_idx;
-
-            // Handle errors/hangups
-            if (events[n].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
-            {
-                std::cout << "Client disconnected: " << event_fd << std::endl;
-                close(event_fd);
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                delete c;
-                clients.erase(it);
-                continue;
-            }
-
-            if (events[n].events & EPOLLIN)
-            {
-                // Read loop for edge-triggered
-                while (true)
-                {
-                    char buffer[8192];
-                    ssize_t bytes = recv(event_fd, buffer, sizeof(buffer), 0);
-                    if (bytes > 0)
-                    {
-                        c->read_buff.append(buffer, bytes);
-                    }
-                    else if (bytes == 0)
-                    {
-                        // client closed
-                        close(event_fd);
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                        delete c;
-                        clients.erase(it);
-                        break;
-                    }
-                    else
-                    {
-                        if (errno == EAGAIN || errno == EWOULDBLOCK)
-                            break; // no more data
-                        perror("recv");
-                        close(event_fd);
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                        delete c;
-                        clients.erase(it);
-                        break;
-                    }
-                }
-
-                // If we have data and no pending write, build response or start a proxy
-                if (!c->read_buff.empty() && c->write_buff.empty())
-                {
-                    try {
-                        Request req(c->read_buff.c_str(), _servers[server_idx]);
-                        // If this location config has a proxy_pass, start non-blocking proxying
-                        std::map<std::string, t_location>::const_iterator locit = req.getIt();
-                        if (locit != _servers[server_idx].getLocation().end() && !locit->second._proxy_pass.empty())
-                        {
-                            // parse proxy target
-                            t_proxyPass pp = parseProxyPass(locit->second._proxy_pass);
-
-                            // Build proxy request
-                            std::string proxyRequest = req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
-                            proxyRequest += "Host: " + pp.host + "\r\n";
-                            for (std::map<std::string, std::string>::const_iterator ih = req.getHeaders().begin(); ih != req.getHeaders().end(); ++ih)
-                            {
-                                if (ih->first == "Host")
-                                    continue;
-                                proxyRequest += ih->first + ": " + ih->second + "\r\n";
-                            }
-                            proxyRequest += "Connection: close\r\n";
-                            proxyRequest += "\r\n" + req.getBody();
-
-                            // Create upstream socket non-blocking
-                            int upstream_fd = socket(AF_INET, SOCK_STREAM, 0);
-                            if (upstream_fd < 0)
-                            {
-                                std::cerr << "Failed to create upstream socket" << std::endl;
-                                // send 502 to client
-                                std::string body = "<h1>502 Bad Gateway - Socket creation failed</h1>";
-                                std::ostringstream h;
-                                h << "HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/html\r\nContent-Length: " << body.size() << "\r\nConnection: close\r\n\r\n" << body;
-                                c->write_buff = h.str();
-                                c->read_buff.clear();
-                                epoll_event mod_ev;
-                                mod_ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-                                mod_ev.data.fd = event_fd;
-                                epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_fd, &mod_ev);
-                                continue;
-                            }
-
-                            if (make_nonblock(upstream_fd) == -1)
-                            {
-                                perror("make_nonblock: upstream socket");
-                                close(upstream_fd);
-                                std::string body = "<h1>502 Bad Gateway - Socket error</h1>";
-                                std::ostringstream h;
-                                h << "HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/html\r\nContent-Length: " << body.size() << "\r\nConnection: close\r\n\r\n" << body;
-                                c->write_buff = h.str();
-                                c->read_buff.clear();
-                                epoll_event mod_ev;
-                                mod_ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-                                mod_ev.data.fd = event_fd;
-                                epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_fd, &mod_ev);
-                                continue;
-                            }
-
-                            struct sockaddr_in upstream_addr;
-                            for (size_t z = 0; z < sizeof(upstream_addr); z++)
-                                ((char *)&upstream_addr)[z] = 0;
-                            upstream_addr.sin_family = AF_INET;
-                            upstream_addr.sin_port = htons(std::atol(pp.port.c_str()));
-                            if (inet_pton(AF_INET, pp.host.c_str(), &upstream_addr.sin_addr) <= 0)
-                            {
-                                std::cerr << "Invalid proxy address: " << pp.host << std::endl;
-                                close(upstream_fd);
-                                std::string body = "<h1>502 Bad Gateway - Invalid proxy address</h1>";
-                                std::ostringstream h;
-                                h << "HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/html\r\nContent-Length: " << body.size() << "\r\nConnection: close\r\n\r\n" << body;
-                                c->write_buff = h.str();
-                                c->read_buff.clear();
-                                epoll_event mod_ev;
-                                mod_ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-                                mod_ev.data.fd = event_fd;
-                                epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_fd, &mod_ev);
-                                continue;
-                            }
-
-                            int cres = connect(upstream_fd, (struct sockaddr *)&upstream_addr, sizeof(upstream_addr));
-                            bool connecting = false;
-                            if (cres < 0)
-                            {
-                                if (errno == EINPROGRESS)
-                                    connecting = true;
-                                else
-                                {
-                                    std::cerr << "Unable to connect to proxy server: " << strerror(errno) << std::endl;
-                                    close(upstream_fd);
-                                    std::string body = "<h1>502 Bad Gateway - Connection refused</h1>";
-                                    std::ostringstream h;
-                                    h << "HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/html\r\nContent-Length: " << body.size() << "\r\nConnection: close\r\n\r\n" << body;
-                                    c->write_buff = h.str();
-                                    c->read_buff.clear();
-                                    epoll_event mod_ev;
-                                    mod_ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-                                    mod_ev.data.fd = event_fd;
-                                    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_fd, &mod_ev);
-                                    continue;
-                                }
-                            }
-
-                            // Register upstream socket with epoll for asynchronous communication
-                            epoll_event upev;
-                            upev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-                            upev.data.fd = upstream_fd;
-                            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, upstream_fd, &upev) == -1)
-                            {
-                                perror("epoll_ctl: add upstream");
-                                close(upstream_fd);
-                                std::string body = "<h1>502 Bad Gateway - Epoll failed</h1>";
-                                std::ostringstream h;
-                                h << "HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/html\r\nContent-Length: " << body.size() << "\r\nConnection: close\r\n\r\n" << body;
-                                c->write_buff = h.str();
-                                c->read_buff.clear();
-                                epoll_event mod_ev;
-                                mod_ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-                                mod_ev.data.fd = event_fd;
-                                epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_fd, &mod_ev);
-                                continue;
-                            }
-
-                            // Create ProxyConn and map
-                            ProxyConn *pc = new ProxyConn(event_fd, upstream_fd, proxyRequest, connecting, server_idx);
-                            proxies_by_upstream[upstream_fd] = pc;
-                            proxies_by_client[event_fd] = pc;
-
-                            // Clear client read buffer (we consumed the request)
-                            c->read_buff.clear();
-                            // keep client registered for EPOLLIN; upstream will drive writes to client
-                            continue;
-                        }
-                        else
-                        {
-                            Response res(req, _servers[server_idx]);
-                            c->write_buff = res.toStr();
-                            c->read_buff.clear();
-
-                            epoll_event mod_ev;
-                            mod_ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-                            mod_ev.data.fd = event_fd;
-                            epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_fd, &mod_ev);
-                        }
-                    }
-                    catch (const std::exception &e) {
-                        std::cerr << "Request/Response error: " << e.what() << std::endl;
-                        close(event_fd);
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                        delete c;
-                        clients.erase(it);
-                        continue;
-                    }
-                }
-            }
-
-            if ((events[n].events & EPOLLOUT) && c->has_write_data())
-            {
-                while (!c->write_buff.empty())
-                {
-                    ssize_t bytes_sent = send(event_fd, c->write_buff.c_str(), c->write_buff.size(), MSG_NOSIGNAL);
-                    if (bytes_sent > 0)
-                        c->write_buff.erase(0, bytes_sent);
-                    else if (bytes_sent < 0)
-                    {
-                        if (errno == EAGAIN || errno == EWOULDBLOCK)
-                            break;
-                        perror("send");
-                        close(event_fd);
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                        delete c;
-                        clients.erase(it);
-                        break;
-                    }
-                }
-
-                if (!c->has_write_data())
-                {
-                    epoll_event mod_ev;
-                    mod_ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
-                    mod_ev.data.fd = event_fd;
-                    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_fd, &mod_ev);
-
-                    std::cout << "Response sent, closing: fd=" << event_fd << std::endl;
-                    close(event_fd);
-                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                    delete c;
-                    clients.erase(it);
-                }
-            }
-        }
-        // Timeout cleanup
-        for (std::map<int, client*>::iterator it = clients.begin(); it != clients.end(); )
-        {
-            client *c = it->second;
-            if (c->is_timeout(TIMEOUT))
-            {
-                int fd = c->fd;
-                close(fd);
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-                delete c;
-                std::map<int, client*>::iterator temp = it;
-                ++it;
-                clients.erase(temp);
-            }
-            else ++it;
-        }
-    }
-    close(epoll_fd);
-    return 0;
+	return 0;
 }
+
+
+/*
+	o
+*/
