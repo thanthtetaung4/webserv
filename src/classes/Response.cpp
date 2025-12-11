@@ -6,48 +6,11 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/09 01:09:58 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/12 05:58:12 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../include/Response.hpp"
-
-// Response::Response(Request &req, Server &server)
-// {
-// 	size_t maxSize;
-// 	std::stringstream ss(server.getMaxByte());
-// 	ss >> maxSize;
-
-// 	this->_httpVersion = req.getHttpVersion();
-
-// 	if (!server.getReturn().empty())
-// 	{
-// 		handleReturn(server.getReturn());
-// 		return;
-// 	}
-// 	if (req.getIt() != server.getLocation().end())
-// 	{
-// 		t_location loc = req.getIt()->second;
-
-// 		// Handle return directive first
-// 		if (!loc._return.empty())
-// 		{
-// 			handleReturn(loc._return);
-// 			return;
-// 		}
-
-// 		if (isDirectory(req.getFinalPath()))
-// 			processDirectoryRequest(req, loc, maxSize, server);
-// 		else if (isRegularFile(req.getFinalPath()) && loc._isCgi)
-// 			handleCGI(req, server);
-// 		else
-// 			processFileRequest(req, req.getFinalPath(), maxSize, server);
-// 	}
-// 	else
-// 	{
-// 		processFileRequest(req, req.getFinalPath(), maxSize, server);
-// 	}
-// }
 
 Response::Response(Request &req, Server &server)
 {
@@ -156,6 +119,16 @@ Response::Response(Request &req, Server &server)
 	std::cout << "=========== Res END ===========" << std::endl;
 }
 
+Response& Response::operator=(const Response& other) {
+	if (this != &other) {
+		this->_httpVersion = other._httpVersion;
+		this->_statusCode = other._statusCode;
+		this->_statusTxt = other._statusTxt;
+		this->_headers = other._headers;
+		this->_body = other._body;
+	}
+	return *this;
+}
 void Response::processFileRequest(Request &req, const std::string &path, size_t maxSize, Server &server)
 {
 	std::cout << "Requested Path: " << path << std::endl;

@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 19:48:22 by taung             #+#    #+#             */
-/*   Updated: 2025/12/02 16:11:14 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/12 01:23:47 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 #include "Location.h"
 #include <sys/stat.h>
 #include <string>
+#include "Client.hpp"
 
 template <typename K, typename V>
 bool search_map(const std::map<K, V> &m, const K &key)
@@ -53,5 +54,15 @@ std::string intToString(size_t n);
 bool	parseFile(std::string body, std::string contentType, std::vector<std::string> &fileNames, std::vector<std::string> &fileContents);
 // bool	parseFile(std::string body, std::string contentType, std::string &fileName, std::string &fileContent);
 bool	parseFile(std::string urlPath, std::string locationPath ,std::string &fileName);
+
+template <typename T>
+bool	searchVec(const std::vector<T> &v, const T &key) {
+	typename std::vector<T>::const_iterator it = v.find(key);
+
+	if (it != v.end())
+		return true;
+	else
+		return false;
+}
 
 #endif

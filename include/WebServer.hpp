@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/11 19:47:06 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/12 01:30:58 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,7 +44,7 @@ class WebServer
 private:
 	std::vector<Server> _servers;
 	std::vector<Socket> _sockets;
-	std::map<int, Client*> _clients;
+	std::map<int, Client> _clients;
 	std::vector<int> _upstreamFds;
 	int _epoll_fd;
 
@@ -70,6 +70,9 @@ public:
 	bool isUpStream(int fd) const;
 	bool isListenFd(int fd) const;
 	int startUpstreamConnection(int clientFd, const std::string& host, const std::string& port);
+
+	// Utils
+	Client*	searchClients(int fd);
 };
 
 #endif

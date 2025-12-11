@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 04:47:58 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/30 12:11:19 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/12 06:19:12 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,6 +65,9 @@ private:
     void handleProxyPass(const std::vector<std::string> &line, t_location &loc, std::string &key);
 
 public:
+    Server& operator=(const Server &other);
+    Server();
+
     void setPort(const std::string &port);
     void setServerName(const std::string &serverName);
     void setMaxBytes(const std::string &byte);

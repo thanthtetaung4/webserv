@@ -12,6 +12,9 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 
+class Request;
+class Server;
+
 #include "Request.hpp"
 #include "Cgi.hpp"
 #include <filesystem>
@@ -60,6 +63,7 @@ private:
 public:
 	Response(Request &req, Server &server);
 	Response(unsigned int errorCode);
+	Response& operator=(const Response& other);
 	std::string handleReverseProxy(const Request &req);
 	void handleRedirect(const std::string &redirUrlPath);
 	void handleStore(t_location loc, const Request& req);

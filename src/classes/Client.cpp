@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/11 20:50:10 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/12 06:31:13 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,8 @@
 #include <iostream>
 #include <sstream>
 
-Client::Client(int fd, const Server& server) {
+Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server)) {
 	this->fd = fd;
-	this->server = server;
 
 	this->inBuffer = "";
 	this->outBuffer = "";
@@ -27,13 +26,25 @@ Client::Client(int fd, const Server& server) {
 	this->request = NULL;
 	this->response = NULL;
 
-	this->headerEndPos = 0;
-	this->contentLength = 0;
-	this->hasContentLength = false;
-
 	this->upstreamFd = 0;
 	this->isProxyClient = false;
 }
+
+Client&	Client::operator=(const Client& other) {
+
+	if (this != &other) {
+		this->fd = other.fd;
+		this->server = other.server;
+		this->inBuffer = other.inBuffer;
+		this->outBuffer = other.outBuffer;
+		this->request = other.request;
+		this->response = other.response;
+		this->upstreamFd = other.upstreamFd;
+		this->isProxyClient = other.isProxyClient;
+	}
+	return *this;
+}
+
 
 Client::~Client() {}
 
@@ -65,6 +76,14 @@ void	Client::addToOutBuffer(std::string buff) {
 	this->outBuffer += buff;
 }
 
-bool	Client::isRequestComplete(void) {
-	return (this->inBuffer.find("\r\n\r\n") == this->headerEndPos);
+int	Client::getFd(void) const {
+	return (this->fd);
+}
+
+const Response&	Client::getResponse(void) {
+	return (*this->response);
+}
+
+void	Client::setInBuffer(std::string rawStr) {
+	this->inBuffer += rawStr;
 }

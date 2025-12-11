@@ -3,14 +3,34 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/30 12:14:50 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/12 06:19:30 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./../../include/Server.hpp"
+
+Server& Server::operator=(const Server &other)
+{
+	if (this != &other)
+	{
+		_port = other._port;
+		_serverName = other._serverName;
+		_maxBytes = other._maxBytes;
+		_root = other._root;
+		_index = other._index;
+		_serverRoot = other._serverRoot;
+		_serverIndices = other._serverIndices;
+		_errorPage = other._errorPage;
+		_locations = other._locations;
+		_return = other._return;
+	}
+	return *this;
+}
+
+Server::Server() : _port(""), _serverName(""), _maxBytes(""), _root(""), _index(), _serverRoot(""), _serverIndices(), _errorPage(), _locations(), _return() {}
 
 void Server::setPort(const std::string &port)
 {
