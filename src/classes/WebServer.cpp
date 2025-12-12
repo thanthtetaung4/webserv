@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/12 23:48:57 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/13 00:02:29 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,13 +130,6 @@ bool WebServer::isListenFd(int fd) const {
 }
 
 Client*	WebServer::searchClients(int fd) {
-	std::cout << "searchClients client test: " << _clients[fd] << std::endl;
-	// std::map<int, Client>::iterator it = this->_clients.find(fd);
-	// if (it != this->_clients.end()) {
-	// 	std::cout << "can't find fd" << fd << " return NULL" << std::endl;
-	// 	return (NULL);
-	// }
-
 	std::map<int, Client>::iterator i;
 
 	for (i = _clients.begin() ; i != _clients.end(); i++) {
@@ -198,9 +191,7 @@ void WebServer::handleRead(int fd) {
 	std::string requestStr;
 	ssize_t bytes_received = 0;
 	while (true) {
-		std::cout << "Receiving data..." << std::endl;
 		ssize_t bytes_received = recv(client->getFd(), buffer, sizeof(buffer), 0);
-		std::cout << "Bytes received: " << bytes_received << std::endl;
 		if (bytes_received <= 0) {
 			std::cout << "No more data to read or error occurred." << std::endl;
 			break;
@@ -208,6 +199,7 @@ void WebServer::handleRead(int fd) {
 		std::cout << "================================= BYTE RECIEVED START =====================" << std::endl;
 		std::cout << bytes_received << std::endl;
 		std::cout << "================================= BYTE RECIEVED END =====================" << std::endl;
+
 		requestStr.append(buffer, bytes_received);
 
 		// stop when the headers are received + full body matches Content-Length
@@ -221,18 +213,18 @@ void WebServer::handleRead(int fd) {
 		}
 	}
 	if (bytes_received < 0) {
-		std::cout << "in if" << std::endl;
-		perror("recv");
+		perror("recv err:");
 		close(client->getFd());
-		std::cout << "Client connection closed due to recv error." << std::endl;
 		return;
 	}
-	buffer[bytes_received] = '\0';
+
 
 	// Append to client buffer
-	client->setInBuffer(std::string(buffer));
+	client->setInBuffer(std::string(requestStr));
 
-	std::cout << buffer << std::endl;
+	std::cout << "================================" << std::endl;
+	std::cout << requestStr << std::endl;
+	std::cout << "================================" << std::endl;
 
 	// Creating the Request Intance
 	if (!client->buildReq())
@@ -267,14 +259,28 @@ void WebServer::handleWrite(int fd) {
 	{
 		perror("send error:");
 	}
+	closeClient(fd);
 }
 
 void WebServer::closeClient(int fd) {
 	std::map<int, Client>::iterator it = this->_clients.find(fd);
-	if (it != this->_clients.end()) {
-		this->_clients.erase(it);
+	if (it == this->_clients.end())
+		return;
+
+	// 1) Remove from epoll (so it stops monitoring this fd)
+	if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, fd, NULL) == -1) {
+		perror("epoll_ctl DEL");
 	}
-	close(fd);
+
+	// 2) Close the socket
+	if (close(fd) == -1) {
+		perror("close");
+	}
+
+	// 3) Remove from clients map
+	this->_clients.erase(it);
+
+	std::cout << "Client " << fd << " closed and removed from epoll" << std::endl;
 }
 
 void WebServer::handleUpstreamEvent(int fd, uint32_t events) {
