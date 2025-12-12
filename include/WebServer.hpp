@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/12 01:30:58 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/12 19:40:05 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,9 @@ private:
 	std::map<int, Client> _clients;
 	std::vector<int> _upstreamFds;
 	int _epoll_fd;
+
+	int	searchVecIndex(std::vector<int> vec, int key);
+	int	searchSocketIndex(std::vector<Socket> vec, int key);
 
 public:
 	WebServer();

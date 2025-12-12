@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 14:08:59 by taung             #+#    #+#             */
-/*   Updated: 2025/12/12 06:20:33 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/12 19:29:31 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,7 @@ class Client {
 		bool	isProxyClient;  // true if this request uses proxy_pass
 
 	public:
+		Client();
 		Client(int fd, const Server& server);
 		Client&	operator=(const Client& other);
 		~Client();
@@ -55,11 +56,13 @@ class Client {
 		//	Accessors
 		//	Getters
 		int	getFd(void) const;
-		const Response&	getResponse(void);
+		const Request*		getRequest(void) const;
+		const Response*	getResponse(void) const;
 
 
 		//	Setters
 		void	setInBuffer(std::string rawStr);
 };
+std::ostream &operator<<(std::ostream &os, const Client &client);
 
 #endif

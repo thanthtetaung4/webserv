@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/12 06:48:25 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/12 23:48:57 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -103,156 +103,6 @@ int parseContentLength(const std::string &headers)
 	return value;
 }
 
-
-int WebServer::serve(void)
-{
-	int epoll_fd = epoll_create1(0);
-	if (epoll_fd == -1)
-	{
-		perror("epoll_create1");
-		return 1;
-	}
-	// Register all server sockets with epoll
-	for (size_t i = 0; i < _sockets.size(); ++i)
-	{
-
-		int fd = _sockets[i].getServerFd();
-		struct epoll_event ev;
-		ev.events = EPOLLIN;
-		ev.data.u32 = i; // Store index to map back to Server
-		if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
-		{
-			perror("epoll_ctl: listen_sock");
-			close(epoll_fd);
-			return 1;
-		}
-		std::cout << "Listening on port: http://localhost:" << _servers[i].getPort() << std::endl;
-	}
-
-	struct epoll_event events[MAX_EVENTS];
-	while (true)
-	{
-		// std::cout << "here" << std::endl;
-		int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, 1);
-		if (nfds == -1)
-		{
-			perror("epoll_wait");
-			break;
-		}
-		for (int n = 0; n < nfds; ++n)
-		{
-			size_t idx = events[n].data.u32;
-			int listen_fd = _sockets[idx].getServerFd();
-			sockaddr_in client_addr;
-			socklen_t client_len = sizeof(client_addr);
-			int client_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_len);
-			if (client_fd < 0)
-			{
-				perror("accept");
-				continue;
-			}
-			char buffer[4096];
-			// std::cout << "=================REQUEST============================" << std::endl;
-
-			// ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-			std::string requestStr;
-			ssize_t bytes_received = 0;
-			while (true) {
-				ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer), 0);
-				if (bytes_received <= 0) break;
-				std::cout << "================================= BYTE RECIEVED START =====================" << std::endl;
-				std::cout << bytes_received << std::endl;
-				std::cout << "================================= BYTE RECIEVED END =====================" << std::endl;
-				requestStr.append(buffer, bytes_received);
-
-				// stop when the headers are received + full body matches Content-Length
-				if (requestStr.find("\r\n\r\n") != std::string::npos) {
-					size_t bodyStart = requestStr.find("\r\n\r\n") + 4;
-					std::string headers = requestStr.substr(0, bodyStart);
-					size_t contentLength = parseContentLength(headers);
-
-					if (requestStr.size() >= bodyStart + contentLength)
-						break;
-				}
-			}
-			if (bytes_received < 0)
-			{
-				perror("recv");
-				close(client_fd);
-				continue;
-			}
-			buffer[bytes_received] = '\0';
-			std::cout << "Request received on port " << _servers[idx].getPort() << ":\n";
-			std::cout << "================================= REQUEST PLAIN =====================" << std::endl;
-			std::cout << requestStr << std::endl;
-			std::cout << "================================= REQUEST PLAIN END =====================" << std::endl;
-
-			Request req(requestStr, _servers[idx]);
-			// std::cout << "================================= SEVER TEST =====================" << std::endl;
-			// std::cout << _servers[idx] << std::endl;
-			// std::cout << "================================= SERVER TEST END =====================" << std::endl;
-			// std::cout << "================================= REQ OBJ =====================" << std::endl;
-			// std::cout << req << std::endl;
-			// std::cout << "================================= REQ OBJ =====================" << std::endl;
-			// int i = req.validateAgainstConfig(_servers[idx]);
-			// if(i != 200) {
-			// 		Response res(i);
-			// }
-
-			// std::cout << this->isProxyPass(req.getPath(), _servers[idx]) << std::endl;
-			// if (this->isProxyPass(req.getPath(), _servers[idx]))
-			// {
-			// 	std::cout << "POST method detected" << std::endl;
-			// 	std::string rawRes = this->handleReverseProxy(req, _servers[idx]);
-			// 	// just send the plain text to the client no need to change it back to Response obj
-			// 	std::cout << "================================= SERVER TEST START =====================" << std::endl;
-			// 	std::cout << rawRes << std::endl;
-			// 	std::cout << "================================= SERVER TEST END =====================" << std::endl;
-			// 	ssize_t sent = send(client_fd, rawRes.c_str(), rawRes.size(), 0);
-			// 	if (sent < 0)
-			// 	{
-			// 		perror("send");
-			// 	}
-			// 	close(client_fd);
-			// 	continue;
-			// }
-			// if (isCGI(req.getPath(), _servers[idx]))
-			// {
-			// 	Cgi cgi(req, _servers[idx]);
-			// }
-			// std::cout << req << std::endl;
-			// std::cout << "================================= RESPONSE =====================" << std::endl;
-
-			// std::cout << "creating res" << std::endl;
-			Response res(req, _servers[idx]);
-			// std::cout << "printing res" << std::endl;
-			// std::cout << res << std::endl;
-			// std::cout << "res printed" << std::endl;
-			// std::cout << "================================= RESPONSE END =====================" << std::endl;
-			std::string httpResponse = res.toStr();
-
-			// std::cout << "================================= FINAL RESPONSE =====================" << std::endl;
-			// std::cout << "http res: " << httpResponse << std::endl;
-			// std::cout << "================================= FINAL RESPONSE END =====================" << std::endl;
-
-			ssize_t sent = send(client_fd, httpResponse.c_str(), httpResponse.size(), 0);
-			if (sent < 0)
-			{
-				perror("send");
-			}
-			close(client_fd);
-		}
-	}
-	close(epoll_fd);
-
-	return 0;
-}
-
-
-/*
-	o
-*/
-
 static void setNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1)
@@ -280,10 +130,21 @@ bool WebServer::isListenFd(int fd) const {
 }
 
 Client*	WebServer::searchClients(int fd) {
-	std::map<int, Client>::iterator it = this->_clients.find(fd);
-	if (it != this->_clients.end())
-		return (NULL);
-	return &(it->second);
+	std::cout << "searchClients client test: " << _clients[fd] << std::endl;
+	// std::map<int, Client>::iterator it = this->_clients.find(fd);
+	// if (it != this->_clients.end()) {
+	// 	std::cout << "can't find fd" << fd << " return NULL" << std::endl;
+	// 	return (NULL);
+	// }
+
+	std::map<int, Client>::iterator i;
+
+	for (i = _clients.begin() ; i != _clients.end(); i++) {
+		if (i->first == fd)
+			return &(i->second);
+	}
+
+	return (NULL);
 }
 
 void WebServer::handleAccept(int listenfd) {
@@ -304,13 +165,31 @@ void WebServer::handleAccept(int listenfd) {
 		ev.events = EPOLLIN;
 		ev.data.fd = client_fd;
 		epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev);
+		_clients[client_fd] = Client(client_fd, _servers[searchSocketIndex(_sockets, listenfd)]);
 	}
 }
+
+int	WebServer::searchVecIndex(std::vector<int> vec, int key) {
+	for (size_t i = 0; i < vec.size(); i++) {
+		if (vec[i] == key)
+			return (i);
+	}
+	return (-1);
+}
+
+int	WebServer::searchSocketIndex(std::vector<Socket> vec, int key) {
+	for (size_t i = 0; i < vec.size(); i++) {
+		std::cout << vec[i].getServerFd() << std::endl;
+		if (vec[i].getServerFd() == key)
+			return (i);
+	}
+	return (-1);
+}
+
 
 
 void WebServer::handleRead(int fd) {
 	Client* client = searchClients(fd);
-	std::cout << "client searched with fd: " << fd << std::endl;
 	if (!client) return;
 
 	char buffer[4096];
@@ -322,7 +201,10 @@ void WebServer::handleRead(int fd) {
 		std::cout << "Receiving data..." << std::endl;
 		ssize_t bytes_received = recv(client->getFd(), buffer, sizeof(buffer), 0);
 		std::cout << "Bytes received: " << bytes_received << std::endl;
-		if (bytes_received <= 0) break;
+		if (bytes_received <= 0) {
+			std::cout << "No more data to read or error occurred." << std::endl;
+			break;
+		}
 		std::cout << "================================= BYTE RECIEVED START =====================" << std::endl;
 		std::cout << bytes_received << std::endl;
 		std::cout << "================================= BYTE RECIEVED END =====================" << std::endl;
@@ -339,6 +221,7 @@ void WebServer::handleRead(int fd) {
 		}
 	}
 	if (bytes_received < 0) {
+		std::cout << "in if" << std::endl;
 		perror("recv");
 		close(client->getFd());
 		std::cout << "Client connection closed due to recv error." << std::endl;
@@ -349,9 +232,13 @@ void WebServer::handleRead(int fd) {
 	// Append to client buffer
 	client->setInBuffer(std::string(buffer));
 
+	std::cout << buffer << std::endl;
+
 	// Creating the Request Intance
-	if (!client->buildRes())
+	if (!client->buildReq())
 		throw "Fatal Err: Response Cannot be created";
+
+	std::cout << *client->getRequest() << std::endl;
 
 	// Setting epoll event to EPOLLOUT
 	struct epoll_event ev;
@@ -372,12 +259,13 @@ void WebServer::handleWrite(int fd) {
 	if (!client->buildRes())
 		throw "Fatal Err: Response cannot be create";
 
-	std::string	httpResponse = client->getResponse().toStr();
+	std::cout << *client->getResponse() << std::endl;
+	std::string	httpResponse = client->getResponse()->toStr();
 
 	ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), 0);
 	if (sent < 0)
 	{
-		perror("send");
+		perror("send error:");
 	}
 }
 

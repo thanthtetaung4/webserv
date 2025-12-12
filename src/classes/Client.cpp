@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/12 06:31:13 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/12 19:56:53 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,12 @@
 #include <iostream>
 #include <sstream>
 
+Client::Client(void) : server(*(new Server())) {
+	std::cout << "Client Default Constructor called" << std::endl;
+}
+
 Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server)) {
+	std::cout << "Client fd, server constructor called" << std::endl;
 	this->fd = fd;
 
 	this->inBuffer = "";
@@ -31,7 +36,6 @@ Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server
 }
 
 Client&	Client::operator=(const Client& other) {
-
 	if (this != &other) {
 		this->fd = other.fd;
 		this->server = other.server;
@@ -41,6 +45,7 @@ Client&	Client::operator=(const Client& other) {
 		this->response = other.response;
 		this->upstreamFd = other.upstreamFd;
 		this->isProxyClient = other.isProxyClient;
+		std::cout << "client copied as: " << *this << std::endl;
 	}
 	return *this;
 }
@@ -51,7 +56,7 @@ Client::~Client() {}
 bool	Client::buildReq() {
 	try {
 		request = new Request(this->inBuffer, this->server);
-	} catch (std::exception e) {
+	} catch (std::exception &e) {
 		std::cout << e.what() << std::endl;
 		return false;
 	}
@@ -61,7 +66,7 @@ bool	Client::buildReq() {
 bool	Client::buildRes() {
 	try {
 		response = new Response(*this->request, this->server);
-	} catch (std::exception e) {
+	} catch (std::exception &e) {
 		std::cout << e.what() << std::endl;
 		return false;
 	}
@@ -80,10 +85,25 @@ int	Client::getFd(void) const {
 	return (this->fd);
 }
 
-const Response&	Client::getResponse(void) {
-	return (*this->response);
+const Response*	Client::getResponse(void) const{
+	if (this->response)
+		return (this->response);
+	return (NULL);
+}
+
+const Request*	Client::getRequest(void) const{
+	if (this->request)
+		return (this->request);
+	return (NULL);
 }
 
 void	Client::setInBuffer(std::string rawStr) {
 	this->inBuffer += rawStr;
+}
+
+std::ostream &operator<<(std::ostream &os, const Client &client) {
+	os << "Client FD: " << client.getFd();
+	os << "\nResquest: " << client.getRequest();
+	os << "\nResponse: " << client.getResponse();
+	return os;
 }
