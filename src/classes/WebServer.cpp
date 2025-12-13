@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/14 01:12:22 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/14 01:17:10 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -350,13 +350,9 @@ void WebServer::readFromClient(Client& client) {
 		client.setHeaderEndPos(bodyStart);
 
 		std::string headers = requestStr.substr(0, bodyStart);
-		std::cout << "======================" << std::endl;
-		std::cout << headers << std::endl;
-		std::cout << "======================" << std::endl;
 
 		int contentLength = parseContentLength(headers);
 		client.setContentLength(contentLength);
-		std::cout << "Content-Length: " << contentLength << std::endl;
 
 		// Check if body is already complete (no body or body already received)
 		if (requestStr.size() >= bodyStart + contentLength) {
@@ -406,6 +402,7 @@ void	WebServer::updateClient(Client& client) {
 		throw std::runtime_error(std::string("epoll_ctl ADD listen_fd failed: ") +
 									std::strerror(errno));
 	}
+	client.setState(RES_RDY);
 	std::cout << "updating done" << std::endl;
 }
 
@@ -428,19 +425,21 @@ void	WebServer::handleRead(int fd) {
 void WebServer::handleWrite(int fd) {
 	Client* client = searchClients(fd);
 
-	// Creating Response Instance
-	if (!client->buildRes())
-		throw "Fatal Err: Response cannot be create";
+	if (client->getState() == RES_RDY) {
+		// Creating Response Instance
+		if (!client->buildRes())
+			throw "Fatal Err: Response cannot be create";
 
-	std::cout << *client->getResponse() << std::endl;
-	std::string	httpResponse = client->getResponse()->toStr();
+		std::cout << *client->getResponse() << std::endl;
+		std::string	httpResponse = client->getResponse()->toStr();
 
-	ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), 0);
-	if (sent < 0)
-	{
-		perror("send error:");
+		ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), 0);
+		if (sent < 0)
+		{
+			perror("send error:");
+		}
+		closeClient(fd);
 	}
-	closeClient(fd);
 }
 
 void WebServer::closeClient(int fd) {

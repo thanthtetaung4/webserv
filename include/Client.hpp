@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 14:08:59 by taung             #+#    #+#             */
-/*   Updated: 2025/12/13 23:21:35 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/14 01:15:08 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,8 +28,7 @@ enum ClientState {
 		READ_REQ,
 		REQ_RDY,
 		WAIT_UPSTREAM,
-		RES_RDY,
-		DONE
+		RES_RDY
 	};
 
 class Client {
