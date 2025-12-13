@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/12 19:40:05 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/13 21:27:39 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,6 +50,8 @@ private:
 
 	int	searchVecIndex(std::vector<int> vec, int key);
 	int	searchSocketIndex(std::vector<Socket> vec, int key);
+	void	readFromClient(Client& client);
+	void	updateClient(Client& client);
 
 public:
 	WebServer();

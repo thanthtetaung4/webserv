@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/12 19:56:53 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/13 23:35:45 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,8 +97,40 @@ const Request*	Client::getRequest(void) const{
 	return (NULL);
 }
 
+ClientState	Client::getState(void) const {
+	return (this->state);
+}
+
+const std::string&	Client::getInBuffer(void) const {
+	return (this->inBuffer);
+}
+
+size_t	Client::getContentLength(void) const {
+	return (this->contentLength);
+}
+
+void	Client::setContentLength(size_t cl) {
+	this->contentLength = cl;
+}
+
+bool	Client::foundHeader(void) const {
+	return (this->headerEndPos != 0);
+}
+
+size_t	Client::getHeaderEndPos(void) const {
+	return (this->headerEndPos);
+}
+
+void	Client::setHeaderEndPos(size_t pos) {
+	this->headerEndPos = pos;
+}
+
 void	Client::setInBuffer(std::string rawStr) {
 	this->inBuffer += rawStr;
+}
+
+void	Client::setState(ClientState state) {
+	this->state = state;
 }
 
 std::ostream &operator<<(std::ostream &os, const Client &client) {

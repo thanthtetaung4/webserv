@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/13 00:02:29 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/13 23:33:11 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -179,68 +179,151 @@ int	WebServer::searchSocketIndex(std::vector<Socket> vec, int key) {
 	return (-1);
 }
 
+// void WebServer::handleRead(int fd) {
+// 	Client* client = searchClients(fd);
+// 	if (!client) throw "client connection lost";
 
+// 	char buffer[4096];
+// 	// std::cout << "=================REQUEST============================" << std::endl;
 
-void WebServer::handleRead(int fd) {
-	Client* client = searchClients(fd);
-	if (!client) return;
+// 	std::string requestStr;
+// 	ssize_t bytes_received = 0;
+// 	while (true) {
+// 		ssize_t bytes_received = recv(client->getFd(), buffer, sizeof(buffer), 0);
+// 		if (bytes_received <= 0) {
+// 			std::cout << "No more data to read or error occurred." << std::endl;
+// 			break;
+// 		}
+// 		std::cout << "================================= BYTE RECIEVED START =====================" << std::endl;
+// 		std::cout << bytes_received << std::endl;
+// 		std::cout << "================================= BYTE RECIEVED END =====================" << std::endl;
 
+// 		requestStr.append(buffer, bytes_received);
+
+// 		// stop when the headers are received + full body matches Content-Length
+// 		if (requestStr.find("\r\n\r\n") != std::string::npos) {
+// 			size_t bodyStart = requestStr.find("\r\n\r\n") + 4;
+// 			std::string headers = requestStr.substr(0, bodyStart);
+// 			size_t contentLength = parseContentLength(headers);
+
+// 			if (requestStr.size() >= bodyStart + contentLength)
+// 				break;
+// 		}
+// 	}
+// 	if (bytes_received < 0) {
+// 		perror("recv err:");
+// 		close(client->getFd());
+// 		return;
+// 	}
+
+// 	// Append to client buffer
+// 	client->setInBuffer(std::string(requestStr));
+
+// 	std::cout << "================================" << std::endl;
+// 	std::cout << requestStr << std::endl;
+// 	std::cout << "================================" << std::endl;
+
+// 	// Creating the Request Intance
+// 	if (!client->buildReq())
+// 		throw "Fatal Err: Response Cannot be created";
+
+// 	std::cout << *client->getRequest() << std::endl;
+
+// 	// Setting epoll event to EPOLLOUT
+// 	struct epoll_event ev;
+// 	std::memset(&ev, 0, sizeof(ev));
+// 	ev.events  = EPOLLOUT; // ready to write
+// 	ev.data.fd = fd;
+
+// 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
+// 		throw std::runtime_error(std::string("epoll_ctl ADD listen_fd failed: ") +
+// 									std::strerror(errno));
+// 	}
+// }
+
+void	WebServer::readFromClient(Client& client) {
 	char buffer[4096];
-	// std::cout << "=================REQUEST============================" << std::endl;
-
-	std::string requestStr;
 	ssize_t bytes_received = 0;
-	while (true) {
-		ssize_t bytes_received = recv(client->getFd(), buffer, sizeof(buffer), 0);
-		if (bytes_received <= 0) {
-			std::cout << "No more data to read or error occurred." << std::endl;
-			break;
-		}
-		std::cout << "================================= BYTE RECIEVED START =====================" << std::endl;
-		std::cout << bytes_received << std::endl;
-		std::cout << "================================= BYTE RECIEVED END =====================" << std::endl;
+	std::string requestStr;
 
-		requestStr.append(buffer, bytes_received);
+	bytes_received = recv(client.getFd(), buffer, sizeof(buffer), 0);
 
-		// stop when the headers are received + full body matches Content-Length
-		if (requestStr.find("\r\n\r\n") != std::string::npos) {
-			size_t bodyStart = requestStr.find("\r\n\r\n") + 4;
-			std::string headers = requestStr.substr(0, bodyStart);
-			size_t contentLength = parseContentLength(headers);
-
-			if (requestStr.size() >= bodyStart + contentLength)
-				break;
-		}
-	}
+	// Handle recv errors
 	if (bytes_received < 0) {
-		perror("recv err:");
-		close(client->getFd());
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			// No data available right now, that's OK
+			return;
+		}
+		// Real error
+		perror("recv");
+		closeClient(client.getFd());
 		return;
 	}
 
+	// If clinet closes before sending full req discard the Client
+	if (bytes_received == 0) {
+		std::cout << "Client closed connection" << std::endl;
+		closeClient(client.getFd());
+		return;
+	}
 
-	// Append to client buffer
-	client->setInBuffer(std::string(requestStr));
+	client.appendRecvBuffer(buffer);
 
-	std::cout << "================================" << std::endl;
-	std::cout << requestStr << std::endl;
-	std::cout << "================================" << std::endl;
+	requestStr = client.getInBuffer();
 
+	if (!client.foundHeader()) {
+	size_t pos = requestStr.find("\r\n\r\n");
+	if (pos == std::string::npos)
+		return;
+
+	size_t bodyStart = pos + 4;
+	client.setHeaderEndPos(bodyStart);
+
+	std::string headers = requestStr.substr(0, bodyStart);
+	client.setContentLength(parseContentLength(headers));
+	} else {
+	size_t bodyStart = client.getHeaderEndPos();
+	if (requestStr.size() >= bodyStart + client.getContentLength())
+		client.setState(REQ_RDY);
+	}
+
+}
+
+void	WebServer::updateClient(Client& client) {
 	// Creating the Request Intance
-	if (!client->buildReq())
+	if (!client.buildReq())
 		throw "Fatal Err: Response Cannot be created";
 
-	std::cout << *client->getRequest() << std::endl;
+	std::cout << *client.getRequest() << std::endl;
 
 	// Setting epoll event to EPOLLOUT
 	struct epoll_event ev;
 	std::memset(&ev, 0, sizeof(ev));
 	ev.events  = EPOLLOUT; // ready to write
-	ev.data.fd = fd;
+	ev.data.fd = client.getFd();
 
-	if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
+	if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client.getFd(), &ev) == -1) {
 		throw std::runtime_error(std::string("epoll_ctl ADD listen_fd failed: ") +
 									std::strerror(errno));
+	}
+}
+
+void	WebServer::handleRead(int fd) {
+	Client* client = searchClients(fd);
+	if (!client) throw "client not found";
+
+	switch (client->getState())
+	{
+		case READ_REQ:
+			readFromClient(*client);
+			break;
+
+		case REQ_RDY:
+			updateClient(*client);
+			break;
+
+		default:
+			break;
 	}
 }
 
