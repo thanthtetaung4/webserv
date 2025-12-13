@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/13 23:35:45 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/13 23:58:53 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,10 @@ Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server
 	this->request = NULL;
 	this->response = NULL;
 
+	this->state = READ_REQ;
+	this->contentLength = 0;
+	this->headerEndPos = 0;
+
 	this->upstreamFd = 0;
 	this->isProxyClient = false;
 }
@@ -45,6 +49,9 @@ Client&	Client::operator=(const Client& other) {
 		this->response = other.response;
 		this->upstreamFd = other.upstreamFd;
 		this->isProxyClient = other.isProxyClient;
+		this->state = other.state;
+		this->headerEndPos = other.headerEndPos;
+		this->contentLength = other.contentLength;
 		std::cout << "client copied as: " << *this << std::endl;
 	}
 	return *this;
