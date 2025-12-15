@@ -16,513 +16,232 @@ socket: 5
 Listening on port: http://localhost:8081
 Listening on port: http://localhost:8085
 Listening on port: http://localhost:9090
+0 times looping
+epoll loop: 0
 3
 4
 5
 Client fd, server constructor called
-Client Default Constructor called
-client copied as: Client FD: 7
-Resquest: 0
-Response: 0
+1 times looping
+epoll loop: 0
 handle read called
 client has state0
 reading from client
-Received 4096 bytes
+Received 501 bytes
 header not found, finding
-Body incomplete: have 3431, need 273078
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 7527 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 11623 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 15719 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 19815 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 23911 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 28007 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 32103 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 36199 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 40295 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 44391 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 48487 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 52583 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 56679 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 60775 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 64871 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 68967 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 73063 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 77159 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 81255 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 85351 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 89447 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 93543 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 97639 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 101735 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 105831 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 109927 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 114023 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 118119 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 122215 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 126311 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 130407 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 134503 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 138599 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 142695 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 146791 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 150887 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 154983 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 159079 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 163175 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 167271 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 171367 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 175463 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 179559 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 183655 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 187751 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 191847 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 195943 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 200039 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 204135 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 208231 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 212327 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 216423 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 220519 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 224615 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 128 bytes
-Checking body: have 224743 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 228839 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 232935 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 237031 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 241127 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 245223 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 249319 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 253415 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 257511 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 261607 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 265703 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 4096 bytes
-Checking body: have 269799 bytes, need 273078 bytes
-Still waiting for more body data
-client state: 0
-handle read called
-client has state0
-reading from client
-Received 3279 bytes
-Checking body: have 273078 bytes, need 273078 bytes
-Request body complete
+Request complete (headers + body)
 updating client
-Request line: POST /upload/ HTTP/1.1
+Request line: GET /pp/ HTTP/1.1
 updating done
-client state: 3
+client state: 4
+Setting up sockets
+Proxying to 127.0.0.1:9090/files/index.html
+Connected to upstream
+2 times looping
+epoll loop: 0
+EPOLLOUT
 handle write called
+Client FD: 7
+Resquest: 0x56ddd3a818e0
+Response: 0
+State: 2
+
+raw res from upstream: 
+handle write done
+epoll loop: 1
+3
+4
+5
+Client fd, server constructor called
+epoll loop: 2
+handleUpstreamEvent
+UPSTREAM EPOLLOUT
+handling upstream write for fd: 8 with client fd: 7
+Client FD: 7
+Resquest: 0x56ddd3a818e0
+Response: 0
+State: 2
+
+Sending to client with fd 8:
+GET /files/index.html HTTP/1.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.5
+Connection: keep-alive
+Cookie: PHPSESSID=136c73378452cbe406ffaaabc466d9ff
+Host: localhost:9090
+Priority: u=0, i
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
+
+
+req sent to upstream
+client state and epoll event updated
+3 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 7
+Resquest: 0x56ddd3a818e0
+Response: 0
+State: 2
+
+raw res from upstream: 
+handle write done
+epoll loop: 1
+handle read called
+client has state0
+reading from client
+Received 514 bytes
+header not found, finding
+Request complete (headers + body)
+updating client
+Request line: GET /files/index.html HTTP/1.1
+updating done
+client state: 4
+4 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 7
+Resquest: 0x56ddd3a818e0
+Response: 0
+State: 2
+
+raw res from upstream: 
+handle write done
+epoll loop: 1
+EPOLLOUT
+handle write called
+Client FD: 9
+Resquest: 0x56ddd3a7e9a0
+Response: 0
+State: 4
+
+raw res from upstream: 
+RES RDY
 =========== Res Start ===========
 2097152
 =========== is not file, not dir ===========
-upload store
-Uploaded: /home/thant-htet-aung/webserv/www/store/test.png (272485 bytes)
-Uploaded: /home/thant-htet-aung/webserv/www/store/test.txt (12 bytes)
+=========== static ===========
+Requested Path: /home/thant-htet-aung/webserv/www/html/files/index.html
 =========== Res END ===========
 Http version: HTTP/1.1
 Error Code: 200
-Error Msg: 
+Error Msg: OK
 Headers:
-  (none)
+  [Connection] = close
+  [Content-Length] = 244
+  [Content-Type] = text/html
+----------------HEADER END-----------------
 Body: <!DOCTYPE html>
-<html>
-<head><title>OK</title></head>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Home</title>
+</head>
 <body>
-<h1>Response from C++</h1>
-<p>Everything works!</p>
+	<h1>Weclome From Our Home</h1>
+	<h2>files is here</h2>
 </body>
 </html>
 
+
+Client 9 closed and removed from epoll
+handle write done
+5 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 7
+Resquest: 0x56ddd3a818e0
+Response: 0
+State: 2
+
+raw res from upstream: 
+handle write done
+epoll loop: 1
+handleUpstreamEvent
+UPSTREAM EPOLLIN
+Reading res from upstream
+buffer from upstream read: HTTP/1.1 200 OK
+Connection: close
+Content-Length: 244
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Home</title>
+</head>
+<body>
+	<h1>Weclome From Our Home</h1>
+	<h2>files is here</h2>
+</body>
+</html>
+; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
+
+
+Upstream received 328 bytes
+Upstream response complete
+reading res from upstream done
+6 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 7
+Resquest: 0x56ddd3a818e0
+Response: 0
+State: 4
+
+raw res from upstream: HTTP/1.1 200 OK
+Connection: close
+Content-Length: 244
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Home</title>
+</head>
+<body>
+	<h1>Weclome From Our Home</h1>
+	<h2>files is here</h2>
+</body>
+</html>
+; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
+
+
+WAIT_UPSTREAM
+writing to client with res from upstream:HTTP/1.1 200 OK
+Connection: close
+Content-Length: 244
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Home</title>
+</head>
+<body>
+	<h1>Weclome From Our Home</h1>
+	<h2>files is here</h2>
+</body>
+</html>
+; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
+
+
 Client 7 closed and removed from epoll
+handle write done
+7 times looping

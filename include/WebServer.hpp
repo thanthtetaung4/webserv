@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/13 21:27:39 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/15 15:18:05 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,13 +39,18 @@
 
 class client;
 
+// enum UpStreamState {
+
+// }
+
 class WebServer
 {
 private:
 	std::vector<Server> _servers;
 	std::vector<Socket> _sockets;
-	std::map<int, Client> _clients;
+	std::map<int, Client*> _clients;
 	std::vector<int> _upstreamFds;
+	std::map<int, Client*> _upstreamClient;
 	int _epoll_fd;
 
 	int	searchVecIndex(std::vector<int> vec, int key);
@@ -60,7 +65,6 @@ public:
 	void setServer(std::string configFile);
 	void addServer(Server server);
 	void setUpSock(void);
-	int serve(void);
 	std::vector<Server> getServers() const;
 	int run(void);
 
@@ -68,16 +72,19 @@ public:
 	void handleRead(int fd);
 	void handleWrite(int fd);
 	void closeClient(int fd);
-	void handleUpstreamRead(int fd);
+	void handleUpstreamWrite(Client& c, int fd);
+	void handleUpstreamRead(Client& c, int fd);
 	void handleUpstreamEvent(int fd, uint32_t events);
 	void closeUpstream(int upstreamFd);
+	void finalizeUpstreamResponse(Client& client);
 
 	bool isUpStream(int fd) const;
 	bool isListenFd(int fd) const;
-	int startUpstreamConnection(int clientFd, const std::string& host, const std::string& port);
 
 	// Utils
 	Client*	searchClients(int fd);
+	Client*	searchClientsUpstream(int fd);
+	void	removeUpstreamFd(int fd);
 };
 
 #endif

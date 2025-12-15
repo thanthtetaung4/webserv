@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 14:08:59 by taung             #+#    #+#             */
-/*   Updated: 2025/12/14 01:15:08 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/15 15:09:15 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ enum ClientState {
 		READ_REQ,
 		REQ_RDY,
 		WAIT_UPSTREAM,
+		UPSTREAM_RDY,
 		RES_RDY
 	};
 
@@ -35,8 +36,9 @@ class Client {
 	private:
 		int		fd;             // client socket fd
 		Server&	server;
+		int		upstreamFd;
 		std::string	inBuffer;       // raw request data (headers + body)
-		std::string	outBuffer;      // serialized HTTP response
+		std::string	upstreamBuffer;      // buffer for upstream
 
 		Request*	request;        // parsed request
 		Response*	response;       // generated response
@@ -45,10 +47,6 @@ class Client {
 
 		size_t	headerEndPos; // header end position
 		size_t	contentLength;
-
-		// Reverse proxy support
-		int		upstreamFd;     // fd of upstream server (if proxy_pass)
-		bool	isProxyClient;  // true if this request uses proxy_pass
 
 	public:
 		Client();
@@ -60,11 +58,12 @@ class Client {
 		bool	buildRes();
 		bool	buildReq();
 		void	appendRecvBuffer(std::string buff);
-		void	addToOutBuffer(std::string buff);
+		void	addToUpstreamBuffer(std::string buff);
 		bool	isRequestComplete(void);
 		bool	isProxyRequest();
 		void	setSendBuffer(std::string rawString);
 		bool	foundHeader(void) const;
+		bool	isProxyPass(void) const;
 
 		//	Accessors
 		//	Getters
@@ -75,12 +74,15 @@ class Client {
 		const std::string&	getInBuffer(void) const;
 		size_t	getHeaderEndPos(void) const;
 		size_t	getContentLength(void) const;
+		const std::string&	getUpstreamBuffer(void) const;
+		int	getUpstreamFd(void) const;
 
 		//	Setters
 		void	setInBuffer(std::string rawStr);
 		void	setState(ClientState state);
 		void	setHeaderEndPos(size_t pos);
 		void	setContentLength(size_t cl);
+		void	setUpstreamFd(int fd);
 };
 std::ostream &operator<<(std::ostream &os, const Client &client);
 

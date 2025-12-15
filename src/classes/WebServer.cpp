@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/14 01:17:10 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/15 16:39:19 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include "../../include/Client.hpp"
 
 WebServer::WebServer() {}
 
@@ -130,13 +131,23 @@ bool WebServer::isListenFd(int fd) const {
 }
 
 Client*	WebServer::searchClients(int fd) {
-	std::map<int, Client>::iterator i;
+	std::map<int, Client*>::iterator i;
 
 	for (i = _clients.begin() ; i != _clients.end(); i++) {
 		if (i->first == fd)
-			return &(i->second);
+			return (i->second);
 	}
 
+	return (NULL);
+}
+
+Client*	WebServer::searchClientsUpstream(int fd) {
+	std::map<int, Client*>::iterator i;
+
+	for (i = _upstreamClient.begin() ; i != _upstreamClient.end(); i++) {
+		if (i->first == fd)
+			return (i->second);
+	}
 	return (NULL);
 }
 
@@ -158,7 +169,7 @@ void WebServer::handleAccept(int listenfd) {
 		ev.events = EPOLLIN;
 		ev.data.fd = client_fd;
 		epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev);
-		_clients[client_fd] = Client(client_fd, _servers[searchSocketIndex(_sockets, listenfd)]);
+		_clients[client_fd] = new Client(client_fd, _servers[searchSocketIndex(_sockets, listenfd)]);
 	}
 }
 
@@ -178,131 +189,6 @@ int	WebServer::searchSocketIndex(std::vector<Socket> vec, int key) {
 	}
 	return (-1);
 }
-
-// void WebServer::handleRead(int fd) {
-// 	Client* client = searchClients(fd);
-// 	if (!client) throw "client connection lost";
-
-// 	char buffer[4096];
-// 	// std::cout << "=================REQUEST============================" << std::endl;
-
-// 	std::string requestStr;
-// 	ssize_t bytes_received = 0;
-// 	while (true) {
-// 		ssize_t bytes_received = recv(client->getFd(), buffer, sizeof(buffer), 0);
-// 		if (bytes_received <= 0) {
-// 			std::cout << "No more data to read or error occurred." << std::endl;
-// 			break;
-// 		}
-// 		std::cout << "================================= BYTE RECIEVED START =====================" << std::endl;
-// 		std::cout << bytes_received << std::endl;
-// 		std::cout << "================================= BYTE RECIEVED END =====================" << std::endl;
-
-// 		requestStr.append(buffer, bytes_received);
-
-// 		// stop when the headers are received + full body matches Content-Length
-// 		if (requestStr.find("\r\n\r\n") != std::string::npos) {
-// 			size_t bodyStart = requestStr.find("\r\n\r\n") + 4;
-// 			std::string headers = requestStr.substr(0, bodyStart);
-// 			size_t contentLength = parseContentLength(headers);
-
-// 			if (requestStr.size() >= bodyStart + contentLength)
-// 				break;
-// 		}
-// 	}
-// 	if (bytes_received < 0) {
-// 		perror("recv err:");
-// 		close(client->getFd());
-// 		return;
-// 	}
-
-// 	// Append to client buffer
-// 	client->setInBuffer(std::string(requestStr));
-
-// 	std::cout << "================================" << std::endl;
-// 	std::cout << requestStr << std::endl;
-// 	std::cout << "================================" << std::endl;
-
-// 	// Creating the Request Intance
-// 	if (!client->buildReq())
-// 		throw "Fatal Err: Response Cannot be created";
-
-// 	std::cout << *client->getRequest() << std::endl;
-
-// 	// Setting epoll event to EPOLLOUT
-// 	struct epoll_event ev;
-// 	std::memset(&ev, 0, sizeof(ev));
-// 	ev.events  = EPOLLOUT; // ready to write
-// 	ev.data.fd = fd;
-
-// 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-// 		throw std::runtime_error(std::string("epoll_ctl ADD listen_fd failed: ") +
-// 									std::strerror(errno));
-// 	}
-// }
-
-// void	WebServer::readFromClient(Client& client) {
-// 	std::cout << "reading from client" << std::endl;
-// 	char buffer[4096];
-// 	ssize_t bytes_received = 0;
-// 	std::string requestStr;
-
-// 	bytes_received = recv(client.getFd(), buffer, sizeof(buffer), 0);
-
-// 	// Handle recv errors
-// 	if (bytes_received < 0) {
-// 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-// 			// No data available right now, that's OK
-// 			return;
-// 		}
-// 		// Real error
-// 		perror("recv");
-// 		closeClient(client.getFd());
-// 		return;
-// 	}
-
-// 	// If clinet closes before sending full req discard the Client
-// 	if (bytes_received == 0) {
-// 		std::cout << "Client closed connection" << std::endl;
-// 		closeClient(client.getFd());
-// 		return;
-// 	}
-
-// 	client.appendRecvBuffer(buffer);
-
-// 	requestStr = client.getInBuffer();
-
-// 	if (!client.foundHeader()) {
-// 		std::cout << "header not found, finding" << std::endl;
-// 		size_t pos = requestStr.find("\r\n\r\n");
-// 		if (pos == std::string::npos)
-// 			return;
-
-// 		size_t bodyStart = pos + 4;
-// 		client.setHeaderEndPos(bodyStart);
-
-// 		std::string headers = requestStr.substr(0, bodyStart);
-// 		std::cout << "======================" << std::endl;
-// 		std::cout << headers << std::endl;
-// 		std::cout << "======================" << std::endl;
-// 		client.setContentLength(parseContentLength(headers));
-// 		std::cout << "client content len, " << client.getContentLength() << std::endl;
-// 		if (client.getContentLength() == 0) {
-// 			std::cout << "request has no body" << std::endl;
-// 			client.setState(REQ_RDY);
-// 		}
-
-// 	}
-// 	if (client.foundHeader()) {
-// 		size_t bodyStart = client.getHeaderEndPos();
-// 		if (requestStr.size() >= bodyStart + client.getContentLength()) {
-// 			std::cout << "client state changed" << std::endl;
-// 			client.setState(REQ_RDY);
-// 		}
-// 	}
-// 	std::cout << "client content length: " << client.getContentLength() << " , request str: " << client.getInBuffer().size() << std::endl;
-// 	std::cout << "reading done" << std::endl;
-// }
 
 void WebServer::readFromClient(Client& client) {
 	std::cout << "reading from client" << std::endl;
@@ -406,6 +292,42 @@ void	WebServer::updateClient(Client& client) {
 	std::cout << "updating done" << std::endl;
 }
 
+int	setupUpstreamSock(Client& client) {
+	std::cout << "Setting up sockets" << std::endl;
+	t_proxyPass pp = parseProxyPass((*client.getRequest()).getIt()->second._proxy_pass);
+	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
+
+	// 2. Create upstream client socket
+	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0) {
+		std::cout << "Failed to create proxy socket" << std::endl;
+		return (-1);
+	}
+
+	// 3. Build remote address
+	struct sockaddr_in server_addr;
+	memset(&server_addr, 0, sizeof(server_addr));
+	server_addr.sin_family      = AF_INET;
+	server_addr.sin_port        = htons(std::atoi(pp.port.c_str()));
+	server_addr.sin_addr.s_addr = inet_addr(pp.host.c_str());
+
+	if (server_addr.sin_addr.s_addr == INADDR_NONE) {
+		close(sockfd);
+		std::cout << "socket err" << std::endl;
+		return (-1);
+	}
+
+	// 4. Connect to upstream
+	if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+		perror("connect");
+		close(sockfd);
+		return (-1);
+	}
+
+	std::cout << "Connected to upstream" << std::endl;
+	return (sockfd);
+}
+
 void	WebServer::handleRead(int fd) {
 	Client* client = searchClients(fd);
 	if (!client) throw "client not found";
@@ -420,30 +342,88 @@ void	WebServer::handleRead(int fd) {
 	if (client->getState() == REQ_RDY) {
 		updateClient(*client);
 	}
-}
 
-void WebServer::handleWrite(int fd) {
-	Client* client = searchClients(fd);
-
-	if (client->getState() == RES_RDY) {
-		// Creating Response Instance
-		if (!client->buildRes())
-			throw "Fatal Err: Response cannot be create";
-
-		std::cout << *client->getResponse() << std::endl;
-		std::string	httpResponse = client->getResponse()->toStr();
-
-		ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), 0);
-		if (sent < 0)
-		{
-			perror("send error:");
+	if (client->isProxyPass()) {
+		int	ppassFd = setupUpstreamSock(*client);
+		if (ppassFd == -1) {
+			std::cout << "ppass fd cannot be oppened" << std::endl;
 		}
-		closeClient(fd);
+
+		client->setUpstreamFd(ppassFd);
+		client->setState(WAIT_UPSTREAM);
+
+		_upstreamFds.push_back(ppassFd);
+		_upstreamClient[ppassFd] = client;
+
+		setNonBlocking(ppassFd);
+
+		struct epoll_event ev;
+		std::memset(&ev, 0, sizeof(ev));
+		ev.events  = EPOLLOUT; // ready to write
+		ev.data.fd = ppassFd;
+
+
+		if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, ppassFd, &ev) == -1) {
+			throw std::runtime_error(std::string("epoll_ctl ADD ppassFD failed: ") +
+										std::strerror(errno));
+		}
 	}
 }
 
+void WebServer::handleWrite(int fd) {
+	std::cout << "handle write called" << std::endl;
+	Client* client = searchClients(fd);
+	std::cout << *client << std::endl;
+	std::cout << "raw res from upstream: " << client->getUpstreamBuffer() << std::endl;
+	if (client->getState() == RES_RDY) {
+		if (!client->getUpstreamBuffer().empty()) {
+			std::cout << "WAIT_UPSTREAM" << std::endl;
+			std::cout << "writing to client with res from upstream:" << client->getUpstreamBuffer() << std::endl;
+
+			std::string httpResponse = client->getUpstreamBuffer();
+
+			ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), 0);
+			if (sent < 0)
+			{
+				perror("send error:");
+			}
+			closeClient(fd);
+		} else {
+			std::cout << "RES RDY" << std::endl;
+			// Creating Response Instance
+			if (!client->buildRes())
+				throw "Fatal Err: Response cannot be create";
+
+			std::cout << *client->getResponse() << std::endl;
+			std::string	httpResponse = client->getResponse()->toStr();
+
+			ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), 0);
+			if (sent < 0)
+			{
+				perror("send error:");
+			}
+			closeClient(fd);
+		}
+	}
+	std::cout << "handle write done" << std::endl;
+
+	// if (client->getState() == WAIT_UPSTREAM) {
+	// 	std::cout << "WAIT_UPSTREAM" << std::endl;
+	// 	std::cout << "writing to client with res from upstream:" << client->getUpstreamBuffer() << std::endl;
+
+	// 	std::string httpResponse = client->getUpstreamBuffer();
+
+	// 	ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), 0);
+	// 	if (sent < 0)
+	// 	{
+	// 		perror("send error:");
+	// 	}
+	// 	closeClient(fd);
+	// }
+}
+
 void WebServer::closeClient(int fd) {
-	std::map<int, Client>::iterator it = this->_clients.find(fd);
+	std::map<int, Client*>::iterator it = this->_clients.find(fd);
 	if (it == this->_clients.end())
 		return;
 
@@ -463,16 +443,134 @@ void WebServer::closeClient(int fd) {
 	std::cout << "Client " << fd << " closed and removed from epoll" << std::endl;
 }
 
+void WebServer::handleUpstreamWrite(Client& c, int fd) {
+	std::cout << "handling upstream write for fd: " << fd << " with client fd: " << c.getFd() << std::endl;
+	std::cout << c << std::endl;
+	Request req = (*c.getRequest());
+	t_proxyPass pp = parseProxyPass(req.getIt()->second._proxy_pass);
+
+	std::string proxyRequest;
+	proxyRequest += req.getMethodType() + " " + pp.path + " " + req.getHttpVersion() + "\r\n";
+
+	// Copy client headers
+	for (std::map<std::string, std::string>::const_iterator it = req.getHeaders().begin();
+			it != req.getHeaders().end(); ++it)
+	{
+		proxyRequest += it->first + ": " + it->second + "\r\n";
+	}
+
+	proxyRequest += "\r\n"; // end headers
+	proxyRequest += req.getBody();
+
+	std::cout << "Sending to client with fd " << fd << ":\n" << proxyRequest << std::endl;
+
+	// 6. Send request to upstream
+	ssize_t sent = send(fd, proxyRequest.c_str(), proxyRequest.size(), 0);
+	if (sent < 0) {
+		close(fd);
+		throw std::runtime_error("Unable to send to proxy");
+	}
+	std::cout << "req sent to upstream" << std::endl;
+
+	epoll_event ev;
+	ev.events = EPOLLIN;
+	ev.data.fd = c.getUpstreamFd();
+	epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, c.getUpstreamFd(), &ev);
+
+	std::cout << "client state and epoll event updated" << std::endl;
+}
+
+bool isUpstreamResponseComplete(Client& client)
+{
+	const std::string& resp = client.getUpstreamBuffer();
+
+	size_t headerEnd = resp.find("\r\n\r\n");
+	if (headerEnd == std::string::npos)
+		return false;
+
+	int contentLength = parseContentLength(resp.substr(0, headerEnd + 4));
+	if (contentLength < 0)
+		return false;
+
+	return resp.size() >= headerEnd + 4 + contentLength;
+}
+
+void WebServer::closeUpstream(int upstreamFd) {
+	std::cout << "closing the upstream" << upstreamFd << std::endl;
+}
+
+void WebServer::finalizeUpstreamResponse(Client& client)
+{
+	std::cout << "Upstream response complete" << std::endl;
+
+	// Modify epoll to watch for EPOLLOUT on client socket
+	epoll_event ev;
+	ev.events = EPOLLOUT;
+	ev.data.fd = client.getFd();
+	epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client.getFd(), &ev);
+	client.setState(RES_RDY);
+
+	// handleWrite(client.getFd());
+
+	// Stop watching upstream socket
+	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client.getUpstreamFd(), NULL);
+	close(client.getUpstreamFd());
+}
+
+void WebServer::handleUpstreamRead(Client& c, int fd) {
+	std::cout << "Reading res from upstream" << std::endl;
+	char buffer[4096];
+
+	ssize_t bytes = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+
+	if (bytes < 0) {
+	if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		// No more data for now
+		return;
+	}
+
+	// Real error
+	perror("recv upstream");
+	closeUpstream(fd);
+	return;
+	}
+
+	if (bytes == 0) {
+		// Upstream closed connection
+		std::cout << "Upstream closed connection" << std::endl;
+		closeUpstream(fd);
+		finalizeUpstreamResponse(c);
+		return;
+	}
+
+	// Append to upstream buffer
+	std::cout << "buffer from upstream read: " << buffer << std::endl;
+	c.addToUpstreamBuffer(buffer);
+
+	std::cout << "Upstream received " << bytes << " bytes" << std::endl;
+
+	// Optional: check if response is complete
+	if (isUpstreamResponseComplete(c)) {
+		finalizeUpstreamResponse(c);
+		std::cout << "reading res from upstream done" << std::endl;
+	}
+}
+
+
 void WebServer::handleUpstreamEvent(int fd, uint32_t events) {
-	(void)fd;
+	std::cout << "handleUpstreamEvent" << std::endl;
+	Client *client = searchClientsUpstream(fd);
+	client->setUpstreamFd(fd);
 	// Handle EPOLLIN / EPOLLOUT / ERR for upstream socket
 	// Similar to handleRead/handleWrite but for upstream
 	if (events & EPOLLIN) {
-		// Handle upstream read
+		std::cout << "UPSTREAM EPOLLIN" << std::endl;
+		handleUpstreamRead(*client, fd);
 	}
 
 	if (events & EPOLLOUT) {
-		// Handle upstream write
+		std::cout << "UPSTREAM EPOLLOUT" << std::endl;
+		handleUpstreamWrite(*client, fd);
 	}
 	if (events & (EPOLLHUP | EPOLLERR)) {
 		// Handle upstream error/hangup
@@ -509,7 +607,9 @@ int WebServer::run(void) {
 	// 3) Main event loop
 	struct epoll_event events[MAX_EVENTS];
 
+	int	count = 0;
 	while (true) {
+		std::cout << count << " times looping" << std::endl;
 		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
 		if (nfds == -1) {
 			if (errno == EINTR)
@@ -518,6 +618,7 @@ int WebServer::run(void) {
 		}
 
 		for (int i = 0; i < nfds; ++i) {
+			std::cout << "epoll loop: " << i << std::endl;
 			int      fd = events[i].data.fd;
 			uint32_t ev = events[i].events;
 
@@ -547,13 +648,16 @@ int WebServer::run(void) {
 			}
 
 			if (ev & EPOLLOUT) {
-				std::cout << "handle write called" << std::endl;
+				std::cout << "EPOLLOUT" << std::endl;
 				handleWrite(fd);
 			}
 		}
+		count++;
 	}
 
 	// Usually unreachable in a daemon, but just in case:
 	close(_epoll_fd);
 	return 0;
 }
+
+

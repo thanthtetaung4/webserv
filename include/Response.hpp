@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/13 16:58:05 by taung             #+#    #+#             */
-/*   Updated: 2025/12/13 16:58:07 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/14 20:01:43 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,6 +50,7 @@ private:
 	std::string _body;
 	void	doPost(std::string uploadPath, const Request &req);
 	void	doDelete(std::string uploadPath, const Request &req);
+	std::string	rawRes;
 
 	// Private helper methods
 	void processFileRequest(Request &req, const std::string &path, size_t maxSize, Server &server);
@@ -84,6 +85,7 @@ public:
 	void setStatusTxt(const std::string &text);
 	void setHeader(const std::string &key, const std::string &value);
 	void setBody(const std::string &body);
+
 	std::string getHttpVersion() const;
 	int getStatusCode() const;
 	std::string getStatusTxt() const;

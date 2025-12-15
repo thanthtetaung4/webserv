@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/13 23:58:53 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/15 00:27:33 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server
 	this->fd = fd;
 
 	this->inBuffer = "";
-	this->outBuffer = "";
+	this->upstreamBuffer = "";
 
 	this->request = NULL;
 	this->response = NULL;
@@ -34,9 +34,6 @@ Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server
 	this->state = READ_REQ;
 	this->contentLength = 0;
 	this->headerEndPos = 0;
-
-	this->upstreamFd = 0;
-	this->isProxyClient = false;
 }
 
 Client&	Client::operator=(const Client& other) {
@@ -44,11 +41,9 @@ Client&	Client::operator=(const Client& other) {
 		this->fd = other.fd;
 		this->server = other.server;
 		this->inBuffer = other.inBuffer;
-		this->outBuffer = other.outBuffer;
+		this->upstreamBuffer = other.upstreamBuffer;
 		this->request = other.request;
 		this->response = other.response;
-		this->upstreamFd = other.upstreamFd;
-		this->isProxyClient = other.isProxyClient;
 		this->state = other.state;
 		this->headerEndPos = other.headerEndPos;
 		this->contentLength = other.contentLength;
@@ -80,12 +75,23 @@ bool	Client::buildRes() {
 	return true;
 }
 
+bool	Client::isProxyPass(void) const {
+	if (this->request) {
+		if (this->request->getIt() != this->server.getLocation().end()) {
+			t_location loc = this->request->getIt()->second;
+			if (!loc._proxy_pass.empty())
+				return (true);
+		}
+	}
+	return (false);
+}
+
 void	Client::appendRecvBuffer(std::string buff) {
 	this->inBuffer += buff;
 }
 
-void	Client::addToOutBuffer(std::string buff) {
-	this->outBuffer += buff;
+void	Client::addToUpstreamBuffer(std::string buff) {
+	this->upstreamBuffer += buff;
 }
 
 int	Client::getFd(void) const {
@@ -128,6 +134,18 @@ size_t	Client::getHeaderEndPos(void) const {
 	return (this->headerEndPos);
 }
 
+const std::string&	Client::getUpstreamBuffer(void) const {
+	return (this->upstreamBuffer);
+}
+
+int	Client::getUpstreamFd(void) const {
+	return (this->upstreamFd);
+}
+
+void	Client::setUpstreamFd(int fd) {
+	this->upstreamFd = fd;
+}
+
 void	Client::setHeaderEndPos(size_t pos) {
 	this->headerEndPos = pos;
 }
@@ -144,5 +162,7 @@ std::ostream &operator<<(std::ostream &os, const Client &client) {
 	os << "Client FD: " << client.getFd();
 	os << "\nResquest: " << client.getRequest();
 	os << "\nResponse: " << client.getResponse();
+	os << "\nState: " << client.getState();
+	os << std::endl;
 	return os;
 }
