@@ -6,11 +6,11 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/16 01:52:06 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/16 19:11:07 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "./../../include/WebServer.hpp"
+#include "../../include/WebServer.hpp"
 #include "../../include/Request.hpp"
 #include "../../include/Response.hpp"
 #include <sys/types.h>
