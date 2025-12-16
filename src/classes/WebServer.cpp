@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/15 16:39:19 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/16 01:52:06 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -374,9 +374,9 @@ void WebServer::handleWrite(int fd) {
 	std::cout << "handle write called" << std::endl;
 	Client* client = searchClients(fd);
 	std::cout << *client << std::endl;
-	std::cout << "raw res from upstream: " << client->getUpstreamBuffer() << std::endl;
 	if (client->getState() == RES_RDY) {
 		if (!client->getUpstreamBuffer().empty()) {
+			std::cout << "raw res from upstream: " << client->getUpstreamBuffer() << std::endl;
 			std::cout << "WAIT_UPSTREAM" << std::endl;
 			std::cout << "writing to client with res from upstream:" << client->getUpstreamBuffer() << std::endl;
 
@@ -390,6 +390,7 @@ void WebServer::handleWrite(int fd) {
 			closeClient(fd);
 		} else {
 			std::cout << "RES RDY" << std::endl;
+			std::cout << *client->getRequest() << std::endl;
 			// Creating Response Instance
 			if (!client->buildRes())
 				throw "Fatal Err: Response cannot be create";
@@ -406,20 +407,6 @@ void WebServer::handleWrite(int fd) {
 		}
 	}
 	std::cout << "handle write done" << std::endl;
-
-	// if (client->getState() == WAIT_UPSTREAM) {
-	// 	std::cout << "WAIT_UPSTREAM" << std::endl;
-	// 	std::cout << "writing to client with res from upstream:" << client->getUpstreamBuffer() << std::endl;
-
-	// 	std::string httpResponse = client->getUpstreamBuffer();
-
-	// 	ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), 0);
-	// 	if (sent < 0)
-	// 	{
-	// 		perror("send error:");
-	// 	}
-	// 	closeClient(fd);
-	// }
 }
 
 void WebServer::closeClient(int fd) {

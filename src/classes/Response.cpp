@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/14 20:01:37 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/16 01:56:34 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,11 @@ Response::Response(Request &req, Server &server)
 	if (req.getIt() != server.getLocation().end())
 	{
 		t_location loc = req.getIt()->second;
+
+		std::cout << "REQ - METHOD: " << req.getMethodType() << " , " << (std::find(loc._limit_except.begin(), loc._limit_except.end(), req.getMethodType()) != loc._limit_except.end() )<< std::endl;
+		if (std::find(loc._limit_except.begin(), loc._limit_except.end(), req.getMethodType()) != loc._limit_except.end()) {
+			checkHttpError(req, size, path, server);
+		}
 
 		if (isDirectory(req.getFinalPath()))
 		{
@@ -90,7 +95,8 @@ Response::Response(Request &req, Server &server)
 				if (std::find(loc._limit_except.begin(), loc._limit_except.end(), req.getMethodType()) != loc._limit_except.end()) {
 					handleStore(loc, req);
 				} else {
-					std::cout << "408 Method not allowed" << std::endl;
+					std::cout << "405 Method not allowed" << std::endl;
+					setResponseState(405, "Method Not Allowed", "<h1>Method Not Allowed</h1>", "text/html");
 				}
 			} else {
 				std::cout << "=========== static ===========" << std::endl;
@@ -109,11 +115,16 @@ Response::Response(Request &req, Server &server)
 		std::cout << "=========== loc is end =========" << std::endl;
 		std::cout << "=========== static ===========" << std::endl;
 		std::cout << "Requested Path: " << path << std::endl;
-		if (!checkHttpError(req, size, path, server))
-			serveFile(path);
-		if (this->_body.empty())
-		{
-			std::cout << "Body is empty" << std::endl;
+		if (req.getMethodType() != "GET") {
+			this->_statusCode = 405;
+			setResponseState(405, "Method Not Allowed", "<h1>Method Not Allowed</h1>", "text/html");
+		} else {
+			if (!checkHttpError(req, size, path, server))
+				serveFile(path);
+			if (this->_body.empty())
+			{
+				std::cout << "Body is empty" << std::endl;
+			}
 		}
 	}
 	std::cout << "=========== Res END ===========" << std::endl;
@@ -706,6 +717,7 @@ bool isSupportedType(const std::string &type)
 std::map<int, std::pair<std::string, std::string> > Response::getErrorMap()
 {
 	std::map<int, std::pair<std::string, std::string> > errorMap;
+	errorMap[204] = std::make_pair("No Content", "<h1>204 No Content</h1>");
 	errorMap[400] = std::make_pair("Bad Request", "<h1>400 Bad Request</h1>");
 	errorMap[401] = std::make_pair("Unauthorized", "<h1>401 Unauthorized</h1>");
 	errorMap[403] = std::make_pair("Forbidden", "<h1>403 Forbidden</h1>");
@@ -749,6 +761,8 @@ bool Response::checkHttpError(const Request &req, size_t size, std::string path,
 		errorCode = 418;
 	else if (req.getPath().size() > 2048)
 		errorCode = 414;
+	else if (req.getMethodType() == "POST" && req.getBody().empty())
+		errorCode = 204;
 	else if (req.getMethodType() != "GET" && req.getMethodType() != "POST" && req.getMethodType() != "DELETE")
 		errorCode = 405;
 	else if (req.getMethodType() == "POST" && !req.hasHeader("Content-Length"))
