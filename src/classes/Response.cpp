@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/16 12:28:10 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/16 22:28:57 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,9 +88,13 @@ Response::Response(Request &req, Server &server)
 	}
 	else if (isDirectory(req.getFinalPath()) && isRegularFile(buildIndexPath(req.getFinalPath(), "index.html")))
 	{
-		// No location match - but default index.html exists
-		std::string indexPath = buildIndexPath(req.getFinalPath(), "index.html");
-		processFileRequest(req, indexPath, maxSize, server);
+		if (req.getMethodType() != "GET") {
+			generateError(405, "Method Not Allowed", "<h1>Method Not Allowed</h1>", server);
+		} else {
+			// No location match - but default index.html exists
+			std::string indexPath = buildIndexPath(req.getFinalPath(), "index.html");
+			processFileRequest(req, indexPath, maxSize, server);
+		}
 	}
 	else if (isDirectory(req.getFinalPath()))
 	{
@@ -109,7 +113,12 @@ Response::Response(Request &req, Server &server)
 	else
 	{
 		// No location match - use default file processing
-		processFileRequest(req, req.getFinalPath(), maxSize, server);
+		if (req.getMethodType() != "GET") {
+			generateError(405, "Method Not Allowed", "<h1>Method Not Allowed</h1>", server);
+		} else {
+			std::cout << "method is GET" << std::endl;
+			processFileRequest(req, req.getFinalPath(), maxSize, server);
+		}
 	}
 }
 
@@ -165,7 +174,7 @@ void Response::processDirectoryRequest(Request &req, const t_location &loc, size
 		}
 		return;
 	}
-	
+
 	// No index configured - check autoindex
 	if (loc._autoIndex == "on")
 	{
