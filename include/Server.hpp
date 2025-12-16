@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 04:47:58 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/12 06:19:12 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/16 12:17:22 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,7 @@ private:
     std::map<std::string, std::string> _errorPage;
     std::map<std::string, t_location> _locations;
     std::vector<std::string> _return;
+    std::string _autoIndex;
     typedef void (Server::*AttrHandler)(const std::vector<std::string> &line);
     typedef void (Server::*LocAttrHandler)(const std::vector<std::string> &line, t_location &location, std::string &key);
     static std::map<std::string, AttrHandler> &getServerHandlers();
@@ -53,6 +54,7 @@ private:
     void handleRoot(const std::vector<std::string> &line);
     void handleIndex(const std::vector<std::string> &line);
     void handleReturn(const std::vector<std::string> &line);
+    void handleAutoIndex(const std::vector<std::string> &line);
     void handleLocation(const std::vector<std::string> &line, t_location &loc, std::string &key);
     void handleLocRoot(const std::vector<std::string> &line, t_location &loc, std::string &key);
     void handleLocIndex(const std::vector<std::string> &line, t_location &loc, std::string &key);
@@ -76,8 +78,7 @@ public:
     void setReturn(const std::string &key, const std::string &value);
     void setRoot(const std::string &root);
     void setIndex(const std::string &index);
-    void setServerRoot(std::string sr);
-    void setServerIndex(const std::vector<std::string> &indices);
+    void setAutoIndex(const std::string &autoIndex);
     std::string getPort() const;
     std::string getServerName() const;
     std::string getMaxByte() const;
@@ -87,6 +88,7 @@ public:
     const std::map<std::string, std::string> &getErrorPage() const;
     const std::map<std::string, t_location> &getLocation() const;
     const std::vector<std::string> &getReturn() const;
+    const std::string &getAutoIndex() const;
     static t_iterators getIterators(std::string &content, std::string::iterator start, const std::string &target1, const std::string &target2);
     void fetchSeverInfo(t_iterators it);
     void fetchLocationInfo(t_iterators it);

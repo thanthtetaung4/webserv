@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/16 19:19:10 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/16 12:28:10 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,6 +86,26 @@ Response::Response(Request &req, Server &server)
 		// Handle regular file requests
 		processFileRequest(req, finalPath, maxSize, server);
 	}
+	else if (isDirectory(req.getFinalPath()) && isRegularFile(buildIndexPath(req.getFinalPath(), "index.html")))
+	{
+		// No location match - but default index.html exists
+		std::string indexPath = buildIndexPath(req.getFinalPath(), "index.html");
+		processFileRequest(req, indexPath, maxSize, server);
+	}
+	else if (isDirectory(req.getFinalPath()))
+	{
+		// No location match - but it's a directory
+		// Handle autoindex if enabled at server level
+		if (server.getAutoIndex() == "on")
+		{
+			handleAutoIndex(req.getPath(), req.getFinalPath());
+		}
+		else
+		{
+			// Directory browsing not allowed
+			generateError(403, "Forbidden", "403 Forbidden", server);
+		}
+	}
 	else
 	{
 		// No location match - use default file processing
@@ -133,7 +153,6 @@ void Response::processDirectoryRequest(Request &req, const t_location &loc, size
 				return;
 			}
 		}
-
 		// No index file found - check if autoindex is enabled
 		if (loc._autoIndex == "on")
 		{
@@ -146,11 +165,17 @@ void Response::processDirectoryRequest(Request &req, const t_location &loc, size
 		}
 		return;
 	}
-
+	
 	// No index configured - check autoindex
 	if (loc._autoIndex == "on")
 	{
 		handleAutoIndex(req.getPath(), dirPath);
+	}
+	else if (isRegularFile(buildIndexPath(dirPath, "index.html")))
+	{
+		// Fallback to default index.html if exists
+		std::string indexPath = buildIndexPath(dirPath, "index.html");
+		processFileRequest(req, indexPath, maxSize, server);
 	}
 	else
 	{

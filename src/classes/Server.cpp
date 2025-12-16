@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/12 06:19:30 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/16 12:25:24 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ Server& Server::operator=(const Server &other)
 		_errorPage = other._errorPage;
 		_locations = other._locations;
 		_return = other._return;
+		_autoIndex = other._autoIndex;
 	}
 	return *this;
 }
@@ -73,6 +74,11 @@ void Server::setIndex(const std::string &index)
 	_index.push_back(index);
 }
 
+void Server::setAutoIndex(const std::string &autoIndex)
+{
+	_autoIndex = autoIndex;
+}
+
 std::string Server::getPort() const
 {
 	return _port;
@@ -111,6 +117,11 @@ const std::map<std::string, t_location> &Server::getLocation() const
 const std::vector<std::string> &Server::getReturn() const
 {
 	return _return;
+}
+
+const std::string &Server::getAutoIndex() const
+{
+	return _autoIndex;
 }
 
 t_iterators Server::getIterators(std::string &content, std::string::iterator start, const std::string &target1, const std::string &target2)
@@ -171,6 +182,8 @@ void Server::fetchSeverInfo(t_iterators it)
 			}
 		}
 	}
+	if (this->_autoIndex.empty())
+		this->_autoIndex = "off";
 	// addServer(server);
 }
 
@@ -209,6 +222,8 @@ void Server::fetchLocationInfo(t_iterators it)
 	}
 	if (location._limit_except.empty())
 		location._limit_except.push_back("GET");
+	if (location._autoIndex.empty())
+		location._autoIndex = "off";
 	if (!ConfigValidator::validateLocation(location, key))
 		throw std::runtime_error("Invalid location directive format");
 	if (!location._cgiExt.empty() && !location._cgiPass.empty())
@@ -230,6 +245,7 @@ std::map<std::string, Server::AttrHandler> &Server::getServerHandlers()
 		handlers["root"] = &Server::handleRoot;
 		handlers["index"] = &Server::handleIndex;
 		handlers["return"] = &Server::handleReturn;
+		handlers["autoindex"] = &Server::handleAutoIndex;
 	}
 	return handlers;
 }
@@ -328,6 +344,12 @@ void Server::handleReturn(const std::vector<std::string> &line)
 	Validator::requireSize(line, 3, "return", ConfigValidator::validateReturn(atoi(line[1].c_str()), line[2]));
 	_return.push_back(line[1]);
 	_return.push_back(line[2]);
+}
+
+void Server::handleAutoIndex(const std::vector<std::string> &line)
+{
+	Validator::requireSize(line, 2, "autoindex", (line[1] == "on" || line[1] == "off"));
+	_autoIndex = line[1];
 }
 
 void Server::handleLocation(const std::vector<std::string> &line, t_location &loc, std::string &key)
