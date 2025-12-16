@@ -6,11 +6,11 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/08 15:48:28 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/16 19:13:33 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../include/Request.hpp"
+#include "../../include/Response.hpp"
 #include <cstddef>
 #include <map>
 #include <ostream>
@@ -73,6 +73,7 @@ Request::Request(const std::string &raw, Server &server)
 	}
 	else
 		this->_finalPath = server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path;
+	std::cout << "Final path: " << this->_finalPath << std::endl;
 }
 
 std::string trim(const std::string &s)
@@ -148,6 +149,6 @@ std::ostream &operator<<(std::ostream &os, const Request &req)
 	{
 		os << "	[" << it->first << "]: " << it->second << std::endl;
 	}
-	os << "Body: \n" << req.getBody() << std::endl;
+	// os << "Body: \n" << req.getBody() << std::endl;
 	return os;
 }
