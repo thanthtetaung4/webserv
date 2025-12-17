@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/16 12:25:24 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/17 08:13:40 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -357,6 +357,8 @@ void Server::handleLocation(const std::vector<std::string> &line, t_location &lo
 	(void)loc;
 	Validator::requireSize(line, 3, "location", true);
 	key = line[1];
+	if (key[key.size() - 1] != '/')
+		key += "/";
 }
 
 void Server::handleLocRoot(const std::vector<std::string> &line, t_location &loc, std::string &key)
