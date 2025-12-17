@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/16 19:14:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/17 20:05:08 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,31 +30,90 @@ WebServer::~WebServer() {}
 // WebServer::WebServer(const WebServer &src) {}
 
 // WebServer &WebServer::operator=(const WebServer &other) {}
+// void WebServer::setServer(std::string configFile)
+// {
+// 	t_iterators it;
+// 	std::string target = "server {";
+
+// 	std::ifstream config(configFile.c_str());
+// 	if (!config)
+// 		throw "Unable to open file!!";
+// 	else
+// 	{
+// 			std::stringstream ss;
+// 			ss << config.rdbuf();
+// 			std::string content = ss.str();
+
+// 			std::cout << "before getITs" << std::endl;
+// 			try {
+
+// 			it = Server::getIterators(content, content.begin(), target, target);
+// 				while (it.it1 != content.end())
+// 				{
+// 					Server server;
+// 					server.fetchSeverInfo(it);
+// 					addServer(server);
+// 					if (it.it2 != content.end())
+// 						it = Server::getIterators(content, it.it2, target, target);
+// 					else
+// 						break;
+// 				}
+// 			}
+// 			catch (std::exception &e) {
+// 				std::cout << e.what() << std::endl;
+// 			}
+// 			config.close();
+
+// 	}
+// }
+
 void WebServer::setServer(std::string configFile)
 {
-	t_iterators it;
-	std::string target = "server {";
-
 	std::ifstream config(configFile.c_str());
 	if (!config)
-		throw "Unable to open file!!";
-	else
+		throw std::runtime_error("Unable to open file!!");
+
+	std::stringstream ss;
+	ss << config.rdbuf();
+	std::string content = ss.str();
+	config.close();
+
+	size_t pos = 0;
+	while (pos < content.length())
 	{
-		std::stringstream ss;
-		ss << config.rdbuf();
-		std::string content = ss.str();
-		it = Server::getIterators(content, content.begin(), target, target);
-		while (it.it1 != content.end())
+		size_t serverStart = content.find("server", pos);
+		if (serverStart == std::string::npos)
+			break;
+		size_t openBracePos = content.find('{', serverStart);
+		if (openBracePos == std::string::npos)
+			throw std::runtime_error("Missing opening brace after 'server' keyword");
+		int braceCount = 0;
+		size_t closeBracePos = openBracePos;
+		bool foundMatch = false;
+		for (size_t i = openBracePos; i < content.length(); ++i)
 		{
-			Server server;
-			server.fetchSeverInfo(it);
-			addServer(server);
-			if (it.it2 != content.end())
-				it = Server::getIterators(content, it.it2, target, target);
-			else
-				break;
+			if (content[i] == '{')
+				braceCount++;
+			else if (content[i] == '}')
+			{
+				braceCount--;
+				if (braceCount == 0)
+				{
+					closeBracePos = i;
+					foundMatch = true;
+					break;
+				}
+			}
 		}
-		config.close();
+		if (!foundMatch)
+			throw std::runtime_error("Mismatched braces in server block!");
+		t_iterators it;
+		it.it1 = content.begin() + openBracePos + 1;
+		it.it2 = content.begin() + closeBracePos;
+		Server server;
+		server.fetchSeverInfo(it);
+		addServer(server);
+		pos = closeBracePos + 1;
 	}
 }
 
