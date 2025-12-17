@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/17 23:16:38 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/17 23:17:13 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,11 +128,17 @@ t_iterators Server::getIterators(std::string &content, std::string::iterator sta
 {
 	t_iterators it;
 
-	it.it1 = std::search(start, content.end(), target1.begin(), target1.end());
-	if (it.it1 == content.end())
-		throw "Invalid config file";
-	else
-		it.it2 = std::search(it.it1 + 1, content.end(), target2.begin(), target2.end());
+	try {
+		it.it1 = std::search(start, content.end(), target1.begin(), target1.end());
+		if (it.it1 == content.end())
+			throw "Invalid config file";
+		else
+			it.it2 = std::search(it.it1 + 1, content.end(), target2.begin(), target2.end());
+	} catch (std::exception &e) {
+		std::cout << "bye" << std::endl;
+		throw e;
+	}
+
 	return it;
 }
 
