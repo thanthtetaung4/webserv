@@ -6,11 +6,12 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/16 19:13:33 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/17 15:16:25 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../include/Response.hpp"
+#include "../../include/Request.hpp"
 #include <cstddef>
 #include <map>
 #include <ostream>

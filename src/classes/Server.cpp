@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/17 08:13:40 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/17 23:16:38 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -184,6 +184,8 @@ void Server::fetchSeverInfo(t_iterators it)
 	}
 	if (this->_autoIndex.empty())
 		this->_autoIndex = "off";
+	if (this->_maxBytes.empty())
+		this->_maxBytes = "1M";
 	// addServer(server);
 }
 
