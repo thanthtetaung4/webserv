@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/17 17:52:24 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/17 11:12:50 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,11 @@ Response::Response(Request &req, Server &server)
 		handleReturn(server.getReturn());
 		return;
 	}
-
+	if (req.getIsRedirect())
+	{
+		handleRedirect(req.getPath() + "/");
+		return;
+	}
 	// Get location configuration
 	std::map<std::string, t_location>::const_iterator locIt = req.getIt();
 
