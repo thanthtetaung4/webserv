@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/16 22:28:57 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/17 17:52:24 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,9 +16,8 @@
 Response::Response(Request &req, Server &server)
 {
 	// Parse max body size
-	size_t maxSize = 0;
-	std::stringstream ss(server.getMaxByte());
-	ss >> maxSize;
+	size_t maxSize = static_cast<size_t>(std::atol(server.getMaxByte().c_str()));
+	std::cout << server.getMaxByte() << std::endl;
 
 	this->_httpVersion = req.getHttpVersion();
 
@@ -32,93 +31,102 @@ Response::Response(Request &req, Server &server)
 	// Get location configuration
 	std::map<std::string, t_location>::const_iterator locIt = req.getIt();
 
-	// Location found - process with location rules
-	if (locIt != server.getLocation().end())
-	{
-		const t_location &loc = locIt->second;
+	// Content Length Check
+	if (req.getBody().size() < static_cast<size_t>(std::atol(server.getMaxByte().c_str()))) {
+		std::cout << "Allowed: " << server.getMaxByte() << " Have: " << req.getBody().size() << std::endl;
 
-		// Handle location-level return directive (second priority)
-		if (!loc._return.empty())
+		// Location found - process with location rules
+		if (locIt != server.getLocation().end())
 		{
-			handleReturn(loc._return);
-			return;
-		}
+			const t_location &loc = locIt->second;
 
-		const std::string &finalPath = req.getFinalPath();
-		const std::string &method = req.getMethodType();
-
-		// Check limit_except restrictions (method whitelist)
-		if (!loc._limit_except.empty())
-		{
-			bool methodAllowed = std::find(loc._limit_except.begin(),
-			                               loc._limit_except.end(),
-			                               method) != loc._limit_except.end();
-
-			if (!methodAllowed)
+			// Handle location-level return directive (second priority)
+			if (!loc._return.empty())
 			{
-				generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
+				handleReturn(loc._return);
 				return;
 			}
-		}
 
-		// Handle upload/store operations (POST/DELETE to upload directories)
-		if (!loc._uploadStore.empty() && (method == "POST" || method == "DELETE"))
-		{
-			std::cout << "Upload/Store detected for method: " << method << std::endl;
-			handleStore(loc, req);
-			return;
-		}
+			const std::string &finalPath = req.getFinalPath();
+			const std::string &method = req.getMethodType();
 
-		// Handle directory requests (only for GET)
-		if (isDirectory(finalPath))
-		{
-			processDirectoryRequest(req, loc, maxSize, server);
-			return;
-		}
+			// Check limit_except restrictions (method whitelist)
+			if (!loc._limit_except.empty())
+			{
+				bool methodAllowed = std::find(loc._limit_except.begin(),
+											loc._limit_except.end(),
+											method) != loc._limit_except.end();
 
-		// Handle CGI requests (file must exist and be regular file)
-		if (isRegularFile(finalPath) && loc._isCgi)
-		{
-			handleCGI(req, server);
-			return;
-		}
+				if (!methodAllowed)
+				{
+					generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
+					return;
+				}
+			}
 
-		// Handle regular file requests
-		processFileRequest(req, finalPath, maxSize, server);
-	}
-	else if (isDirectory(req.getFinalPath()) && isRegularFile(buildIndexPath(req.getFinalPath(), "index.html")))
-	{
-		if (req.getMethodType() != "GET") {
-			generateError(405, "Method Not Allowed", "<h1>Method Not Allowed</h1>", server);
-		} else {
-			// No location match - but default index.html exists
-			std::string indexPath = buildIndexPath(req.getFinalPath(), "index.html");
-			processFileRequest(req, indexPath, maxSize, server);
+			// Handle upload/store operations (POST/DELETE to upload directories)
+			if (!loc._uploadStore.empty() && (method == "POST" || method == "DELETE"))
+			{
+				std::cout << "Upload/Store detected for method: " << method << std::endl;
+				handleStore(loc, req);
+				return;
+			}
+
+			// Handle directory requests (only for GET)
+			if (isDirectory(finalPath))
+			{
+				processDirectoryRequest(req, loc, maxSize, server);
+				return;
+			}
+
+			// Handle CGI requests (file must exist and be regular file)
+			if (isRegularFile(finalPath) && loc._isCgi)
+			{
+				handleCGI(req, server);
+				return;
+			}
+
+			// Handle regular file requests
+			processFileRequest(req, finalPath, maxSize, server);
 		}
-	}
-	else if (isDirectory(req.getFinalPath()))
-	{
-		// No location match - but it's a directory
-		// Handle autoindex if enabled at server level
-		if (server.getAutoIndex() == "on")
+		else if (isDirectory(req.getFinalPath()) && isRegularFile(buildIndexPath(req.getFinalPath(), "index.html")))
 		{
-			handleAutoIndex(req.getPath(), req.getFinalPath());
+			if (req.getMethodType() != "GET") {
+				generateError(405, "Method Not Allowed", "<h1>Method Not Allowed</h1>", server);
+			} else {
+				// No location match - but default index.html exists
+				std::string indexPath = buildIndexPath(req.getFinalPath(), "index.html");
+				processFileRequest(req, indexPath, maxSize, server);
+			}
+		}
+		else if (isDirectory(req.getFinalPath()))
+		{
+			// No location match - but it's a directory
+			// Handle autoindex if enabled at server level
+			if (server.getAutoIndex() == "on")
+			{
+				handleAutoIndex(req.getPath(), req.getFinalPath());
+			}
+			else
+			{
+				// Directory browsing not allowed
+
+				generateError(403, "Forbidden", "403 Forbidden", server);
+			}
 		}
 		else
 		{
-			// Directory browsing not allowed
-			generateError(403, "Forbidden", "403 Forbidden", server);
+			// No location match - use default file processing
+			if (req.getMethodType() != "GET") {
+				generateError(405, "Method Not Allowed", "<h1>Method Not Allowed</h1>", server);
+			} else {
+				std::cout << "method is GET" << std::endl;
+				processFileRequest(req, req.getFinalPath(), maxSize, server);
+			}
 		}
-	}
-	else
-	{
-		// No location match - use default file processing
-		if (req.getMethodType() != "GET") {
-			generateError(405, "Method Not Allowed", "<h1>Method Not Allowed</h1>", server);
-		} else {
-			std::cout << "method is GET" << std::endl;
-			processFileRequest(req, req.getFinalPath(), maxSize, server);
-		}
+	} else {
+		std::cout << "Allowed: " << server.getMaxByte() << " Have: " << req.getBody().size() << std::endl;
+		generateError(413, "Payload Too Large", "<h1>Parload Too Large</h1>", server);
 	}
 }
 
@@ -170,7 +178,7 @@ void Response::processDirectoryRequest(Request &req, const t_location &loc, size
 		else
 		{
 			// No index file and autoindex disabled
-			generateError(403, "Forbidden", "403 Forbidden", server);
+			generateError(404, "File Not Found", "<h1>404 File Not Found</h1>", server);
 		}
 		return;
 	}

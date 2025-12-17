@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:41:50 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/08 19:33:42 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/17 15:23:01 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,14 @@ int main(int argc, char **argv)
         try {
                 WebServer ws;
                 ws.setServer(argv[1]);   // read config
+                ws.getServers();
+
+                std::cout << "============ SERVERS =============" << std::endl;
+                std::vector<Server> servers = ws.getServers();
+                for (size_t i = 0; i < servers.size(); i++) {
+                        std::cout << servers[i] << std::endl;
+                }
+                std::cout << "============ SERVERS END =============" << std::endl;
                 ws.setUpSock();          // bind/listen
                 return ws.run();         // event-driven loop
         }
