@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/17 20:05:08 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/18 18:30:09 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -433,7 +433,7 @@ void WebServer::handleWrite(int fd) {
 	std::cout << "handle write called" << std::endl;
 	Client* client = searchClients(fd);
 	std::cout << *client << std::endl;
-	if (client->getState() == RES_RDY) {
+	if (client->getState() == RES_SENDING) {
 		if (!client->getUpstreamBuffer().empty()) {
 			std::cout << "raw res from upstream: " << client->getUpstreamBuffer() << std::endl;
 			std::cout << "WAIT_UPSTREAM" << std::endl;
@@ -448,13 +448,7 @@ void WebServer::handleWrite(int fd) {
 			}
 			closeClient(fd);
 		} else {
-			std::cout << "RES RDY" << std::endl;
-			std::cout << *client->getRequest() << std::endl;
-			// Creating Response Instance
-			if (!client->buildRes())
-				throw "Fatal Err: Response cannot be create";
 
-			std::cout << *client->getResponse() << std::endl;
 			std::string	httpResponse = client->getResponse()->toStr();
 
 			ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), 0);
@@ -464,6 +458,16 @@ void WebServer::handleWrite(int fd) {
 			}
 			closeClient(fd);
 		}
+	} else if (client->getState() == RES_RDY) {
+		std::cout << "RES RDY" << std::endl;
+		std::cout << *client->getRequest() << std::endl;
+		// Creating Response Instance
+		if (!client->buildRes())
+			throw "Fatal Err: Response cannot be create";
+
+		std::cout << *client->getResponse() << std::endl;
+		client->setOutBuffer(client->getResponse()->toStr());
+		client->setState(RES_SENDING);
 	}
 	std::cout << "handle write done" << std::endl;
 }

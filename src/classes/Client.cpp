@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/15 00:27:33 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/18 17:57:47 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -157,6 +157,23 @@ void	Client::setInBuffer(std::string rawStr) {
 void	Client::setState(ClientState state) {
 	this->state = state;
 }
+
+bool	Client::removeFromOutBuffer(size_t pos) {
+	if (pos > this->outBuffer.size())
+		return (false);
+	this->outBuffer.erase(0, pos);
+	return (true);
+}
+
+std::string	Client::getOutBuffer(void) const {
+	return (this->outBuffer);
+}
+
+void	Client::setOutBuffer(std::string rawStr) {
+	this->outBuffer = rawStr;
+}
+
+
 
 std::ostream &operator<<(std::ostream &os, const Client &client) {
 	os << "Client FD: " << client.getFd();
