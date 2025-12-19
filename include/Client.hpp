@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 14:08:59 by taung             #+#    #+#             */
-/*   Updated: 2025/12/19 00:17:46 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/19 17:13:40 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,8 @@ class Client {
 		size_t	headerEndPos; // header end position
 		size_t	contentLength;
 
-		time_t	startTime;
+		time_t	lastActiveTime;
+		int		timeoutSeconds;
 
 	public:
 		Client();
@@ -79,6 +80,7 @@ class Client {
 		const std::string&	getUpstreamBuffer(void) const;
 		int	getUpstreamFd(void) const;
 		std::string	getOutBuffer(void) const;
+		bool	isTimedOut() const;
 
 		//	Setters
 		void	setInBuffer(std::string rawStr);
@@ -87,6 +89,8 @@ class Client {
 		void	setContentLength(size_t cl);
 		void	setUpstreamFd(int fd);
 		void	setOutBuffer(std::string rawStr);
+		void	updateLastActiveTime();
+		time_t	getLastActiveTime() const;
 };
 std::ostream &operator<<(std::ostream &os, const Client &client);
 

@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/19 00:42:34 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/19 23:18:15 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server
 	this->fd = fd;
 
 	this->inBuffer = "";
+	this->outBuffer = "";
 	this->upstreamBuffer = "";
 
 	this->request = NULL;
@@ -34,6 +35,9 @@ Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server
 	this->state = READ_REQ;
 	this->contentLength = 0;
 	this->headerEndPos = 0;
+
+	this->lastActiveTime = time(NULL);
+	this->timeoutSeconds = 120; // 2 minutes
 }
 
 Client&	Client::operator=(const Client& other) {
@@ -166,6 +170,18 @@ void	Client::setOutBuffer(std::string rawStr) {
 	this->outBuffer = rawStr;
 }
 
+void	Client::updateLastActiveTime() {
+	this->lastActiveTime = time(NULL);
+}
+
+time_t	Client::getLastActiveTime() const {
+	return (this->lastActiveTime);
+}
+
+bool	Client::isTimedOut() const {
+	time_t currentTime = time(NULL);
+	return (difftime(currentTime, this->lastActiveTime) >= this->timeoutSeconds);
+}
 
 
 std::ostream &operator<<(std::ostream &os, const Client &client) {

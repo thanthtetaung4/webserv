@@ -1,247 +1,1431 @@
+============ SERVERS =============
+*********Server*********
+Port: 8080
+ServerName: 
+MaxByte: 1m
+Root: /home/thant-htet-aung/webserv/www
+Index: index.html
+Error page: [404] = /home/thant-htet-aung/webserv/www/errors/404.html
+Error page: [413] = /home/thant-htet-aung/webserv/www/errors/413.html
+Location: [/](not CGI block)
+	root: 
+	index: 
+	limit except: GET 
+	autoIndex: off
+	cgiPass: 
+	cgiExt: 
+	uploadStore: 
+	proxyPass: 
+Location: [/autoindex/](not CGI block)
+	root: 
+	index: 
+	limit except: GET 
+	autoIndex: on
+	cgiPass: 
+	cgiExt: 
+	uploadStore: 
+	proxyPass: 
+Location: [/cgi-bin/](CGI block)
+	root: 
+	index: 
+	limit except: GET 
+	autoIndex: off
+	cgiPass: /usr/bin/python3
+	cgiExt: .py
+	uploadStore: 
+	proxyPass: 
+Location: [/redirect/](not CGI block)
+	root: 
+	index: 
+	limit except: GET 
+	return: [301] = /files/
+	autoIndex: off
+	cgiPass: 
+	cgiExt: 
+	uploadStore: 
+	proxyPass: 
+Location: [/static/](not CGI block)
+	root: /home/thant-htet-aung/webserv/www/static
+	index: about.html 
+	limit except: GET 
+	autoIndex: off
+	cgiPass: 
+	cgiExt: 
+	uploadStore: 
+	proxyPass: 
+Location: [/upload/](not CGI block)
+	root: 
+	index: 
+	limit except: GET 
+	autoIndex: off
+	cgiPass: 
+	cgiExt: 
+	uploadStore: 
+	proxyPass: 
+************************
+
+============ SERVERS END =============
 socket open OK
 socket bind OK
 socket listen OK
 socket: 3
 
-socket open OK
-socket bind OK
-socket listen OK
-socket: 4
-
-socket open OK
-socket bind OK
-socket listen OK
-socket: 5
-
-Listening on port: http://localhost:8081
-Listening on port: http://localhost:8085
-Listening on port: http://localhost:9090
+Listening on port: http://localhost:8080
 0 times looping
 epoll loop: 0
 3
-4
-5
 Client fd, server constructor called
 1 times looping
 epoll loop: 0
 handle read called
 client has state0
 reading from client
-Received 501 bytes
+Received 458 bytes
 header not found, finding
 Request complete (headers + body)
 updating client
-Request line: GET /pp/ HTTP/1.1
+Request line: GET / HTTP/1.1
+Final path: /home/thant-htet-aung/webserv/www/
 updating done
 client state: 4
-Setting up sockets
-Proxying to 127.0.0.1:9090/files/index.html
-Connected to upstream
 2 times looping
 epoll loop: 0
 EPOLLOUT
 handle write called
-Client FD: 7
-Resquest: 0x56ddd3a818e0
-Response: 0
-State: 2
-
-raw res from upstream: 
-handle write done
-epoll loop: 1
-3
-4
-5
-Client fd, server constructor called
-epoll loop: 2
-handleUpstreamEvent
-UPSTREAM EPOLLOUT
-handling upstream write for fd: 8 with client fd: 7
-Client FD: 7
-Resquest: 0x56ddd3a818e0
-Response: 0
-State: 2
-
-Sending to client with fd 8:
-GET /files/index.html HTTP/1.1
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.5
-Connection: keep-alive
-Cookie: PHPSESSID=136c73378452cbe406ffaaabc466d9ff
-Host: localhost:9090
-Priority: u=0, i
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: none
-Sec-Fetch-User: ?1
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
-
-
-req sent to upstream
-client state and epoll event updated
-3 times looping
-epoll loop: 0
-EPOLLOUT
-handle write called
-Client FD: 7
-Resquest: 0x56ddd3a818e0
-Response: 0
-State: 2
-
-raw res from upstream: 
-handle write done
-epoll loop: 1
-handle read called
-client has state0
-reading from client
-Received 514 bytes
-header not found, finding
-Request complete (headers + body)
-updating client
-Request line: GET /files/index.html HTTP/1.1
-updating done
-client state: 4
-4 times looping
-epoll loop: 0
-EPOLLOUT
-handle write called
-Client FD: 7
-Resquest: 0x56ddd3a818e0
-Response: 0
-State: 2
-
-raw res from upstream: 
-handle write done
-epoll loop: 1
-EPOLLOUT
-handle write called
-Client FD: 9
-Resquest: 0x56ddd3a7e9a0
+Client FD: 5
+Resquest: 0x5c13e9dff9d0
 Response: 0
 State: 4
 
-raw res from upstream: 
 RES RDY
-=========== Res Start ===========
-2097152
-=========== is not file, not dir ===========
-=========== static ===========
-Requested Path: /home/thant-htet-aung/webserv/www/html/files/index.html
-=========== Res END ===========
+Method: GET
+URL Path: /
+Final Path: /home/thant-htet-aung/webserv/www/
+HTTP Version: HTTP/1.1
+Headers: 
+	[Accept]: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+	[Accept-Encoding]: gzip, deflate, br, zstd
+	[Accept-Language]: en-US,en;q=0.5
+	[Connection]: keep-alive
+	[Host]: localhost:8080
+	[Priority]: u=0, i
+	[Sec-Fetch-Dest]: document
+	[Sec-Fetch-Mode]: navigate
+	[Sec-Fetch-Site]: none
+	[Sec-Fetch-User]: ?1
+	[Sec-GPC]: 1
+	[Upgrade-Insecure-Requests]: 1
+	[User-Agent]: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
+
+1m
+Allowed: 1m Have: 0
+Requested Path: /home/thant-htet-aung/webserv/www/index.html
+========================
 Http version: HTTP/1.1
 Error Code: 200
 Error Msg: OK
 Headers:
   [Connection] = close
-  [Content-Length] = 244
+  [Content-Length] = 384
   [Content-Type] = text/html
 ----------------HEADER END-----------------
 Body: <!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Home</title>
-</head>
+<html>
+<head><title>Webserv Demo</title></head>
 <body>
-	<h1>Weclome From Our Home</h1>
-	<h2>files is here</h2>
+<h1>Welcome to Webserv</h1>
+<ul>
+  <li><a href="/static/about.html">Static file</a></li>
+  <li><a href="/autoindex/">Autoindex directory</a></li>
+  <li><a href="/redirect">Redirection</a></li>
+  <li><a href="/upload">File Upload</a></li>
+  <li><a href="/cgi-bin/hello.py">CGI Hello</a></li>
+</ul>
 </body>
 </html>
 
 
-Client 9 closed and removed from epoll
+========================
 handle write done
-5 times looping
+3 times looping
 epoll loop: 0
 EPOLLOUT
 handle write called
-Client FD: 7
-Resquest: 0x56ddd3a818e0
-Response: 0
-State: 2
+Client FD: 5
+Resquest: 0x5c13e9dff9d0
+Response: 0x5c13e9e03db0
+State: 5
 
-raw res from upstream: 
+Sent 468 bytes to clienthttpResponse size: 468
+Remaining outBuffer size: 0
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
 handle write done
-epoll loop: 1
-handleUpstreamEvent
-UPSTREAM EPOLLIN
-Reading res from upstream
-buffer from upstream read: HTTP/1.1 200 OK
-Connection: close
-Content-Length: 244
-Content-Type: text/html
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Home</title>
-</head>
-<body>
-	<h1>Weclome From Our Home</h1>
-	<h2>files is here</h2>
-</body>
-</html>
-; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
-
-
-Upstream received 328 bytes
-Upstream response complete
-reading res from upstream done
+4 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+5 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
 6 times looping
 epoll loop: 0
 EPOLLOUT
 handle write called
-Client FD: 7
-Resquest: 0x56ddd3a818e0
+Client FD: 5
+Resquest: 0
 Response: 0
 State: 4
 
-raw res from upstream: HTTP/1.1 200 OK
-Connection: close
-Content-Length: 244
-Content-Type: text/html
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Home</title>
-</head>
-<body>
-	<h1>Weclome From Our Home</h1>
-	<h2>files is here</h2>
-</body>
-</html>
-; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
-
-
-WAIT_UPSTREAM
-writing to client with res from upstream:HTTP/1.1 200 OK
-Connection: close
-Content-Length: 244
-Content-Type: text/html
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Home</title>
-</head>
-<body>
-	<h1>Weclome From Our Home</h1>
-	<h2>files is here</h2>
-</body>
-</html>
-; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
-
-
-Client 7 closed and removed from epoll
+RES RDY
 handle write done
 7 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+8 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+9 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+10 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+11 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+12 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+13 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+14 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+15 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+16 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+17 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+18 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+19 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+20 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+21 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+22 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+23 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+24 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+25 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+26 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+27 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+28 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+29 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+30 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+31 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+32 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+33 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+34 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+35 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+36 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+37 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+38 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+39 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+40 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+41 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+42 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+43 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+44 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+45 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+46 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+47 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+48 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+49 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+50 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+51 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+52 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+53 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+54 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+55 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+56 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+57 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+58 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+59 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+60 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+61 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+62 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+63 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+64 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+65 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+66 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+67 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+68 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+69 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+70 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+71 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+72 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+73 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+74 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+75 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+76 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+77 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Received 458 bytes
+header not found, finding
+Request complete (headers + body)
+updating client
+Request line: GET / HTTP/1.1
+Final path: /home/thant-htet-aung/webserv/www/
+updating done
+client state: 4
+78 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0x5c13e9e04060
+Response: 0
+State: 4
+
+RES RDY
+Method: GET
+URL Path: /
+Final Path: /home/thant-htet-aung/webserv/www/
+HTTP Version: HTTP/1.1
+Headers: 
+	[Accept]: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+	[Accept-Encoding]: gzip, deflate, br, zstd
+	[Accept-Language]: en-US,en;q=0.5
+	[Connection]: keep-alive
+	[Host]: localhost:8080
+	[Priority]: u=0, i
+	[Sec-Fetch-Dest]: document
+	[Sec-Fetch-Mode]: navigate
+	[Sec-Fetch-Site]: none
+	[Sec-Fetch-User]: ?1
+	[Sec-GPC]: 1
+	[Upgrade-Insecure-Requests]: 1
+	[User-Agent]: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
+
+1m
+Allowed: 1m Have: 0
+Requested Path: /home/thant-htet-aung/webserv/www/index.html
+========================
+Http version: HTTP/1.1
+Error Code: 200
+Error Msg: OK
+Headers:
+  [Connection] = close
+  [Content-Length] = 384
+  [Content-Type] = text/html
+----------------HEADER END-----------------
+Body: <!DOCTYPE html>
+<html>
+<head><title>Webserv Demo</title></head>
+<body>
+<h1>Welcome to Webserv</h1>
+<ul>
+  <li><a href="/static/about.html">Static file</a></li>
+  <li><a href="/autoindex/">Autoindex directory</a></li>
+  <li><a href="/redirect">Redirection</a></li>
+  <li><a href="/upload">File Upload</a></li>
+  <li><a href="/cgi-bin/hello.py">CGI Hello</a></li>
+</ul>
+</body>
+</html>
+
+
+========================
+handle write done
+79 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0x5c13e9e04060
+Response: 0x5c13e9e06e20
+State: 5
+
+Sent 468 bytes to clienthttpResponse size: 468
+Remaining outBuffer size: 0
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+80 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+81 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Received 458 bytes
+header not found, finding
+Request complete (headers + body)
+updating client
+Request line: GET /favicon.ico HTTP/1.1
+Final path: /home/thant-htet-aung/webserv/www/favicon.ico
+updating done
+client state: 4
+82 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0x5c13e9e07a90
+Response: 0
+State: 4
+
+RES RDY
+Method: GET
+URL Path: /favicon.ico
+Final Path: /home/thant-htet-aung/webserv/www/favicon.ico
+HTTP Version: HTTP/1.1
+Headers: 
+	[Accept]: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5
+	[Accept-Encoding]: gzip, deflate, br, zstd
+	[Accept-Language]: en-US,en;q=0.5
+	[Connection]: keep-alive
+	[Host]: localhost:8080
+	[Priority]: u=6
+	[Referer]: http://localhost:8080/
+	[Sec-Fetch-Dest]: image
+	[Sec-Fetch-Mode]: no-cors
+	[Sec-Fetch-Site]: same-origin
+	[Sec-GPC]: 1
+	[User-Agent]: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0
+
+1m
+Allowed: 1m Have: 0
+Requested Path: /home/thant-htet-aung/webserv/www/favicon.ico
+Custom error page found for 404: /home/thant-htet-aung/webserv/www/errors/404.html
+Custom page path: /home/thant-htet-aung/webserv/www/errors/404.html
+========================
+Http version: HTTP/1.1
+Error Code: 404
+Error Msg: Not Found
+Headers:
+  [Connection] = close
+  [Content-Length] = 69
+  [Content-Type] = text/html
+----------------HEADER END-----------------
+Body: <h1>404 Not Found</h1>
+<p>The requested resource does not exist.</p>
+
+
+========================
+handle write done
+83 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0x5c13e9e07a90
+Response: 0x5c13e9e07f20
+State: 5
+
+Sent 159 bytes to clienthttpResponse size: 159
+Remaining outBuffer size: 0
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+84 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+85 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+86 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+87 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+88 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+89 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+90 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+91 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+92 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+93 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+94 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+95 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+96 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+97 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+98 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+99 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+100 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+101 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+102 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+103 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+104 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+105 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+106 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+107 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+108 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+109 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+110 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+111 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+112 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+113 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+114 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+115 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+116 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+117 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+118 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+119 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+120 times looping
+epoll loop: 0
+3
+Client fd, server constructor called
+121 times looping
+epoll loop: 0
+handle read called
+client has state0
+reading from client
+Client timed out during read
+client state: 1
+updating client
+updating done
+122 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 4
+
+RES RDY
+handle write done
+123 times looping
+epoll loop: 0
+EPOLLOUT
+handle write called
+Client FD: 5
+Resquest: 0
+Response: 0
+State: 5
+
+Client timed out during send
+==============================================
+Client map size after removal: 0
+==============================================
+Client 5 closed and removed from epoll
+handle write done
+124 times looping
