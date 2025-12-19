@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/17 11:24:46 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/19 07:15:26 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,7 +63,7 @@ Request::Request(const std::string &raw, Server &server)
 
 	// handling the actual path to find on the host
 	this->_finalPath = "";
-	if (this->_path[this->_path.size() - 1] != '/')
+	if (this->_path[this->_path.size() - 1] != '/' && _it == server.getLocation().end())
 	{
 		_it = searchLongestMatch(server.getLocation(), this->_path + '/');
 		if (_it != server.getLocation().end())
