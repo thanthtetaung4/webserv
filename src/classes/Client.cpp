@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/19 23:18:15 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 02:29:28 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,8 @@
 #include <sstream>
 
 Client::Client(void) : server(*(new Server())) {
-	std::cout << "Client Default Constructor called" << std::endl;
+	delete &(this->server);
+	throw std::runtime_error("Default Client constructor should not be called");
 }
 
 Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server)) {
@@ -57,7 +58,17 @@ Client&	Client::operator=(const Client& other) {
 }
 
 
-Client::~Client() {}
+Client::~Client() {
+	std::cout << "Client Destructor called for fd: " << this->fd << std::endl;
+	if (this->request) {
+		delete this->request;
+		this->request = NULL;
+	}
+	if (this->response) {
+		delete this->response;
+		this->response = NULL;
+	}
+}
 
 bool	Client::buildReq() {
 	try {

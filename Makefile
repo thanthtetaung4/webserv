@@ -6,7 +6,7 @@
 #    By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/07 11:32:53 by lshein            #+#    #+#              #
-#    Updated: 2025/12/07 21:41:34 by taung            ###   ########.fr        #
+#    Updated: 2025/12/20 02:45:43 by taung            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -23,7 +23,7 @@ SRCS = src/main.cpp \
     ${CLASSES}/Response.cpp ${CLASSES}/Request.cpp ${CLASSES}/Validator.cpp ${CLASSES}/Client.cpp \
     ${EXCEPTIONS}/ServerExceptions.cpp ${UTILS}/parseProxyPass.cpp ${UTILS}/buildPath.cpp \
     ${UTILS}/intToString.cpp ${UTILS}/searchMapLongestMatch.cpp ${UTILS}/searchMapLongestMatchIt.cpp \
-	${UTILS}/checkPath.cpp ${UTILS}/parseFile.cpp
+	${UTILS}/checkPath.cpp ${UTILS}/parseFile.cpp ${UTILS}/freeAll.cpp ${UTILS}/signal.cpp
 
 OBJS = $(SRCS:%.cpp=$(OBJDIR)/%.o)
 

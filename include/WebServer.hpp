@@ -6,15 +6,17 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/15 15:18:05 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 02:49:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef WEBSERVER_HPP
 #define WEBSERVER_HPP
 
+// Forward declaration to break circular dependency
+class Client;
+
 #include "Server.hpp"
-#include "Client.hpp"
 #include "ServerException.hpp"
 #include <fcntl.h>
 #include "Socket.hpp"
@@ -27,6 +29,8 @@
 #include <dirent.h>
 #include <sys/epoll.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include "Request.hpp"
 #include <unistd.h>
 #include "Request.hpp"
 #include "Response.hpp"
@@ -81,10 +85,17 @@ public:
 	bool isUpStream(int fd) const;
 	bool isListenFd(int fd) const;
 
+	// Accessors
+	std::map<int, Client*>&	getClients();
+	std::map<int, Client*>&	getUpstreamClients();
+
 	// Utils
 	Client*	searchClients(int fd);
 	Client*	searchClientsUpstream(int fd);
 	void	removeUpstreamFd(int fd);
 };
+
+// Include Client after WebServer definition to avoid circular dependency
+#include "Client.hpp"
 
 #endif
