@@ -6,7 +6,7 @@
 /*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/19 07:15:26 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/19 16:27:25 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,6 +49,7 @@ Request::Request(const std::string &raw, Server &server)
 		}
 	}
 	_it = searchLongestMatch(server.getLocation(), this->_path);
+	std::map<std::string, t_location>::const_iterator temp = _it;
 
 	// handling queryString
 	if (_path.find("?") != _path.npos) {
@@ -63,20 +64,31 @@ Request::Request(const std::string &raw, Server &server)
 
 	// handling the actual path to find on the host
 	this->_finalPath = "";
-	if (this->_path[this->_path.size() - 1] != '/' && _it == server.getLocation().end())
+	if (this->_path[this->_path.size() - 1] != '/' && (_it == server.getLocation().end() || _it->first == "/"))
 	{
+		std::cout << "_________________Checking for directory redirect..." << std::endl;
 		_it = searchLongestMatch(server.getLocation(), this->_path + '/');
-		if (_it != server.getLocation().end())
+		if (_it != server.getLocation().end() && _it->first != "/")
 			this->_isRedirect = true;
+		else
+		{
+			_it = temp;
+			this->_finalPath = server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path;
+		}
 		if (isDirectory(server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path))
+		{
+			std::cout << "Directory detected, redirecting..._______________" << std::endl;
 			this->_isRedirect = true;
+		}
 	}
 	else if (_it != server.getLocation().end())
 	{
 		// if (this->_path == "/")
 		// 	this->_finalPath = this->_path;
 		if (!_it->second._root.empty())
+		{
 			this->_finalPath = _it->second._root + (this->_path.substr(_it->first.length()).empty() ? "" : "/" + this->_path.substr(_it->first.length()));
+		}
 		else
 			this->_finalPath = server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path;
 	}
