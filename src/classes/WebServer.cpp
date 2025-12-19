@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/20 02:54:12 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 03:34:14 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -526,6 +526,7 @@ void WebServer::closeClient(int fd) {
 	}
 
 	// 3) Remove from clients map
+	delete it->second;
 	this->_clients.erase(it);
 	std::cout <<"==============================================" << std::endl;
 	std::cout << "Client map size after removal: " << this->_clients.size() << std::endl;
