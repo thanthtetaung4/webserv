@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 14:08:59 by taung             #+#    #+#             */
-/*   Updated: 2025/12/18 18:33:45 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/19 00:17:46 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,7 +64,6 @@ class Client {
 		bool	buildReq();
 		void	appendRecvBuffer(std::string buff);
 		void	addToUpstreamBuffer(std::string buff);
-		bool	removeFromOutBuffer(size_t pos);
 		bool	foundHeader(void) const;
 		bool	isProxyPass(void) const;
 
