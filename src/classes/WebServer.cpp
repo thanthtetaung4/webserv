@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/20 02:49:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 02:54:12 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -341,6 +341,9 @@ void	WebServer::updateClient(Client& client) {
 	std::cout << "updating client" << std::endl;
 
 	if (!client.isTimedOut()) {
+		std::cout << "=====================================" << std::endl;
+		std::cout << "Raw Request:\n" << client.getInBuffer() << std::endl;
+		std::cout << "=====================================" << std::endl;
 		// Creating the Request Intance
 		if (!client.buildReq())
 			throw "Fatal Err: Response Cannot be created";
