@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/20 13:57:40 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -216,6 +216,16 @@ Client*	WebServer::searchClientsUpstream(int fd) {
 	return (NULL);
 }
 
+Client*	WebServer::searchClientsByCgi(int cgiFd) {
+	std::map<int, Client*>::iterator i;
+
+	for (i = _cgiClients.begin() ; i != _cgiClients.end(); i++) {
+		if (i->first == cgiFd)
+			return (i->second);
+	}
+	return (NULL);
+}
+
 void WebServer::handleAccept(int listenfd) {
 	while (true) {
 		sockaddr_in addr;
@@ -349,13 +359,55 @@ void	WebServer::updateClient(Client& client) {
 		std::cout << "=====================================" << std::endl;
 		std::cout << "Raw Request:\n" << client.getInBuffer() << std::endl;
 		std::cout << "=====================================" << std::endl;
-		// Creating the Request Intance
+		// Creating the Request Instance
 		if (!client.buildReq())
 			throw "Fatal Err: Response Cannot be created";
 		// std::cout << *client.getRequest() << std::endl;
 	}
 
+	// Check if this request needs CGI processing
+	const Request* req = client.getRequest();
+	if (req && req->getIt() != client.getServer().getLocation().end()) {
+		const t_location& loc = req->getIt()->second;
 
+		// Check if this location requires CGI
+		if (!loc._cgiPass.empty() && (req->getMethodType() == "GET" || req->getMethodType() == "POST")) {
+			std::cout << "Starting CGI execution" << std::endl;
+
+			try {
+				// Create and execute CGI asynchronously
+				Cgi* cgi = new Cgi(*req, client.getServer());
+				cgi->executeAsync();
+
+				client.setCgi(cgi);
+				client.setState(WAIT_CGI);
+
+				// Add CGI output fd to epoll
+				int cgiFd = cgi->getOutputFd();
+				if (cgiFd != -1) {
+					struct epoll_event ev;
+					std::memset(&ev, 0, sizeof(ev));
+					ev.events = EPOLLIN;
+					ev.data.fd = cgiFd;
+
+					if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, cgiFd, &ev) == -1) {
+						std::cerr << "Failed to add CGI fd to epoll" << std::endl;
+						delete cgi;
+						client.setCgi(NULL);
+						client.setState(RES_RDY);
+					} else {
+						_cgiClients[cgiFd] = &client;
+					}
+				}
+			} catch (std::exception &e) {
+				std::cout << "CGI execution failed: " << e.what() << std::endl;
+				client.setState(RES_RDY);
+			}
+			return;
+		}
+	}
+
+	// No CGI needed, proceed to response generation
 	// Setting epoll event to EPOLLOUT
 	struct epoll_event ev;
 	std::memset(&ev, 0, sizeof(ev));
@@ -674,6 +726,83 @@ void WebServer::handleUpstreamEvent(int fd, uint32_t events) {
 	}
 }
 
+void WebServer::handleCgiRead(int cgiFd)
+{
+	std::cout << "Reading from CGI fd: " << cgiFd << std::endl;
+	Client* client = searchClientsByCgi(cgiFd);
+	if (!client) {
+		std::cerr << "Client not found for CGI fd" << std::endl;
+		return;
+	}
+
+	Cgi* cgi = client->getCgi();
+	if (!cgi) {
+		std::cerr << "CGI not found for client" << std::endl;
+		return;
+	}
+
+	// Read available output from CGI (non-blocking)
+	if (cgi->readOutput()) {
+		// CGI is complete
+		finalizeCgiResponse(*client);
+	}
+	// If not complete, we'll read more on next epoll event
+}
+
+void WebServer::finalizeCgiResponse(Client& client)
+{
+	std::cout << "CGI response complete, finalizing" << std::endl;
+
+	Cgi* cgi = client.getCgi();
+	if (!cgi) return;
+
+	std::string cgiOutput = cgi->getOutput();
+	CgiResult result = cgi->parseCgiHeaders(cgiOutput);
+
+	// Set response with CGI output
+	if (!client.getResponse()) {
+		try {
+			client.buildRes();
+		} catch (std::exception &e) {
+			std::cout << "Failed to build response: " << e.what() << std::endl;
+			return;
+		}
+	}
+
+	// Update response with CGI data
+	Response* res = const_cast<Response*>(client.getResponse());
+	if (res) {
+		res->setStatusCode(200);
+		res->setStatusTxt("OK");
+		res->setBody(result.body);
+		for (std::map<std::string, std::string>::iterator it = result.headers.begin();
+			 it != result.headers.end(); ++it) {
+			res->setHeader(it->first, it->second);
+		}
+	}
+
+	// Remove CGI fd from epoll
+	struct epoll_event ev;
+	if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, cgi->getOutputFd(), &ev) == -1) {
+		perror("epoll_ctl DEL CGI");
+	}
+
+	// Remove from CGI clients map
+	_cgiClients.erase(cgi->getOutputFd());
+	delete cgi;
+	client.setCgi(NULL);
+
+	// Switch to response sending
+	client.setState(RES_RDY);
+
+	// Add client fd back to epoll for writing response
+	std::memset(&ev, 0, sizeof(ev));
+	ev.events = EPOLLOUT;
+	ev.data.fd = client.getFd();
+	if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client.getFd(), &ev) == -1) {
+		perror("epoll_ctl MOD client for response");
+	}
+}
 
 int WebServer::run(void) {
 	// 1) Create epoll instance
@@ -725,14 +854,26 @@ int WebServer::run(void) {
 				continue;
 			}
 
-			// 2) Upstream sockets (proxy connections)
+			// 2) CGI output sockets
+			Client* cgiClient = searchClientsByCgi(fd);
+			if (cgiClient) {
+				if (ev & EPOLLIN) {
+					handleCgiRead(fd);
+				}
+				if (ev & (EPOLLHUP | EPOLLERR)) {
+					finalizeCgiResponse(*cgiClient);
+				}
+				continue;
+			}
+
+			// 3) Upstream sockets (proxy connections)
 			if (this->isUpStream(fd)) {
 				// Let a single handler decode EPOLLIN / EPOLLOUT / ERR
 				handleUpstreamEvent(fd, ev);
 				continue;
 			}
 
-			// 3) Normal client sockets
+			// 4) Normal client sockets
 			if (ev & (EPOLLHUP | EPOLLERR | EPOLLRDHUP)) {
 				// error / hangup
 				closeClient(fd);

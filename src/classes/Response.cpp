@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/20 22:30:11 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -801,6 +801,31 @@ void Response::serveFile(const std::string &filePath)
 	std::string body = os.str();
 	std::string contentType = getMimeType(filePath);
 	setResponseState(200, "OK", body, contentType);
+}
+
+void Response::setHttpVersion(const std::string &version)
+{
+	this->_httpVersion = version;
+}
+
+void Response::setStatusCode(int code)
+{
+	this->_statusCode = code;
+}
+
+void Response::setStatusTxt(const std::string &text)
+{
+	this->_statusTxt = text;
+}
+
+void Response::setHeader(const std::string &key, const std::string &value)
+{
+	this->_headers[key] = value;
+}
+
+void Response::setBody(const std::string &body)
+{
+	this->_body = body;
 }
 
 std::string Response::getHttpVersion() const

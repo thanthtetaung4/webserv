@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 14:08:59 by taung             #+#    #+#             */
-/*   Updated: 2025/12/19 17:13:40 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 class Server;
 class Request;
 class Response;
+class Cgi;
 
 #include <string>
 #include <map>
@@ -28,6 +29,8 @@ class Response;
 enum ClientState {
 		READ_REQ,
 		REQ_RDY,
+		WAIT_CGI,
+		CGI_RDY,
 		WAIT_UPSTREAM,
 		UPSTREAM_RDY,
 		RES_RDY,
@@ -45,6 +48,7 @@ class Client {
 
 		Request*	request;        // parsed request
 		Response*	response;       // generated response
+		Cgi*		cgi;            // CGI process handler
 
 		ClientState	state;
 
@@ -81,6 +85,8 @@ class Client {
 		int	getUpstreamFd(void) const;
 		std::string	getOutBuffer(void) const;
 		bool	isTimedOut() const;
+		Cgi*	getCgi(void) const;
+		Server&	getServer(void);
 
 		//	Setters
 		void	setInBuffer(std::string rawStr);
@@ -91,6 +97,7 @@ class Client {
 		void	setOutBuffer(std::string rawStr);
 		void	updateLastActiveTime();
 		time_t	getLastActiveTime() const;
+		void	setCgi(Cgi* cgi);
 };
 std::ostream &operator<<(std::ostream &os, const Client &client);
 

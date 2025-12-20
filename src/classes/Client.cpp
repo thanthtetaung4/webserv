@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/20 02:29:28 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -194,6 +194,17 @@ bool	Client::isTimedOut() const {
 	return (difftime(currentTime, this->lastActiveTime) >= this->timeoutSeconds);
 }
 
+Server&	Client::getServer(void) {
+	return (this->server);
+}
+
+Cgi*	Client::getCgi(void) const {
+	return (this->cgi);
+}
+
+void	Client::setCgi(Cgi* cgi) {
+	this->cgi = cgi;
+}
 
 std::ostream &operator<<(std::ostream &os, const Client &client) {
 	os << "Client FD: " << client.getFd();

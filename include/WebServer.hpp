@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/20 13:57:33 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,7 @@ private:
 	std::map<int, Client*> _clients;
 	std::vector<int> _upstreamFds;
 	std::map<int, Client*> _upstreamClient;
+	std::map<int, Client*> _cgiClients;  // Map CGI output fd to client
 	int _epoll_fd;
 
 	int	searchVecIndex(std::vector<int> vec, int key);
@@ -81,6 +82,8 @@ public:
 	void handleUpstreamEvent(int fd, uint32_t events);
 	void closeUpstream(int upstreamFd);
 	void finalizeUpstreamResponse(Client& client);
+	void handleCgiRead(int cgiFd);
+	void finalizeCgiResponse(Client& client);
 
 	bool isUpStream(int fd) const;
 	bool isListenFd(int fd) const;
@@ -93,6 +96,7 @@ public:
 	// Utils
 	Client*	searchClients(int fd);
 	Client*	searchClientsUpstream(int fd);
+	Client*	searchClientsByCgi(int cgiFd);
 	void	removeUpstreamFd(int fd);
 };
 

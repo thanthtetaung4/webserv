@@ -3,19 +3,29 @@
 /*                                                        :::      ::::::::   */
 /*   Cgi.cpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/08 12:33:47 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../include/Cgi.hpp"
 #include "../../include/Response.hpp"
+#include <signal.h>
+#include <errno.h>
 
-Cgi::Cgi(const std::string &path, const std::string &interpreter, const std::map<std::string, std::string> &env, const std::string &body) : _path(path), _interpreter(interpreter), _env(env), _body(body) {}
+Cgi::Cgi(const std::string &path, const std::string &interpreter, const std::map<std::string, std::string> &env, const std::string &body)
+	: _path(path), _interpreter(interpreter), _env(env), _body(body), _pid(-1), _isComplete(false)
+{
+	_outPipe[0] = -1;
+	_outPipe[1] = -1;
+	_inPipe[0] = -1;
+	_inPipe[1] = -1;
+}
 
 Cgi::Cgi(const Request &request, const Server &server)
+	: _pid(-1), _isComplete(false)
 {
 	std::string contentType = "";
 	std::map<std::string, std::string> headers = request.getHeaders();
@@ -36,18 +46,136 @@ Cgi::Cgi(const Request &request, const Server &server)
 	env["SERVER_PROTOCOL"] = request.getHttpVersion();
 	env["SERVER_SOFTWARE"] = "webserv/1.0";
 	env["QUERY_STRING"] = request.getQueryString();
-	// std::cout << "env: " << std::endl;
-	// for (std::map<std::string, std::string>::const_iterator it1 = env.begin(); it1 != env.end(); ++it1)
-	// {
-	// 	std::cout << "[" << it1->first << "] = " << it1->second << std::endl;
-	// }
+
 	_path = request.getFinalPath();
 	_interpreter = request.getIt()->second._cgiPass;
 	_env = env;
 	_body = request.getBody();
+
+	_outPipe[0] = -1;
+	_outPipe[1] = -1;
+	_inPipe[0] = -1;
+	_inPipe[1] = -1;
 }
 
-Cgi::~Cgi() {}
+Cgi::~Cgi()
+{
+	if (_outPipe[0] != -1) close(_outPipe[0]);
+	if (_outPipe[1] != -1) close(_outPipe[1]);
+	if (_inPipe[0] != -1) close(_inPipe[0]);
+	if (_inPipe[1] != -1) close(_inPipe[1]);
+	if (_pid > 0) {
+		kill(_pid, SIGTERM);
+		waitpid(_pid, NULL, WNOHANG);
+	}
+}
+
+void Cgi::executeAsync()
+{
+	if (pipe(_inPipe) < 0 || pipe(_outPipe) < 0)
+		throw std::runtime_error("Pipe creation failed");
+
+	_pid = fork();
+	if (_pid < 0)
+		throw std::runtime_error("Fork failed");
+
+	if (_pid == 0)
+	{
+		// CHILD PROCESS
+		dup2(_inPipe[0], STDIN_FILENO);
+		dup2(_outPipe[1], STDOUT_FILENO);
+		close(_inPipe[0]);
+		close(_inPipe[1]);
+		close(_outPipe[0]);
+		close(_outPipe[1]);
+
+		char **envArray = createEnvArray(_env);
+
+		char *argv[3];
+		argv[0] = const_cast<char *>(_interpreter.c_str());
+		argv[1] = const_cast<char *>(_path.c_str());
+		argv[2] = NULL;
+
+		execve(argv[0], argv, envArray);
+
+		perror("execve");
+		freeEnvArray(envArray);
+		exit(1);
+	}
+
+	// PARENT PROCESS
+	close(_inPipe[0]);
+	close(_outPipe[1]);
+
+	// Write body to CGI stdin (non-blocking)
+	if (!_body.empty())
+	{
+		ssize_t written = write(_inPipe[1], _body.c_str(), _body.size());
+		if (written < 0)
+			std::cerr << "Failed to write to CGI stdin" << std::endl;
+	}
+	close(_inPipe[1]);
+	_inPipe[1] = -1;
+
+	// Make output pipe non-blocking
+	int flags = fcntl(_outPipe[0], F_GETFL, 0);
+	fcntl(_outPipe[0], F_SETFL, flags | O_NONBLOCK);
+
+	std::cout << "CGI process started with PID: " << _pid << std::endl;
+}
+
+bool Cgi::readOutput()
+{
+	if (_outPipe[0] == -1 || _isComplete)
+		return false;
+
+	char buffer[1024];
+	ssize_t bytesRead;
+
+	// Read available data (non-blocking)
+	while ((bytesRead = read(_outPipe[0], buffer, sizeof(buffer))) > 0)
+		_output.append(buffer, bytesRead);
+
+	if (bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+	{
+		// Real error
+		_isComplete = true;
+		return true;
+	}
+
+	// Check if process has finished
+	int status;
+	pid_t result = waitpid(_pid, &status, WNOHANG);
+	if (result == _pid)
+	{
+		// Process finished, read any remaining data
+		while ((bytesRead = read(_outPipe[0], buffer, sizeof(buffer))) > 0)
+			_output.append(buffer, bytesRead);
+
+		close(_outPipe[0]);
+		_outPipe[0] = -1;
+		_isComplete = true;
+		std::cout << "CGI process completed" << std::endl;
+		return true;
+	}
+
+	return false;  // Still running
+}
+
+bool Cgi::isComplete() const
+{
+	return _isComplete;
+}
+
+std::string Cgi::getOutput() const
+{
+	return _output;
+}
+
+int Cgi::getOutputFd() const
+{
+	return _outPipe[0];
+}
 
 std::string Cgi::execute()
 {
