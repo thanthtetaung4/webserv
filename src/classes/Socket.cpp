@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 14:06:45 by taung             #+#    #+#             */
-/*   Updated: 2025/12/20 13:54:38 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 22:04:44 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,10 +53,6 @@ void					Socket::openSock(void) {
 	int opt = 1;
 	if (setsockopt(this->serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 		std::cerr << "warning: setsockopt SO_REUSEADDR failed: " << std::strerror(errno) << std::endl;
-#if defined(SO_REUSEPORT)
-	if (setsockopt(this->serverFd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0)
-		std::cerr << "warning: setsockopt SO_REUSEPORT failed: " << std::strerror(errno) << std::endl;
-#endif
 	std::cout << "socket open OK" << std::endl;
 }
 
