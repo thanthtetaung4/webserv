@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/20 02:49:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 13:57:33 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,6 +88,7 @@ public:
 	// Accessors
 	std::map<int, Client*>&	getClients();
 	std::map<int, Client*>&	getUpstreamClients();
+	std::vector<Socket>&		getSockets();
 
 	// Utils
 	Client*	searchClients(int fd);

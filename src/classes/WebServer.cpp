@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/20 03:34:14 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 13:57:40 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,6 +138,11 @@ void WebServer::setUpSock(void)
 std::vector<Server> WebServer::getServers() const
 {
 	return _servers;
+}
+
+std::vector<Socket>& WebServer::getSockets()
+{
+	return _sockets;
 }
 
 int parseContentLength(const std::string &headers)

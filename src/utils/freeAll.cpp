@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/20 02:31:35 by taung             #+#    #+#             */
-/*   Updated: 2025/12/20 02:46:21 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 13:58:02 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,15 @@ void	freeAllUpstreamClients(WebServer& ws) {
 	ws.getUpstreamClients().clear();
 }
 
+void closeAllSockets(WebServer& ws) {
+	std::vector<Socket>	sockets = ws.getSockets();
+	for (size_t i = 0; i < sockets.size(); ++i) {
+		sockets[i].closeSock();
+	}
+}
+
 void	freeAll(WebServer& ws) {
 	freeAllClients(ws);
 	freeAllUpstreamClients(ws);
+	closeAllSockets(ws);
 }
