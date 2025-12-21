@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:20:30 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/21 17:13:21 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,8 @@ private:
 	int _inPipe[2];
 	std::string _output;
 	bool _isComplete;
+	int _timeout;
+	int _startTime;
 
 public:
 	Cgi(const std::string &path, const std::string &interpreter, const std::map<std::string, std::string> &env, const std::string &body);
@@ -52,6 +54,9 @@ public:
 	bool isComplete() const;
 	std::string getOutput() const;
 	int getOutputFd() const;
+	int getTimeout() const;
+	int getStartTime() const;
+	bool hasTimedOut() const;
 
 	// Legacy blocking method (optional)
 	std::string execute();

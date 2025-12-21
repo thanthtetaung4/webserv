@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/21 16:31:35 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/21 17:31:47 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,10 @@
 #include "../../include/Response.hpp"
 #include <signal.h>
 #include <errno.h>
+#include <ctime>
 
 Cgi::Cgi(const std::string &path, const std::string &interpreter, const std::map<std::string, std::string> &env, const std::string &body)
-	: _path(path), _interpreter(interpreter), _env(env), _body(body), _pid(-1), _isComplete(false)
+	: _path(path), _interpreter(interpreter), _env(env), _body(body), _pid(-1), _isComplete(false), _timeout(30), _startTime(0)
 {
 	_outPipe[0] = -1;
 	_outPipe[1] = -1;
@@ -25,7 +26,7 @@ Cgi::Cgi(const std::string &path, const std::string &interpreter, const std::map
 }
 
 Cgi::Cgi(const Request &request, const Server &server)
-	: _pid(-1), _isComplete(false)
+	: _pid(-1), _isComplete(false), _timeout(30), _startTime(0)
 {
 	std::string contentType = "";
 	std::map<std::string, std::string> headers = request.getHeaders();
@@ -74,6 +75,9 @@ void Cgi::executeAsync()
 {
 	if (pipe(_inPipe) < 0 || pipe(_outPipe) < 0)
 		throw std::runtime_error("Pipe creation failed");
+
+	// Record start time for timeout tracking
+	_startTime = time(NULL);
 
 	_pid = fork();
 	if (_pid < 0)
@@ -129,11 +133,26 @@ bool Cgi::readOutput()
 	if (_outPipe[0] == -1 || _isComplete)
 		return false;
 
+	// Check for timeout
+	if (hasTimedOut())
+	{
+		std::cout << "CGI timeout exceeded (" << _timeout << "s)" << std::endl;
+		// Kill the process
+		if (_pid > 0)
+			kill(_pid, SIGKILL);
+		// Discard all data - don't read from pipe, clear any previous buffer
+		_output.clear();
+		close(_outPipe[0]);
+		_outPipe[0] = -1;
+		_isComplete = true;
+		return true;
+	}
+
 	char buffer[1024];
 	ssize_t bytesRead;
 
 	// Read available data (non-blocking)
-	while ((bytesRead = read(_outPipe[0], buffer, sizeof(buffer))) > 0)
+	while (((bytesRead = read(_outPipe[0], buffer, sizeof(buffer))) > 0))
 		_output.append(buffer, bytesRead);
 
 	if (bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
@@ -175,6 +194,25 @@ std::string Cgi::getOutput() const
 int Cgi::getOutputFd() const
 {
 	return _outPipe[0];
+}
+
+int Cgi::getTimeout() const
+{
+	return _timeout;
+}
+
+int Cgi::getStartTime() const
+{
+	return _startTime;
+}
+
+bool Cgi::hasTimedOut() const
+{
+	if (_startTime == 0)
+		return false;
+
+	int elapsedTime = time(NULL) - _startTime;
+	return elapsedTime > _timeout;
 }
 
 std::string Cgi::execute()

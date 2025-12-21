@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/21 16:31:35 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/21 17:31:47 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -791,40 +791,55 @@ void WebServer::finalizeCgiResponse(Client& client)
 	// Update response with CGI data
 	Response* res = const_cast<Response*>(client.getResponse());
 	if (res) {
-		// Set default status code
-		int statusCode = 200;
-		std::string statusTxt = "OK";
-
-		// Parse status code from CGI Status header if present
-		if (result.headers.count("Status") > 0) {
-			std::string statusLine = result.headers["Status"];
-			// Parse "200 OK" or "404 Not Found" format
-			size_t spacePos = statusLine.find(' ');
-			if (spacePos != std::string::npos) {
-				statusCode = std::atoi(statusLine.substr(0, spacePos).c_str());
-				statusTxt = statusLine.substr(spacePos + 1);
-			} else {
-				statusCode = std::atoi(statusLine.c_str());
-			}
+		// Check if CGI timed out (empty output = timeout)
+		if (cgiOutput.empty())
+		{
+			std::cout << "CGI timeout - sending 504 response" << std::endl;
+			res->setStatusCode(504);
+			res->setStatusTxt("Gateway Timeout");
+			std::string timeoutBody = "<html><body><h1>504 Gateway Timeout</h1><p>CGI script execution timeout</p></body></html>";
+			res->setBody(timeoutBody);
+			res->setHeader("Content-Type", "text/html");
+			res->setHeader("Content-Length", intToString(timeoutBody.size()));
 		}
+		else
+		{
+			// Normal CGI response processing
+			// Set default status code
+			int statusCode = 200;
+			std::string statusTxt = "OK";
 
-		res->setStatusCode(statusCode);
-		res->setStatusTxt(statusTxt);
-		res->setBody(result.body);
-
-		// Set all CGI headers in response
-		for (std::map<std::string, std::string>::iterator it = result.headers.begin();
-			 it != result.headers.end(); ++it) {
-			// Skip Status header as we've already processed it
-			if (it->first != "Status") {
-				res->setHeader(it->first, it->second);
+			// Parse status code from CGI Status header if present
+			if (result.headers.count("Status") > 0) {
+				std::string statusLine = result.headers["Status"];
+				// Parse "200 OK" or "404 Not Found" format
+				size_t spacePos = statusLine.find(' ');
+				if (spacePos != std::string::npos) {
+					statusCode = std::atoi(statusLine.substr(0, spacePos).c_str());
+					statusTxt = statusLine.substr(spacePos + 1);
+				} else {
+					statusCode = std::atoi(statusLine.c_str());
+				}
 			}
-		}
 
-		// Ensure Content-Length is set if not present
-		std::string body = result.body;
-		if (res->getHeaders().count("Content-Length") == 0) {
-			res->setHeader("Content-Length", intToString(body.size()));
+			res->setStatusCode(statusCode);
+			res->setStatusTxt(statusTxt);
+			res->setBody(result.body);
+
+			// Set all CGI headers in response
+			for (std::map<std::string, std::string>::iterator it = result.headers.begin();
+				 it != result.headers.end(); ++it) {
+				// Skip Status header as we've already processed it
+				if (it->first != "Status") {
+					res->setHeader(it->first, it->second);
+				}
+			}
+
+			// Ensure Content-Length is set if not present
+			std::string body = result.body;
+			if (res->getHeaders().count("Content-Length") == 0) {
+				res->setHeader("Content-Length", intToString(body.size()));
+			}
 		}
 	}
 
