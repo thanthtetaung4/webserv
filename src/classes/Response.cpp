@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/21 16:31:35 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,13 @@
 
 Response::Response(Request &req, Server &server)
 {
+	// Initialize all members with default values
+	this->_httpVersion = "HTTP/1.1";
+	this->_statusCode = 200;
+	this->_statusTxt = "OK";
+	this->_body = "";
+	this->_headers.clear();
+
 	// Parse max body size
 	size_t maxSize = static_cast<size_t>(std::atol(server.getMaxByte().c_str()));
 	std::cout << server.getMaxByte() << std::endl;
@@ -87,9 +94,12 @@ Response::Response(Request &req, Server &server)
 			}
 
 			// Handle CGI requests (file must exist and be regular file)
+			// NOTE: CGI requests are now handled asynchronously in WebServer::updateClient()
+			// Skip CGI handling here - it will be deferred to async processing
 			if (isRegularFile(finalPath) && loc._isCgi)
 			{
-				handleCGI(req, server);
+				// Don't handle CGI here - let WebServer handle it asynchronously
+				// This prevents blocking the server
 				return;
 			}
 
@@ -165,9 +175,9 @@ void Response::processDirectoryRequest(Request &req, const t_location &loc, size
 				    indexPath.size() >= loc._cgiExt.size() &&
 				    indexPath.substr(indexPath.size() - loc._cgiExt.size()) == loc._cgiExt)
 				{
-					// Handle as CGI
+					// CGI index file - defer async handling to WebServer::updateClient
 					req.setFinalPath(indexPath);
-					handleCGI(req, server);
+					return;
 				}
 				else
 				{

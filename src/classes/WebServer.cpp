@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/21 16:31:35 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -369,10 +369,20 @@ void	WebServer::updateClient(Client& client) {
 	const Request* req = client.getRequest();
 	if (req && req->getIt() != client.getServer().getLocation().end()) {
 		const t_location& loc = req->getIt()->second;
+		const std::string& finalPath = req->getFinalPath();
+		bool isCgiFile = false;
 
-		// Check if this location requires CGI
-		if (!loc._cgiPass.empty() && (req->getMethodType() == "GET" || req->getMethodType() == "POST")) {
-			std::cout << "Starting CGI execution" << std::endl;
+		// Check if the file is a CGI file (with matching extension)
+		if (loc._isCgi && !loc._cgiExt.empty() &&
+		    finalPath.size() >= loc._cgiExt.size() &&
+		    finalPath.substr(finalPath.size() - loc._cgiExt.size()) == loc._cgiExt)
+		{
+			isCgiFile = true;
+		}
+
+		// Check if this location requires CGI and the file is a CGI file
+		if (!loc._cgiPass.empty() && isCgiFile && (req->getMethodType() == "GET" || req->getMethodType() == "POST")) {
+			std::cout << "Starting CGI execution for: " << finalPath << std::endl;
 
 			try {
 				// Create and execute CGI asynchronously
@@ -408,6 +418,13 @@ void	WebServer::updateClient(Client& client) {
 	}
 
 	// No CGI needed, proceed to response generation
+	// Build the Response for non-CGI requests
+	if (!client.buildRes()) {
+		std::cerr << "Failed to build response" << std::endl;
+		client.setState(RES_RDY);
+		return;
+	}
+
 	// Setting epoll event to EPOLLOUT
 	struct epoll_event ev;
 	std::memset(&ev, 0, sizeof(ev));
@@ -415,7 +432,7 @@ void	WebServer::updateClient(Client& client) {
 	ev.data.fd = client.getFd();
 
 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client.getFd(), &ev) == -1) {
-		throw std::runtime_error(std::string("epoll_ctl ADD listen_fd failed: ") +
+		throw std::runtime_error(std::string("epoll_ctl MOD listen_fd failed: ") +
 									std::strerror(errno));
 	}
 	client.setState(RES_RDY);
@@ -553,10 +570,12 @@ void WebServer::handleWrite(int fd) {
 									<html><body><h1>408 Request Timeout</h1></body></html>");
 			client->setState(RES_SENDING);
 		} else {
-			// Creating Response Instance
-			std::cout << *client->getRequest() << std::endl;
-			if (!client->buildRes())
-				throw "Fatal Err: Response cannot be create";
+			// Creating Response Instance only if it doesn't exist
+			if (!client->getResponse()) {
+				std::cout << *client->getRequest() << std::endl;
+				if (!client->buildRes())
+					throw "Fatal Err: Response cannot be create";
+			}
 			std::cout << "========================" << std::endl;
 			std::cout << *client->getResponse() << std::endl;
 			std::cout << "========================" << std::endl;
@@ -759,7 +778,7 @@ void WebServer::finalizeCgiResponse(Client& client)
 	std::string cgiOutput = cgi->getOutput();
 	CgiResult result = cgi->parseCgiHeaders(cgiOutput);
 
-	// Set response with CGI output
+	// Build response with CGI output
 	if (!client.getResponse()) {
 		try {
 			client.buildRes();
@@ -772,12 +791,40 @@ void WebServer::finalizeCgiResponse(Client& client)
 	// Update response with CGI data
 	Response* res = const_cast<Response*>(client.getResponse());
 	if (res) {
-		res->setStatusCode(200);
-		res->setStatusTxt("OK");
+		// Set default status code
+		int statusCode = 200;
+		std::string statusTxt = "OK";
+
+		// Parse status code from CGI Status header if present
+		if (result.headers.count("Status") > 0) {
+			std::string statusLine = result.headers["Status"];
+			// Parse "200 OK" or "404 Not Found" format
+			size_t spacePos = statusLine.find(' ');
+			if (spacePos != std::string::npos) {
+				statusCode = std::atoi(statusLine.substr(0, spacePos).c_str());
+				statusTxt = statusLine.substr(spacePos + 1);
+			} else {
+				statusCode = std::atoi(statusLine.c_str());
+			}
+		}
+
+		res->setStatusCode(statusCode);
+		res->setStatusTxt(statusTxt);
 		res->setBody(result.body);
+
+		// Set all CGI headers in response
 		for (std::map<std::string, std::string>::iterator it = result.headers.begin();
 			 it != result.headers.end(); ++it) {
-			res->setHeader(it->first, it->second);
+			// Skip Status header as we've already processed it
+			if (it->first != "Status") {
+				res->setHeader(it->first, it->second);
+			}
+		}
+
+		// Ensure Content-Length is set if not present
+		std::string body = result.body;
+		if (res->getHeaders().count("Content-Length") == 0) {
+			res->setHeader("Content-Length", intToString(body.size()));
 		}
 	}
 

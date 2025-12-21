@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/21 16:31:35 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -236,22 +236,36 @@ CgiResult Cgi::parseCgiHeaders(const std::string &output)
 {
 	CgiResult result;
 
-	// Find the end of the CGI header block
+	// Find the end of the CGI header block (handle both \r\n\r\n and \n\n)
 	size_t headerEnd = output.find("\r\n\r\n");
+	size_t bodyStart = 0;
+	std::string delimiter = "\r\n";
+
 	if (headerEnd == std::string::npos)
 	{
-		// No header delimiter found → treat everything as body
-		result.body = output;
-		return result;
+		// Try Unix line endings (\n\n)
+		headerEnd = output.find("\n\n");
+		if (headerEnd == std::string::npos)
+		{
+			// No header delimiter found → treat everything as body
+			result.body = output;
+			return result;
+		}
+		bodyStart = headerEnd + 2; // skip "\n\n"
+		delimiter = "\n";
+	}
+	else
+	{
+		bodyStart = headerEnd + 4; // skip "\r\n\r\n"
 	}
 
 	std::string headerBlock = output.substr(0, headerEnd);
-	result.body = output.substr(headerEnd + 4); // skip "\r\n\r\n"
+	result.body = output.substr(bodyStart);
 
 	size_t start = 0;
 	while (start < headerBlock.size())
 	{
-		size_t end = headerBlock.find("\r\n", start);
+		size_t end = headerBlock.find(delimiter, start);
 		if (end == std::string::npos)
 			end = headerBlock.size();
 
@@ -268,7 +282,7 @@ CgiResult Cgi::parseCgiHeaders(const std::string &output)
 
 			result.headers[key] = value;
 		}
-		start = end + 2; // skip "\r\n"
+		start = end + delimiter.size(); // skip delimiter
 	}
 
 	return result;
