@@ -44,4 +44,8 @@ webserv
 
 .vscode/
 
-www/store/**
+www/upload/**
+
+www/upload/!*.html
+
+log.txt

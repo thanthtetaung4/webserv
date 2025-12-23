@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/15 00:27:33 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,8 @@
 #include <sstream>
 
 Client::Client(void) : server(*(new Server())) {
-	std::cout << "Client Default Constructor called" << std::endl;
+	delete &(this->server);
+	throw std::runtime_error("Default Client constructor should not be called");
 }
 
 Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server)) {
@@ -26,6 +27,7 @@ Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server
 	this->fd = fd;
 
 	this->inBuffer = "";
+	this->outBuffer = "";
 	this->upstreamBuffer = "";
 
 	this->request = NULL;
@@ -34,6 +36,9 @@ Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server
 	this->state = READ_REQ;
 	this->contentLength = 0;
 	this->headerEndPos = 0;
+
+	this->lastActiveTime = time(NULL);
+	this->timeoutSeconds = 120; // 2 minutes
 }
 
 Client&	Client::operator=(const Client& other) {
@@ -53,7 +58,17 @@ Client&	Client::operator=(const Client& other) {
 }
 
 
-Client::~Client() {}
+Client::~Client() {
+	std::cout << "Client Destructor called for fd: " << this->fd << std::endl;
+	if (this->request) {
+		delete this->request;
+		this->request = NULL;
+	}
+	if (this->response) {
+		delete this->response;
+		this->response = NULL;
+	}
+}
 
 bool	Client::buildReq() {
 	try {
@@ -156,6 +171,39 @@ void	Client::setInBuffer(std::string rawStr) {
 
 void	Client::setState(ClientState state) {
 	this->state = state;
+}
+
+std::string	Client::getOutBuffer(void) const {
+	return (this->outBuffer);
+}
+
+void	Client::setOutBuffer(std::string rawStr) {
+	this->outBuffer = rawStr;
+}
+
+void	Client::updateLastActiveTime() {
+	this->lastActiveTime = time(NULL);
+}
+
+time_t	Client::getLastActiveTime() const {
+	return (this->lastActiveTime);
+}
+
+bool	Client::isTimedOut() const {
+	time_t currentTime = time(NULL);
+	return (difftime(currentTime, this->lastActiveTime) >= this->timeoutSeconds);
+}
+
+Server&	Client::getServer(void) {
+	return (this->server);
+}
+
+Cgi*	Client::getCgi(void) const {
+	return (this->cgi);
+}
+
+void	Client::setCgi(Cgi* cgi) {
+	this->cgi = cgi;
 }
 
 std::ostream &operator<<(std::ostream &os, const Client &client) {

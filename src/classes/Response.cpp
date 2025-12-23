@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/17 17:52:24 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/21 16:31:35 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,13 @@
 
 Response::Response(Request &req, Server &server)
 {
+	// Initialize all members with default values
+	this->_httpVersion = "HTTP/1.1";
+	this->_statusCode = 200;
+	this->_statusTxt = "OK";
+	this->_body = "";
+	this->_headers.clear();
+
 	// Parse max body size
 	size_t maxSize = static_cast<size_t>(std::atol(server.getMaxByte().c_str()));
 	std::cout << server.getMaxByte() << std::endl;
@@ -27,7 +34,11 @@ Response::Response(Request &req, Server &server)
 		handleReturn(server.getReturn());
 		return;
 	}
-
+	if (req.getIsRedirect())
+	{
+		handleRedirect(req.getPath() + "/");
+		return;
+	}
 	// Get location configuration
 	std::map<std::string, t_location>::const_iterator locIt = req.getIt();
 
@@ -59,7 +70,10 @@ Response::Response(Request &req, Server &server)
 
 				if (!methodAllowed)
 				{
-					generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
+					if (method != "GET" && method != "POST" && method != "DELETE")
+						generateError(501, "Not Implemented", "501 Not Implemented", server);
+					else
+						generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
 					return;
 				}
 			}
@@ -80,9 +94,12 @@ Response::Response(Request &req, Server &server)
 			}
 
 			// Handle CGI requests (file must exist and be regular file)
+			// NOTE: CGI requests are now handled asynchronously in WebServer::updateClient()
+			// Skip CGI handling here - it will be deferred to async processing
 			if (isRegularFile(finalPath) && loc._isCgi)
 			{
-				handleCGI(req, server);
+				// Don't handle CGI here - let WebServer handle it asynchronously
+				// This prevents blocking the server
 				return;
 			}
 
@@ -158,9 +175,9 @@ void Response::processDirectoryRequest(Request &req, const t_location &loc, size
 				    indexPath.size() >= loc._cgiExt.size() &&
 				    indexPath.substr(indexPath.size() - loc._cgiExt.size()) == loc._cgiExt)
 				{
-					// Handle as CGI
+					// CGI index file - defer async handling to WebServer::updateClient
 					req.setFinalPath(indexPath);
-					handleCGI(req, server);
+					return;
 				}
 				else
 				{
@@ -238,117 +255,6 @@ void Response::setRedirectResponse(int statusCode, const std::string &statusTxt,
 	this->_headers["Content-Length"] = "0";
 	this->_body = "";
 }
-
-// void	Response::doPost(std::string uploadPath, const Request &req) {
-// 	// std::cout << "DO POST\n" << uploadPath << "\n" << req << std::endl;
-// 	std::vector<std::string> fileNames;
-// 	std::vector<std::string> fileContents;
-
-// 	parseFile(req.getBody(), req.getContentType(), fileNames, fileContents);
-// 	std::vector<std::string>::const_iterator itFileContents;
-// 	std::vector<std::string>::const_iterator itFileNames;
-
-// 	for (itFileContents = fileContents.begin(), itFileNames = fileNames.begin(); (itFileContents != fileContents.end()) && itFileNames != fileNames.end(); itFileContents++, itFileNames++) {
-// 		// std::cout << "===================================== FILE =====================================" << std::endl;
-
-// 		// std::cout << "File name: " << *itFileNames << std::endl;
-// 		// std::cout << "File content: \n" << *itFileContents << std::endl;
-
-// 		const std::string &fileName    = *itFileNames;
-// 		const std::string &fileContent = *itFileContents;
-
-// 		// Build full path (e.g. /upload/image.png)
-// 		std::string fullPath = uploadPath + "/" + fileName;
-// 		// std::cout << "File upload path: " << fullPath << std::endl;
-
-// 		// Open file (binary mode)
-// 		std::ofstream out(fullPath.c_str(), std::ios::binary);
-// 		if (!out)
-// 		{
-// 			std::cerr << "Upload error: failed to open " << fullPath << std::endl;
-// 			this->_statusCode = 500;
-// 			this->_body = "<!DOCTYPE html>\n"
-// 							"<html>\n"
-// 							"<head><title>KO</title></head>\n"
-// 							"<body>\n"
-// 							"<h1>Response from C++</h1>\n"
-// 							"<p>Upload of file" + fileName + " failed</p>\n"
-// 							"</body>\n"
-// 							"</html>";
-// 			return;
-// 		}
-
-// 		// Write raw content
-// 		out.write(fileContent.data(), fileContent.size());
-// 		out.close();
-
-// 		std::cout << "Uploaded: " << fullPath
-// 				<< " (" << fileContent.size() << " bytes)"
-// 				<< std::endl;
-// 		// std::cout << "===================================== FILE END =====================================" << std::endl;
-// 	}
-// 	this->_statusCode = 200;
-// 	this->_body = "<!DOCTYPE html>\n"
-// 					"<html>\n"
-// 					"<head><title>OK</title></head>\n"
-// 					"<body>\n"
-// 					"<h1>Response from C++</h1>\n"
-// 					"<p>Everything works!</p>\n"
-// 					"</body>\n"
-// 					"</html>";
-// }
-
-// void	Response::doDelete(std::string uploadPath, const Request &req) {
-// 	// std::cout << "DO DELETE\n" << uploadPath << "\n" << req << std::endl;
-
-// 	std::string filePath;
-
-// 	// Parse from URL path (e.g. "DELETE /upload/test.txt")
-// 	// parseFile writes the relative path into filePath
-// 	parseFile(req.getPath(), req.getIt()->second._root, filePath);
-
-// 	// std::cout << "=====================================" << std::endl;
-// 	// std::cout << "fileName: " << filePath << std::endl;
-
-// 	// Construct the full path
-// 	std::string fullPath = uploadPath + filePath.substr(filePath.find_last_of('/'));
-
-// 	// Check existence
-// 	struct stat st;
-// 	if (stat(fullPath.c_str(), &st) != 0) {
-// 		// file doesn't exist
-// 		std::cerr << "File does not exist: " << fullPath << std::endl;
-// 		// You can set 404 here
-// 		this->_statusCode = 404;
-// 		this->_body = "File not found.\n";
-// 		return;
-// 	}
-
-// 	// Delete the file
-// 	if (unlink(fullPath.c_str()) != 0) {
-// 		// unlink failed → no permission or locked
-// 		std::cerr << "Failed to delete: " << fullPath << std::endl;
-// 		// set 500 or 403 depending on your logic
-// 		this->_statusCode = 500;
-// 		this->_body = "Failed to delete the file.\n";
-// 		return;
-// 	}
-
-// 	std::cout << "Deleted: " << fullPath << std::endl;
-
-// 	// Success
-// 	this->_statusCode = 200;
-// 	this->_body = "File deleted.\n";
-// }
-
-// void Response::handleStore(t_location loc, const Request& req) {
-// 	std::cout << "handling store" << std::endl;
-// 	if (req.getMethodType() == "POST") {
-// 		doPost(loc._uploadStore, req);
-// 	} else if (req.getMethodType() == "DELETE") {
-// 		doDelete(loc._uploadStore, req);
-// 	}
-// }
 
 void Response::handleReturn(const std::vector<std::string> &returnDirective)
 {
@@ -775,6 +681,7 @@ std::map<int, std::pair<std::string, std::string> > Response::getErrorMap()
 	errorMap[415] = std::make_pair("Unsupported Media Type", "<h1>415 Unsupported Media Type</h1>");
 	errorMap[418] = std::make_pair("I'm a teapot", "<h1>418 I'm a teapot</h1>");
 	errorMap[500] = std::make_pair("Internal Server Error", "<h1>500 Internal Server Error</h1>");
+	errorMap[501] = std::make_pair("Not Implemented", "<h1>501 Not Implemented</h1>");
 	errorMap[502] = std::make_pair("Bad Gateway", "<h1>502 Bad Gateway</h1>");
 	errorMap[505] = std::make_pair("HTTP Version Not Supported", "<h1>505 HTTP Version Not Supported</h1>");
 	return errorMap;
@@ -818,7 +725,7 @@ bool Response::checkHttpError(const Request &req, size_t maxSize, std::string pa
 	// Validate HTTP method
 	else if (method != "GET" && method != "POST" && method != "DELETE")
 	{
-		errorCode = 405; // Method Not Allowed
+		errorCode = 501; // Method Not Allowed
 	}
 	// POST-specific validations
 	else if (method == "POST")
@@ -904,6 +811,31 @@ void Response::serveFile(const std::string &filePath)
 	std::string body = os.str();
 	std::string contentType = getMimeType(filePath);
 	setResponseState(200, "OK", body, contentType);
+}
+
+void Response::setHttpVersion(const std::string &version)
+{
+	this->_httpVersion = version;
+}
+
+void Response::setStatusCode(int code)
+{
+	this->_statusCode = code;
+}
+
+void Response::setStatusTxt(const std::string &text)
+{
+	this->_statusTxt = text;
+}
+
+void Response::setHeader(const std::string &key, const std::string &value)
+{
+	this->_headers[key] = value;
+}
+
+void Response::setBody(const std::string &body)
+{
+	this->_body = body;
 }
 
 std::string Response::getHttpVersion() const

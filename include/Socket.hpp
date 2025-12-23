@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 14:06:54 by taung             #+#    #+#             */
-/*   Updated: 2025/11/09 21:07:50 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 13:54:21 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,7 @@ class Socket {
 		void				prepSock(void);
 		sockaddr_in*		getAddrPtr(void);
 		socklen_t*			getAddrLen(void);
+		void				closeSock(void);
 };
 std::ostream&	operator<<(std::ostream& os, const Socket& sock);
 

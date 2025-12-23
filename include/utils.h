@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 19:48:22 by taung             #+#    #+#             */
-/*   Updated: 2025/12/12 01:23:47 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 02:45:07 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,12 @@
 #include <sys/stat.h>
 #include <string>
 #include "Client.hpp"
+#include <csignal>
+#include "WebServer.hpp"
+
+// Signal handling
+extern volatile sig_atomic_t g_shutdown;
+void handleSignal(int signum);
 
 template <typename K, typename V>
 bool search_map(const std::map<K, V> &m, const K &key)
@@ -64,5 +70,7 @@ bool	searchVec(const std::vector<T> &v, const T &key) {
 	else
 		return false;
 }
+
+void	freeAll(WebServer& ws);
 
 #endif

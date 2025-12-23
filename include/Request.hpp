@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 00:42:43 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/17 15:16:38 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/17 10:59:31 by lshein           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,7 @@ class Request {
 		std::string _body;
 		std::string _queryString;
 		std::map<std::string, t_location>::const_iterator _it;
+		bool _isRedirect;
 
 	public:
 		Request(const std::string &raw, Server &server);
@@ -47,6 +48,7 @@ class Request {
 		std::string getBody() const;
 		std::string getContentType() const;
 		std::string getQueryString() const;
+		bool getIsRedirect() const;
 		std::map<std::string, t_location>::const_iterator getIt() const;
 		const std::map<std::string, std::string> &getHeaders() const;
 };

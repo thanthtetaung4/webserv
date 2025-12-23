@@ -5,10 +5,11 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/10/08 07:59:51 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/17 19:57:03 by taung            ###   ########.fr       */
+/*   Created: Invalid date        by                   #+#    #+#             */
+/*   Updated: 2025/12/17 23:17:54 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 
 #include "./../../include/Server.hpp"
 
@@ -480,7 +481,8 @@ std::ostream &operator<<(std::ostream &os, const Server &s)
 			for (unsigned int i = 0; i < it->second._limit_except.size(); i++)
 				os << it->second._limit_except[i] << " ";
 			os << std::endl;
-			os << "	return: [" << it->second._root[0] << "] = " << it->second._root[1] << std::endl;
+			if (it->second._return.size() == 2)
+				os << "	return: [" << it->second._return[0] << "] = " << it->second._return[1] << std::endl;
 			os << "	autoIndex: " << it->second._autoIndex << std::endl;
 			os << "	cgiPass: " << it->second._cgiPass << std::endl;
 			os << "	cgiExt: " << it->second._cgiExt << std::endl;

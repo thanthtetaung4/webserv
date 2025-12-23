@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 14:06:45 by taung             #+#    #+#             */
-/*   Updated: 2025/11/09 21:15:37 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 22:04:44 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 #include <cstring>
 #include <cerrno>
+#include <unistd.h>
 
 Socket::Socket() {
 	// throw InvalidSocket();
@@ -52,10 +53,6 @@ void					Socket::openSock(void) {
 	int opt = 1;
 	if (setsockopt(this->serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 		std::cerr << "warning: setsockopt SO_REUSEADDR failed: " << std::strerror(errno) << std::endl;
-#if defined(SO_REUSEPORT)
-	if (setsockopt(this->serverFd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0)
-		std::cerr << "warning: setsockopt SO_REUSEPORT failed: " << std::strerror(errno) << std::endl;
-#endif
 	std::cout << "socket open OK" << std::endl;
 }
 
@@ -85,6 +82,12 @@ socklen_t*		Socket::getAddrLen(void) {
 	return (&this->addr_len);
 }
 
+void			Socket::closeSock(void) {
+	if (close(this->serverFd) < 0)
+		std::cerr << "warning: close socket failed: " << std::strerror(errno) << std::endl;
+	else
+		std::cout << "socket closed OK" << std::endl;
+}
 
 std::ostream&	operator<<(std::ostream& os, const Socket& sock) {
 	os << "socket: " << sock.getServerFd() << std::endl;

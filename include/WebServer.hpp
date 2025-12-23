@@ -6,15 +6,17 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/15 15:18:05 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef WEBSERVER_HPP
 #define WEBSERVER_HPP
 
+// Forward declaration to break circular dependency
+class Client;
+
 #include "Server.hpp"
-#include "Client.hpp"
 #include "ServerException.hpp"
 #include <fcntl.h>
 #include "Socket.hpp"
@@ -27,6 +29,8 @@
 #include <dirent.h>
 #include <sys/epoll.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include "Request.hpp"
 #include <unistd.h>
 #include "Request.hpp"
 #include "Response.hpp"
@@ -51,6 +55,7 @@ private:
 	std::map<int, Client*> _clients;
 	std::vector<int> _upstreamFds;
 	std::map<int, Client*> _upstreamClient;
+	std::map<int, Client*> _cgiClients;  // Map CGI output fd to client
 	int _epoll_fd;
 
 	int	searchVecIndex(std::vector<int> vec, int key);
@@ -77,14 +82,25 @@ public:
 	void handleUpstreamEvent(int fd, uint32_t events);
 	void closeUpstream(int upstreamFd);
 	void finalizeUpstreamResponse(Client& client);
+	void handleCgiRead(int cgiFd);
+	void finalizeCgiResponse(Client& client);
 
 	bool isUpStream(int fd) const;
 	bool isListenFd(int fd) const;
 
+	// Accessors
+	std::map<int, Client*>&	getClients();
+	std::map<int, Client*>&	getUpstreamClients();
+	std::vector<Socket>&		getSockets();
+
 	// Utils
 	Client*	searchClients(int fd);
 	Client*	searchClientsUpstream(int fd);
+	Client*	searchClientsByCgi(int cgiFd);
 	void	removeUpstreamFd(int fd);
 };
+
+// Include Client after WebServer definition to avoid circular dependency
+#include "Client.hpp"
 
 #endif
