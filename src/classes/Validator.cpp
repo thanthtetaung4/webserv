@@ -64,7 +64,7 @@ bool ConfigValidator::validateServerName(const std::string &value)
 	for (size_t i = 0; i < value.size(); ++i)
 	{
 		char c = value[i];
-		if (!(isalnum(c) || c == '.' || c == '*' || c == '-' || c == '_' || c == ' '))
+		if (!(std::isalnum(c) || c == '.' || c == '*' || c == '-' || c == '_' || c == ' '))
 			return false;
 	}
 	return true;
@@ -242,7 +242,7 @@ bool ConfigValidator::validateCgiExt(const std::string &ext)
 	for (size_t i = 1; i < ext.size(); ++i)
 	{
 		char c = ext[i];
-		if (!isalnum(c))
+		if (!std::isalnum(c))
 			return false;
 	}
 	return true;

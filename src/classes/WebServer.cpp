@@ -453,7 +453,7 @@ int	setupUpstreamSock(Client& client) {
 
 	// 3. Build remote address
 	struct sockaddr_in server_addr;
-	memset(&server_addr, 0, sizeof(server_addr));
+	std::memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sin_family      = AF_INET;
 	server_addr.sin_port        = htons(std::atoi(pp.port.c_str()));
 	server_addr.sin_addr.s_addr = inet_addr(pp.host.c_str());
