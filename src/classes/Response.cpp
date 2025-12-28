@@ -262,7 +262,7 @@ void Response::handleReturn(const std::vector<std::string> &returnDirective)
 	if (returnDirective.empty())
 		return;
 
-	int statusCode = atoi(returnDirective[0].c_str());
+	int statusCode = std::atoi(returnDirective[0].c_str());
 	std::string statusTxt;
 	std::string body;
 
@@ -541,7 +541,7 @@ void Response::parseCgiStatus(const std::string &statusHeader)
 	size_t space = statusHeader.find(' ');
 	if (space != std::string::npos)
 	{
-		this->_statusCode = atoi(statusHeader.substr(0, space).c_str());
+		this->_statusCode = std::atoi(statusHeader.substr(0, space).c_str());
 		this->_statusTxt = statusHeader.substr(space + 1);
 	}
 	else

@@ -327,7 +327,7 @@ void Server::handleErrorPage(const std::vector<std::string> &line)
 	const std::string &errorPage = line.back();
 	for (size_t i = 1; i < line.size() - 1; ++i)
 	{
-		Validator::requireMinSize(line, 3, "error_page", ConfigValidator::validateErrorPage(atoi(line[i].c_str()), errorPage));
+		Validator::requireMinSize(line, 3, "error_page", ConfigValidator::validateErrorPage(std::atoi(line[i].c_str()), errorPage));
 		_errorPage[line[i]] = errorPage;
 	}
 }
@@ -350,7 +350,7 @@ void Server::handleIndex(const std::vector<std::string> &line)
 
 void Server::handleReturn(const std::vector<std::string> &line)
 {
-	Validator::requireSize(line, 3, "return", ConfigValidator::validateReturn(atoi(line[1].c_str()), line[2]));
+	Validator::requireSize(line, 3, "return", ConfigValidator::validateReturn(std::atoi(line[1].c_str()), line[2]));
 	_return.push_back(line[1]);
 	_return.push_back(line[2]);
 }
@@ -402,7 +402,7 @@ void Server::handleLimitExcept(const std::vector<std::string> &line, t_location 
 void Server::handleLocReturn(const std::vector<std::string> &line, t_location &loc, std::string &key)
 {
 	(void)key;
-	Validator::requireSize(line, 3, "return", ConfigValidator::validateReturn(atoi(line[1].c_str()), line[2]));
+	Validator::requireSize(line, 3, "return", ConfigValidator::validateReturn(std::atoi(line[1].c_str()), line[2]));
 	loc._return.push_back(line[1]);
 	loc._return.push_back(line[2]);
 }

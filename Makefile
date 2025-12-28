@@ -39,18 +39,20 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)/src/utils
 
 # Compile sources into obj/ folder
-$(OBJDIR)/%.o: %.cpp | $(OBJDIR)
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(NAME): $(OBJS)
 	$(CC) $(OBJS) $(CFLAGS) -o $(NAME)
 
 clean:
-	@$(RM)  $(OBJS)
+	@$(RM) $(OBJS)
 	@echo clean
 
 fclean: clean
 	@$(RM) $(NAME)
+	@$(RM) -r $(OBJDIR)
 	@echo fclean
 
 re: fclean all
