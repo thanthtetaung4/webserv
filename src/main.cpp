@@ -18,18 +18,23 @@
 
 int main(int argc, char **argv)
 {
-        if (argc != 2) {
+        std::string configFile;
+
+         if (argc == 1) {
+                configFile = "./config/default.conf";
+        } else if (argc == 2) {
+                configFile = argv[1];
+        } else {
                 std::cerr << "Usage: ./webserv [config file]" << std::endl;
                 return 1;
         }
-
         // Register signal handlers
         signal(SIGINT, handleSignal);
         signal(SIGTERM, handleSignal);
-
+        
         try {
                 WebServer ws;
-                ws.setServer(argv[1]);   // read config
+                ws.setServer(configFile);   // read config
                 ws.getServers();
 
                 std::cout << "============ SERVERS =============" << std::endl;
