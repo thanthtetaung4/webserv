@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/21 17:31:47 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/29 19:00:06 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -894,7 +894,8 @@ int WebServer::run(void) {
 		std::cout << count << " times looping" << std::endl;
 		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
 		if (nfds == -1) {
-			throw std::runtime_error(std::string("epoll_wait failed: "));
+			if (!g_shutdown)
+				throw std::runtime_error(std::string("epoll_wait failed: "));
 		}
 
 		for (int i = 0; i < nfds; ++i) {
