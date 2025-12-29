@@ -3,6 +3,14 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+static size_t ft_strlen(const char *s) {
+    size_t len = 0;
+    while (s[len] != '\0') {
+        len++;
+    }
+    return len;
+}
+
 int loop() {
     int server_fd, client_fd;
     struct sockaddr_in addr;
@@ -53,7 +61,7 @@ int loop() {
         "\r\n"
         "<h1>Hello from mini C++ server!</h1>";
 
-    write(client_fd, response, strlen(response));
+    write(client_fd, response, ft_strlen(response));
 
     // 7. Close sockets
     close(client_fd);

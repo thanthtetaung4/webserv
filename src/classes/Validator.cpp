@@ -180,7 +180,7 @@ bool ConfigValidator::validateLocation(const location &loc, const std::string &k
 		ok = false;
 	}
 
-	if (!loc._return.empty() && !validateReturn(atol(loc._return[0].c_str()), loc._return[1]))
+	if (!loc._return.empty() && !validateReturn(std::atol(loc._return[0].c_str()), loc._return[1]))
 		ok = false;
 
 	if (!validateMethods(loc._limit_except))
