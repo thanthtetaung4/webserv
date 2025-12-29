@@ -215,7 +215,7 @@ bool Cgi::readOutput()
     while (((bytesRead = read(_outPipe[0], buffer, sizeof(buffer))) > 0))
         _output.append(buffer, bytesRead);
 
-    if (bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+    if (bytesRead < 0)
     {
         // Real error
         _isComplete = true;

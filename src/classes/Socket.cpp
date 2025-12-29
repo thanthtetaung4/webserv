@@ -52,7 +52,7 @@ void					Socket::openSock(void) {
 	// Allow quick restart: reuse address (and port where supported)
 	int opt = 1;
 	if (setsockopt(this->serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-		std::cerr << "warning: setsockopt SO_REUSEADDR failed: " << std::strerror(errno) << std::endl;
+		std::cerr << "warning: setsockopt SO_REUSEADDR failed" << std::endl;
 	std::cout << "socket open OK" << std::endl;
 }
 
@@ -84,7 +84,7 @@ socklen_t*		Socket::getAddrLen(void) {
 
 void			Socket::closeSock(void) {
 	if (close(this->serverFd) < 0)
-		std::cerr << "warning: close socket failed: " << std::strerror(errno) << std::endl;
+		std::cerr << "warning: close socket failed: " << std::endl;
 	else
 		std::cout << "socket closed OK" << std::endl;
 }

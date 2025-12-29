@@ -12,7 +12,6 @@
 
 #include "../../include/Client.hpp"
 #include <unistd.h>
-#include <errno.h>
 #include <sys/socket.h>
 #include <iostream>
 #include <sstream>
@@ -37,7 +36,7 @@ Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server
 	this->contentLength = 0;
 	this->headerEndPos = 0;
 
-	this->lastActiveTime = time(NULL);
+	this->lastActiveTime = std::time(NULL);
 	this->timeoutSeconds = 120; // 2 minutes
 }
 

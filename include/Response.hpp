@@ -39,6 +39,7 @@ class Server;
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "Socket.hpp"
+#include <cstdio>
 
 class Response
 {

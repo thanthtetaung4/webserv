@@ -10,7 +10,6 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-
 #include "../../include/Response.hpp"
 
 Response::Response(Request &req, Server &server)
@@ -486,8 +485,8 @@ void	Response::doDelete(std::string uploadPath, const Request &req) {
 	}
 
 	// Delete the file
-	if (unlink(fullPath.c_str()) != 0) {
-		// unlink failed → no permission or locked
+	if (std::remove(fullPath.c_str()) != 0) {
+		// remove failed → no permission or locked
 		std::cerr << "Failed to delete: " << fullPath << std::endl;
 		// set 500 or 403 depending on your logic
 		this->_statusCode = 500;

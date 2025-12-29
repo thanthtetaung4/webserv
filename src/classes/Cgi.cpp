@@ -13,7 +13,6 @@
 #include "../../include/Cgi.hpp"
 #include "../../include/Response.hpp"
 #include <signal.h>
-#include <errno.h>
 #include <ctime>
 
 Cgi::Cgi(const std::string &path, const std::string &interpreter, const std::map<std::string, std::string> &env, const std::string &body)
@@ -155,7 +154,7 @@ bool Cgi::readOutput()
 	while (((bytesRead = read(_outPipe[0], buffer, sizeof(buffer))) > 0))
 		_output.append(buffer, bytesRead);
 
-	if (bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+	if (bytesRead < 0)
 	{
 		// Real error
 		_isComplete = true;

@@ -21,7 +21,6 @@
 #include "../../include/Cgi.hpp"
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <errno.h>
 #include "../../include/Client.hpp"
 
 WebServer::WebServer() {}
@@ -172,9 +171,9 @@ int parseContentLength(const std::string &headers)
 static void setNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1)
-        throw std::runtime_error(std::string("fcntl(F_GETFL): ") + std::strerror(errno));
+        throw std::runtime_error(std::string("fcntl(F_GETFL)"));
     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-        throw std::runtime_error(std::string("fcntl(F_SETFL): ") + std::strerror(errno));
+        throw std::runtime_error(std::string("fcntl(F_SETFL)"));
 }
 
 bool WebServer::isUpStream(int fd) const {
@@ -233,7 +232,6 @@ void WebServer::handleAccept(int listenfd) {
 		int client_fd = accept(listenfd, (sockaddr*)&addr, &len);
 
 		if (client_fd < 0) {
-			if (errno == EAGAIN) break;
 			std::cerr << "accept failed" << std::endl;
 			break;
 		}
@@ -281,11 +279,6 @@ void WebServer::readFromClient(Client& client) {
 
 	// Handle recv errors
 	if (bytes_received < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			// No data available right now, that's OK
-			// epoll will trigger again when more data arrives
-			return;
-		}
 		// Real error
 		std::cerr << "recv failed" << std::endl;
 		closeClient(client.getFd());
@@ -432,8 +425,7 @@ void	WebServer::updateClient(Client& client) {
 	ev.data.fd = client.getFd();
 
 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client.getFd(), &ev) == -1) {
-		throw std::runtime_error(std::string("epoll_ctl MOD listen_fd failed: ") +
-									std::strerror(errno));
+		throw std::runtime_error(std::string("epoll_ctl MOD listen_fd failed"));
 	}
 	client.setState(RES_RDY);
 	std::cout << "updating done" << std::endl;
@@ -520,8 +512,7 @@ void	WebServer::handleRead(int fd) {
 
 
 		if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, ppassFd, &ev) == -1) {
-			throw std::runtime_error(std::string("epoll_ctl ADD ppassFD failed: ") +
-										std::strerror(errno));
+			throw std::runtime_error(std::string("epoll_ctl ADD ppassFD failed"));
 		}
 	}
 }
@@ -701,15 +692,10 @@ void WebServer::handleUpstreamRead(Client& c, int fd) {
 	ssize_t bytes = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 
 	if (bytes < 0) {
-	if (errno == EAGAIN || errno == EWOULDBLOCK) {
-		// No more data for now
+		// Real error
+		std::cerr << "recv upstream failed" << std::endl;
+		closeUpstream(fd);
 		return;
-	}
-
-	// Real error
-	std::cerr << "recv upstream failed" << std::endl;
-	closeUpstream(fd);
-	return;
 	}
 
 	if (bytes == 0) {
@@ -879,7 +865,7 @@ int WebServer::run(void) {
 	// 1) Create epoll instance
 	_epoll_fd = epoll_create(1);
 	if (_epoll_fd == -1)
-		throw std::runtime_error(std::string("epoll_create1 failed: ") + std::strerror(errno));
+		throw std::runtime_error(std::string("epoll_create1 failed: "));
 
 	// 2) Register all listening sockets
 	for (size_t i = 0; i < _sockets.size(); ++i) {
@@ -894,8 +880,7 @@ int WebServer::run(void) {
 		ev.data.fd = fd;
 
 		if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1) {
-			throw std::runtime_error(std::string("epoll_ctl ADD listen_fd failed: ") +
-										std::strerror(errno));
+			throw std::runtime_error(std::string("epoll_ctl ADD listen_fd failed: "));
 		}
 
 		std::cout << "Listening on port: http://localhost:" << _servers[i].getPort() << std::endl;
@@ -909,9 +894,7 @@ int WebServer::run(void) {
 		std::cout << count << " times looping" << std::endl;
 		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
 		if (nfds == -1) {
-			if (errno == EINTR)
-				continue; // interrupted by signal, just retry
-			throw std::runtime_error(std::string("epoll_wait failed: ") + std::strerror(errno));
+			throw std::runtime_error(std::string("epoll_wait failed: "));
 		}
 
 		for (int i = 0; i < nfds; ++i) {
