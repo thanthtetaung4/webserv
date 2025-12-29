@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:33:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 04:12:39 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,6 +84,7 @@ public:
 	void finalizeUpstreamResponse(Client& client);
 	void handleCgiRead(int cgiFd);
 	void finalizeCgiResponse(Client& client);
+	void checkCgiTimeouts();
 
 	bool isUpStream(int fd) const;
 	bool isListenFd(int fd) const;

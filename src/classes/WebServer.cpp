@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/30 03:52:52 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 04:24:06 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -490,6 +490,7 @@ void	WebServer::handleRead(int fd) {
 			throw std::runtime_error(std::string("epoll_ctl ADD ppassFD failed"));
 		}
 	}
+	// std::cout << "handle read done" << std::endl;
 }
 
 void WebServer::handleWrite(int fd) {
@@ -836,6 +837,29 @@ void WebServer::finalizeCgiResponse(Client& client)
 	}
 }
 
+void WebServer::checkCgiTimeouts()
+{
+	// Iterate over all active CGI clients and check for timeouts.
+	// This ensures that even if a CGI script produces no output (silent hang),
+	// we still detect and terminate it when the timeout expires.
+	std::map<int, Client*>::iterator it = _cgiClients.begin();
+	while (it != _cgiClients.end()) {
+		Client* client = it->second;
+		++it;  // increment before potential erase
+
+		if (!client) continue;
+
+		Cgi* cgi = client->getCgi();
+		if (!cgi) continue;
+
+		// Check if this CGI has timed out
+		if (cgi->hasTimedOut()) {
+			// Kill the process and finalize
+			finalizeCgiResponse(*client);
+		}
+	}
+}
+
 int WebServer::run(void) {
 	// 1) Create epoll instance
 	_epoll_fd = epoll_create(1);
@@ -866,7 +890,13 @@ int WebServer::run(void) {
 
 	int	count = 0;
 	while (!g_shutdown) {
-		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
+		// Check for timed-out CGI processes (especially those that hang silently)
+		checkCgiTimeouts();
+
+		// epoll_wait with 1 second timeout so we periodically check for CGI timeouts
+		// even if no I/O events occur. This ensures silent/hanging CGI scripts are
+		// detected and terminated rather than waiting indefinitely for I/O.
+		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, 1000);
 		if (nfds == -1) {
 			if (!g_shutdown)
 				throw std::runtime_error(std::string("epoll_wait failed: "));

@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/30 03:50:44 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 04:25:03 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,7 @@ void Cgi::executeAsync()
 
 	// Record start time for timeout tracking
 	_startTime = time(NULL);
-
+	// std::cout << "CGI timeout set to " << _startTime << " seconds." << std::endl;
 	_pid = fork();
 	if (_pid < 0)
 		throw std::runtime_error("Fork failed");
@@ -158,11 +158,8 @@ bool Cgi::readOutput()
 	while ((bytesRead = read(_outPipe[0], buffer, sizeof(buffer))) > 0)
 		_output.append(buffer, bytesRead);
 
-	// If read returned a negative value, don't mark as complete here.
-	// Instead rely on the waitpid check below to detect child termination.
-	// This avoids direct errno comparisons so the code works with epoll.
-
-	// Check if process has finished
+	// Always check if process has finished, regardless of whether we read data.
+	// This ensures we detect completion and timeout even for silent/hanging scripts.
 	int status;
 	pid_t result = waitpid(_pid, &status, WNOHANG);
 	if (result == _pid)
@@ -212,6 +209,7 @@ bool Cgi::hasTimedOut() const
 		return false;
 
 	int elapsedTime = time(NULL) - _startTime;
+	// std::cout << "CGI elapsed time: " << elapsedTime << " seconds." << std::endl;
 	return elapsedTime > _timeout;
 }
 
