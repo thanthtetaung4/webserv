@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/30 06:06:05 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 06:55:33 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -350,7 +350,7 @@ void	WebServer::updateClient(Client& client) {
 
 		// Check if this location requires CGI and the file is a CGI file
 		// Only allow GET by default (unless limit_except allows other methods)
-		bool cgiMethodAllowed = (req->getMethodType() == "GET" || req->getMethodType() == "HEAD" || req->getMethodType() == "OPTIONS");
+		bool cgiMethodAllowed = (req->getMethodType() == "GET");
 		if (!loc._limit_except.empty())
 		{
 			// If limit_except is specified, use it

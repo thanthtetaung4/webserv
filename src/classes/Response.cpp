@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/30 06:06:05 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 06:55:20 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,10 +31,10 @@ Response::Response(Request &req, Server &server)
 	std::string method = req.getMethodType();
 
 	// Handle server-level return directive (highest priority)
-	// Only apply to safe methods (GET, HEAD, OPTIONS)
+	// Only apply to safe methods (GET)
 	if (!server.getReturn().empty())
 	{
-		if (method == "GET" || method == "HEAD" || method == "OPTIONS")
+		if (method == "GET")
 		{
 			handleReturn(server.getReturn());
 			return;
@@ -66,10 +66,10 @@ Response::Response(Request &req, Server &server)
 			const t_location &loc = locIt->second;
 
 			// Handle location-level return directive (second priority)
-			// Only apply to safe methods (GET, HEAD, OPTIONS)
+			// Only apply to safe methods (GET)
 			if (!loc._return.empty())
 			{
-				if (method == "GET" || method == "HEAD" || method == "OPTIONS")
+				if (method == "GET")
 				{
 					handleReturn(loc._return);
 					return;
@@ -116,8 +116,8 @@ Response::Response(Request &req, Server &server)
 		// Handle directory requests (only for GET)
 		if (isDirectory(finalPath))
 		{
-			// Only GET, HEAD, OPTIONS can process directories
-			if (method != "GET" && method != "HEAD" && method != "OPTIONS")
+			// Only GET can process directories
+			if (method != "GET")
 			{
 				generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
 				return;
@@ -135,7 +135,7 @@ Response::Response(Request &req, Server &server)
 				if (loc._limit_except.empty())
 				{
 					// No explicit limit_except on CGI location, use method-only for GET
-					if (method != "GET" && method != "HEAD" && method != "OPTIONS")
+					if (method != "GET")
 					{
 						generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
 						return;
