@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/19 16:27:25 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/30 03:00:33 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ Request::Request(const std::string &raw, Server &server)
 	if (std::getline(lines, line))
 	{
 		std::istringstream first(line);
-		std::cout << "Request line: " << line << std::endl;
+		// std::cout << "Request line: " << line << std::endl;
 		first >> this->_method >> this->_path >> this->_httpVersion;
 	}
 	while (std::getline(lines, line))
@@ -54,10 +54,7 @@ Request::Request(const std::string &raw, Server &server)
 	// handling queryString
 	if (_path.find("?") != _path.npos) {
 		this->_queryString = this->_path.substr(_path.find("?") , _path.npos);
-		std::cout << "first substr OK" << std::endl;
 		this->_path = _path.substr(0, _path.find("?"));
-		std::cout << "second substr OK" << std::endl;
-		// std::cout << _path << ", " << _queryString << std::endl;
 	} else {
 		this->_queryString = "";
 	}
@@ -66,7 +63,7 @@ Request::Request(const std::string &raw, Server &server)
 	this->_finalPath = "";
 	if (this->_path[this->_path.size() - 1] != '/' && (_it == server.getLocation().end() || _it->first == "/"))
 	{
-		std::cout << "_________________Checking for directory redirect..." << std::endl;
+		// std::cout << "_________________Checking for directory redirect..." << std::endl;
 		_it = searchLongestMatch(server.getLocation(), this->_path + '/');
 		if (_it != server.getLocation().end() && _it->first != "/")
 			this->_isRedirect = true;
@@ -77,7 +74,7 @@ Request::Request(const std::string &raw, Server &server)
 		}
 		if (isDirectory(server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path))
 		{
-			std::cout << "Directory detected, redirecting..._______________" << std::endl;
+			// std::cout << "Directory detected, redirecting..._______________" << std::endl;
 			this->_isRedirect = true;
 		}
 	}
@@ -94,7 +91,6 @@ Request::Request(const std::string &raw, Server &server)
 	}
 	else
 		this->_finalPath = server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path;
-	std::cout << "Final path: " << this->_finalPath << std::endl;
 }
 
 std::string trim(const std::string &s)

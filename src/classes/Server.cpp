@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/12/17 23:17:54 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 03:04:12 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -136,7 +136,7 @@ t_iterators Server::getIterators(std::string &content, std::string::iterator sta
 		else
 			it.it2 = std::search(it.it1 + 1, content.end(), target2.begin(), target2.end());
 	} catch (std::exception &e) {
-		std::cout << "bye" << std::endl;
+		// std::cout << "bye" << std::endl;
 		throw e;
 	}
 

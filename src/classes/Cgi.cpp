@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/21 17:31:47 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 03:02:34 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,7 +124,7 @@ void Cgi::executeAsync()
 	int flags = fcntl(_outPipe[0], F_GETFL, 0);
 	fcntl(_outPipe[0], F_SETFL, flags | O_NONBLOCK);
 
-	std::cout << "CGI process started with PID: " << _pid << std::endl;
+	// std::cout << "CGI process started with PID: " << _pid << std::endl;
 }
 
 bool Cgi::readOutput()
@@ -135,7 +135,7 @@ bool Cgi::readOutput()
 	// Check for timeout
 	if (hasTimedOut())
 	{
-		std::cout << "CGI timeout exceeded (" << _timeout << "s)" << std::endl;
+		// std::cout << "CGI timeout exceeded (" << _timeout << "s)" << std::endl;
 		// Kill the process
 		if (_pid > 0)
 			kill(_pid, SIGKILL);
@@ -173,7 +173,7 @@ bool Cgi::readOutput()
 		close(_outPipe[0]);
 		_outPipe[0] = -1;
 		_isComplete = true;
-		std::cout << "CGI process completed" << std::endl;
+		// std::cout << "CGI process completed" << std::endl;
 		return true;
 	}
 
@@ -256,7 +256,7 @@ std::string Cgi::execute()
 	if (!_body.empty())
 		write(inPipe[1], _body.c_str(), _body.size());
 	close(inPipe[1]);
-	std::cout << "CGI body sent " << _body << std::endl;
+	// std::cout << "CGI body sent " << _body << std::endl;
 	std::string output;
 	char buffer[1024];
 	ssize_t bytesRead;

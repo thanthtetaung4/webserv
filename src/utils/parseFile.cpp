@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/01 01:01:11 by taung             #+#    #+#             */
-/*   Updated: 2025/12/02 16:12:35 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 03:06:11 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -190,7 +190,7 @@ bool	parseFile(std::string body, std::string contentType, std::vector<std::strin
 }
 
 bool	parseFile(std::string urlPath, std::string rootPath, std::string &filePath) {
-	std::cout << "parseFile DELETE: " << urlPath << "\n" << filePath << "\n" << rootPath << std::endl;
+	// std::cout << "parseFile DELETE: " << urlPath << "\n" << filePath << "\n" << rootPath << std::endl;
 
 	// check if there is a ".." in the urlPath for safty
 	if (urlPath.find("..") == std::string::npos) {

@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/29 19:00:06 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 03:26:16 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,46 +26,6 @@
 WebServer::WebServer() {}
 
 WebServer::~WebServer() {}
-
-// WebServer::WebServer(const WebServer &src) {}
-
-// WebServer &WebServer::operator=(const WebServer &other) {}
-// void WebServer::setServer(std::string configFile)
-// {
-// 	t_iterators it;
-// 	std::string target = "server {";
-
-// 	std::ifstream config(configFile.c_str());
-// 	if (!config)
-// 		throw "Unable to open file!!";
-// 	else
-// 	{
-// 			std::stringstream ss;
-// 			ss << config.rdbuf();
-// 			std::string content = ss.str();
-
-// 			std::cout << "before getITs" << std::endl;
-// 			try {
-
-// 			it = Server::getIterators(content, content.begin(), target, target);
-// 				while (it.it1 != content.end())
-// 				{
-// 					Server server;
-// 					server.fetchSeverInfo(it);
-// 					addServer(server);
-// 					if (it.it2 != content.end())
-// 						it = Server::getIterators(content, it.it2, target, target);
-// 					else
-// 						break;
-// 				}
-// 			}
-// 			catch (std::exception &e) {
-// 				std::cout << e.what() << std::endl;
-// 			}
-// 			config.close();
-
-// 	}
-// }
 
 void WebServer::setServer(std::string configFile)
 {
@@ -130,7 +90,7 @@ void WebServer::setUpSock(void)
 	for (it = this->_sockets.begin(); it != this->_sockets.end(); ++it)
 	{
 		(*it).prepSock();
-		std::cout << (*it) << std::endl;
+		// std::cout << (*it) << std::endl;
 	}
 }
 
@@ -226,23 +186,43 @@ Client*	WebServer::searchClientsByCgi(int cgiFd) {
 }
 
 void WebServer::handleAccept(int listenfd) {
+	// Accept in a loop to drain any pending connections.
+	// With non-blocking sockets (and especially with epoll edge-triggered mode)
+	// there may be multiple connections queued; accept until EAGAIN/EWOULDBLOCK.
 	while (true) {
 		sockaddr_in addr;
 		socklen_t len = sizeof(addr);
+		// std::cout << "listen fd: " << listenfd << std::endl;
 		int client_fd = accept(listenfd, (sockaddr*)&addr, &len);
 
-		if (client_fd < 0) {
-			std::cerr << "accept failed" << std::endl;
+		if (client_fd == -1) {
+			// When no more pending connections are available on a non-blocking
+			// socket, accept returns -1 and errno is EAGAIN or EWOULDBLOCK.
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				// Normal: we've accepted all pending connections
+				break;
+			}
+
+			// Real error
+			std::perror("accept");
 			break;
 		}
 
+		// Make client socket non-blocking (could also use accept4 with SOCK_NONBLOCK)
 		setNonBlocking(client_fd);
 
 		struct epoll_event ev;
+		std::memset(&ev, 0, sizeof(ev));
 		ev.events = EPOLLIN;
 		ev.data.fd = client_fd;
-		epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev);
+		if (epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
+			std::perror("epoll_ctl ADD client_fd");
+			close(client_fd);
+			continue;
+		}
+
 		_clients[client_fd] = new Client(client_fd, _servers[searchSocketIndex(_sockets, listenfd)]);
+		std::cout << "Accepted new client: " << client_fd << std::endl;
 	}
 }
 
@@ -256,7 +236,7 @@ int	WebServer::searchVecIndex(std::vector<int> vec, int key) {
 
 int	WebServer::searchSocketIndex(std::vector<Socket> vec, int key) {
 	for (size_t i = 0; i < vec.size(); i++) {
-		std::cout << vec[i].getServerFd() << std::endl;
+		// std::cout << vec[i].getServerFd() << std::endl;
 		if (vec[i].getServerFd() == key)
 			return (i);
 	}
@@ -264,11 +244,11 @@ int	WebServer::searchSocketIndex(std::vector<Socket> vec, int key) {
 }
 
 void WebServer::readFromClient(Client& client) {
-	std::cout << "reading from client" << std::endl;
+	// std::cout << "reading from client" << std::endl;
 	char buffer[4096];
 
 	if (client.isTimedOut()) {
-		std::cout << "Client timed out during read" << std::endl;
+		// std::cout << "Client timed out during read" << std::endl;
 		client.setState(REQ_RDY);
 		// closeClient(client.getFd());
 		return;
@@ -287,20 +267,20 @@ void WebServer::readFromClient(Client& client) {
 
 	// Client closed connection
 	if (bytes_received == 0) {
-		std::cout << "Client closed connection" << std::endl;
+		std::cerr << "Client closed connection" << std::endl;
 		closeClient(client.getFd());
 		return;
 	}
 
 	// Append what we just received
 	client.appendRecvBuffer(std::string(buffer, bytes_received));
-	std::cout << "Received " << bytes_received << " bytes" << std::endl;
+	// std::cout << "Received " << bytes_received << " bytes" << std::endl;
 
 	std::string requestStr = client.getInBuffer();
 
 	// Check if we have complete headers yet
 	if (!client.foundHeader()) {
-		std::cout << "header not found, finding" << std::endl;
+		// std::cout << "header not found, finding" << std::endl;
 		size_t pos = requestStr.find("\r\n\r\n");
 		if (pos == std::string::npos) {
 			// Headers incomplete, wait for next epoll event
@@ -317,14 +297,14 @@ void WebServer::readFromClient(Client& client) {
 
 		// Check if body is already complete (no body or body already received)
 		if (requestStr.size() >= bodyStart + contentLength) {
-			std::cout << "Request complete (headers + body)" << std::endl;
+			// std::cout << "Request complete (headers + body)" << std::endl;
 			updateClient(client);
 			return;
 		}
 
 		// Body incomplete, wait for next epoll event
-		std::cout << "Body incomplete: have " << (requestStr.size() - bodyStart)
-					<< ", need " << contentLength << std::endl;
+		// std::cout << "Body incomplete: have " << (requestStr.size() - bodyStart)
+		// 			<< ", need " << contentLength << std::endl;
 		return;
 	}
 
@@ -332,30 +312,25 @@ void WebServer::readFromClient(Client& client) {
 	size_t bodyStart = client.getHeaderEndPos();
 	int contentLength = client.getContentLength();
 
-	std::cout << "Checking body: have " << (requestStr.size() - bodyStart)
-				<< " bytes, need " << contentLength << " bytes" << std::endl;
+	// std::cout << "Checking body: have " << (requestStr.size() - bodyStart)
+	// 			<< " bytes, need " << contentLength << " bytes" << std::endl;
 
 	if (requestStr.size() >= bodyStart + contentLength) {
-		std::cout << "Request body complete" << std::endl;
+		// std::cout << "Request body complete" << std::endl;
 		updateClient(client);
 		return;
 	}
 
 	// Still waiting for more body data
-	std::cout << "Still waiting for more body data" << std::endl;
+	// std::cout << "Still waiting for more body data" << std::endl;
 }
 
 void	WebServer::updateClient(Client& client) {
-	std::cout << "updating client" << std::endl;
 
 	if (!client.isTimedOut()) {
-		std::cout << "=====================================" << std::endl;
-		std::cout << "Raw Request:\n" << client.getInBuffer() << std::endl;
-		std::cout << "=====================================" << std::endl;
 		// Creating the Request Instance
 		if (!client.buildReq())
 			throw "Fatal Err: Response Cannot be created";
-		// std::cout << *client.getRequest() << std::endl;
 	}
 
 	// Check if this request needs CGI processing
@@ -375,7 +350,7 @@ void	WebServer::updateClient(Client& client) {
 
 		// Check if this location requires CGI and the file is a CGI file
 		if (!loc._cgiPass.empty() && isCgiFile && (req->getMethodType() == "GET" || req->getMethodType() == "POST")) {
-			std::cout << "Starting CGI execution for: " << finalPath << std::endl;
+			// std::cout << "Starting CGI execution for: " << finalPath << std::endl;
 
 			try {
 				// Create and execute CGI asynchronously
@@ -403,7 +378,7 @@ void	WebServer::updateClient(Client& client) {
 					}
 				}
 			} catch (std::exception &e) {
-				std::cout << "CGI execution failed: " << e.what() << std::endl;
+				std::cerr << "CGI execution failed: " << e.what() << std::endl;
 				client.setState(RES_RDY);
 			}
 			return;
@@ -428,18 +403,18 @@ void	WebServer::updateClient(Client& client) {
 		throw std::runtime_error(std::string("epoll_ctl MOD listen_fd failed"));
 	}
 	client.setState(RES_RDY);
-	std::cout << "updating done" << std::endl;
+	// std::cout << "updating done" << std::endl;
 }
 
 int	setupUpstreamSock(Client& client) {
-	std::cout << "Setting up sockets" << std::endl;
+	// std::cout << "Setting up sockets" << std::endl;
 	t_proxyPass pp = parseProxyPass((*client.getRequest()).getIt()->second._proxy_pass);
-	std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
+	// std::cout << "Proxying to " << pp.host << ":" << pp.port << pp.path << std::endl;
 
 	// 2. Create upstream client socket
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) {
-		std::cout << "Failed to create proxy socket" << std::endl;
+		std::cerr << "Failed to create proxy socket" << std::endl;
 		return (-1);
 	}
 
@@ -458,7 +433,7 @@ int	setupUpstreamSock(Client& client) {
 	struct addrinfo* ai = NULL;
 	int rc = getaddrinfo(pp.host.c_str(), NULL, &hints, &ai);
 	if (rc != 0 || ai == NULL) {
-		std::cout << "DNS resolve failed: " << gai_strerror(rc) << std::endl;
+		std::cerr << "DNS resolve failed: " << gai_strerror(rc) << std::endl;
 		close(sockfd);
 		return (-1);
 	}
@@ -472,7 +447,7 @@ int	setupUpstreamSock(Client& client) {
 		return (-1);
 	}
 
-	std::cout << "Connected to upstream" << std::endl;
+	// std::cout << "Connected to upstream" << std::endl;
 	return (sockfd);
 }
 
@@ -480,11 +455,11 @@ void	WebServer::handleRead(int fd) {
 	Client* client = searchClients(fd);
 	if (!client) throw "client not found";
 
-	std::cout << "client has state" << client->getState() << std::endl;
+	// std::cout << "client has state" << client->getState() << std::endl;
 
 	if (client->getState() == READ_REQ) {
 		readFromClient(*client);
-		std::cout << "client state: " << client->getState() << std::endl;
+		// std::cout << "client state: " << client->getState() << std::endl;
 	}
 
 	if (client->getState() == REQ_RDY) {
@@ -494,7 +469,7 @@ void	WebServer::handleRead(int fd) {
 	if (client->isProxyPass()) {
 		int	ppassFd = setupUpstreamSock(*client);
 		if (ppassFd == -1) {
-			std::cout << "ppass fd cannot be oppened" << std::endl;
+			std::cerr << "ppass fd cannot be oppened" << std::endl;
 		}
 
 		client->setUpstreamFd(ppassFd);
@@ -518,14 +493,14 @@ void	WebServer::handleRead(int fd) {
 }
 
 void WebServer::handleWrite(int fd) {
-	std::cout << "handle write called" << std::endl;
+	// std::cout << "handle write called" << std::endl;
 	Client* client = searchClients(fd);
-	std::cout << *client << std::endl;
+	// std::cout << *client << std::endl;
 	if (client->getState() == RES_SENDING) {
 		if (!client->getUpstreamBuffer().empty()) {
-			std::cout << "raw res from upstream: " << client->getUpstreamBuffer() << std::endl;
-			std::cout << "WAIT_UPSTREAM" << std::endl;
-			std::cout << "writing to client with res from upstream:" << client->getUpstreamBuffer() << std::endl;
+			// std::cout << "raw res from upstream: " << client->getUpstreamBuffer() << std::endl;
+			// std::cout << "WAIT_UPSTREAM" << std::endl;
+			// std::cout << "writing to client with res from upstream:" << client->getUpstreamBuffer() << std::endl;
 
 			std::string httpResponse = client->getUpstreamBuffer();
 
@@ -546,21 +521,21 @@ void WebServer::handleWrite(int fd) {
 					std::cerr << "send error:" << std::endl;
 					closeClient(fd);
 				} else if (sent > 0) {
-					std::cout << "Sent " << sent << " bytes to client" << "httpResponse size: " << httpResponse.size() << std::endl;
+					// std::cout << "Sent " << sent << " bytes to client" << "httpResponse size: " << httpResponse.size() << std::endl;
 					client->setOutBuffer(std::string(httpResponse.begin() + sent, httpResponse.end()));
-					std::cout << "Remaining outBuffer size: " << client->getOutBuffer().size() << std::endl;
+					// std::cout << "Remaining outBuffer size: " << client->getOutBuffer().size() << std::endl;
 					client->updateLastActiveTime();
 				}
 				if (client->getOutBuffer().empty()) {
 					closeClient(fd);
 				}
 			} else {
-				std::cout << "Client timed out during send" << std::endl;
+				// std::cout << "Client timed out during send" << std::endl;
 				closeClient(fd);
 			}
 		}
 	} else if (client->getState() == RES_RDY) {
-		std::cout << "RES RDY" << std::endl;
+		// std::cout << "RES RDY" << std::endl;
 		if (client->isTimedOut()) {
 			client->setOutBuffer("HTTP/1.1 408 Request Timeout\r \
 									Content-Type: text/html\r \
@@ -572,18 +547,18 @@ void WebServer::handleWrite(int fd) {
 		} else {
 			// Creating Response Instance only if it doesn't exist
 			if (!client->getResponse()) {
-				std::cout << *client->getRequest() << std::endl;
+				// std::cout << *client->getRequest() << std::endl;
 				if (!client->buildRes())
 					throw "Fatal Err: Response cannot be create";
 			}
-			std::cout << "========================" << std::endl;
-			std::cout << *client->getResponse() << std::endl;
-			std::cout << "========================" << std::endl;
+			// std::cout << "========================" << std::endl;
+			// std::cout << *client->getResponse() << std::endl;
+			// std::cout << "========================" << std::endl;
 			client->setOutBuffer(client->getResponse()->toStr());
 			client->setState(RES_SENDING);
 		}
 	}
-	std::cout << "handle write done" << std::endl;
+	// std::cout << "handle write done" << std::endl;
 }
 
 void WebServer::closeClient(int fd) {
@@ -604,16 +579,17 @@ void WebServer::closeClient(int fd) {
 	// 3) Remove from clients map
 	delete it->second;
 	this->_clients.erase(it);
-	std::cout <<"==============================================" << std::endl;
-	std::cout << "Client map size after removal: " << this->_clients.size() << std::endl;
-	std::cout << "==============================================" << std::endl;
+
+	// std::cout <<"==============================================" << std::endl;
+	// std::cout << "Client map size after removal: " << this->_clients.size() << std::endl;
+	// std::cout << "==============================================" << std::endl;
 
 	std::cout << "Client " << fd << " closed and removed from epoll" << std::endl;
 }
 
 void WebServer::handleUpstreamWrite(Client& c, int fd) {
-	std::cout << "handling upstream write for fd: " << fd << " with client fd: " << c.getFd() << std::endl;
-	std::cout << c << std::endl;
+	// std::cout << "handling upstream write for fd: " << fd << " with client fd: " << c.getFd() << std::endl;
+	// std::cout << c << std::endl;
 	Request req = (*c.getRequest());
 	t_proxyPass pp = parseProxyPass(req.getIt()->second._proxy_pass);
 
@@ -630,7 +606,7 @@ void WebServer::handleUpstreamWrite(Client& c, int fd) {
 	proxyRequest += "\r\n"; // end headers
 	proxyRequest += req.getBody();
 
-	std::cout << "Sending to client with fd " << fd << ":\n" << proxyRequest << std::endl;
+	// std::cout << "Sending to client with fd " << fd << ":\n" << proxyRequest << std::endl;
 
 	// 6. Send request to upstream
 	ssize_t sent = send(fd, proxyRequest.c_str(), proxyRequest.size(), 0);
@@ -638,14 +614,14 @@ void WebServer::handleUpstreamWrite(Client& c, int fd) {
 		close(fd);
 		throw std::runtime_error("Unable to send to proxy");
 	}
-	std::cout << "req sent to upstream" << std::endl;
+	// std::cout << "req sent to upstream" << std::endl;
 
 	epoll_event ev;
 	ev.events = EPOLLIN;
 	ev.data.fd = c.getUpstreamFd();
 	epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, c.getUpstreamFd(), &ev);
 
-	std::cout << "client state and epoll event updated" << std::endl;
+	// std::cout << "client state and epoll event updated" << std::endl;
 }
 
 bool isUpstreamResponseComplete(Client& client)
@@ -669,7 +645,7 @@ void WebServer::closeUpstream(int upstreamFd) {
 
 void WebServer::finalizeUpstreamResponse(Client& client)
 {
-	std::cout << "Upstream response complete" << std::endl;
+	// std::cout << "Upstream response complete" << std::endl;
 
 	// Modify epoll to watch for EPOLLOUT on client socket
 	epoll_event ev;
@@ -686,7 +662,7 @@ void WebServer::finalizeUpstreamResponse(Client& client)
 }
 
 void WebServer::handleUpstreamRead(Client& c, int fd) {
-	std::cout << "Reading res from upstream" << std::endl;
+	// std::cout << "Reading res from upstream" << std::endl;
 	char buffer[4096];
 
 	ssize_t bytes = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
@@ -700,39 +676,38 @@ void WebServer::handleUpstreamRead(Client& c, int fd) {
 
 	if (bytes == 0) {
 		// Upstream closed connection
-		std::cout << "Upstream closed connection" << std::endl;
+		// std::cout << "Upstream closed connection" << std::endl;
 		closeUpstream(fd);
 		finalizeUpstreamResponse(c);
 		return;
 	}
 
 	// Append to upstream buffer
-	std::cout << "buffer from upstream read: " << buffer << std::endl;
+	// std::cout << "buffer from upstream read: " << buffer << std::endl;
 	c.addToUpstreamBuffer(buffer);
 
-	std::cout << "Upstream received " << bytes << " bytes" << std::endl;
+	// std::cout << "Upstream received " << bytes << " bytes" << std::endl;
 
 	// Optional: check if response is complete
 	if (isUpstreamResponseComplete(c)) {
 		finalizeUpstreamResponse(c);
-		std::cout << "reading res from upstream done" << std::endl;
+		// std::cout << "reading res from upstream done" << std::endl;
 	}
 }
 
-
 void WebServer::handleUpstreamEvent(int fd, uint32_t events) {
-	std::cout << "handleUpstreamEvent" << std::endl;
+	// std::cout << "handleUpstreamEvent" << std::endl;
 	Client *client = searchClientsUpstream(fd);
 	client->setUpstreamFd(fd);
 	// Handle EPOLLIN / EPOLLOUT / ERR for upstream socket
 	// Similar to handleRead/handleWrite but for upstream
 	if (events & EPOLLIN) {
-		std::cout << "UPSTREAM EPOLLIN" << std::endl;
+		// std::cout << "UPSTREAM EPOLLIN" << std::endl;
 		handleUpstreamRead(*client, fd);
 	}
 
 	if (events & EPOLLOUT) {
-		std::cout << "UPSTREAM EPOLLOUT" << std::endl;
+		// std::cout << "UPSTREAM EPOLLOUT" << std::endl;
 		handleUpstreamWrite(*client, fd);
 	}
 	if (events & (EPOLLHUP | EPOLLERR)) {
@@ -742,7 +717,7 @@ void WebServer::handleUpstreamEvent(int fd, uint32_t events) {
 
 void WebServer::handleCgiRead(int cgiFd)
 {
-	std::cout << "Reading from CGI fd: " << cgiFd << std::endl;
+	// std::cout << "Reading from CGI fd: " << cgiFd << std::endl;
 	Client* client = searchClientsByCgi(cgiFd);
 	if (!client) {
 		std::cerr << "Client not found for CGI fd" << std::endl;
@@ -765,7 +740,7 @@ void WebServer::handleCgiRead(int cgiFd)
 
 void WebServer::finalizeCgiResponse(Client& client)
 {
-	std::cout << "CGI response complete, finalizing" << std::endl;
+	// std::cout << "CGI response complete, finalizing" << std::endl;
 
 	Cgi* cgi = client.getCgi();
 	if (!cgi) return;
@@ -778,7 +753,7 @@ void WebServer::finalizeCgiResponse(Client& client)
 		try {
 			client.buildRes();
 		} catch (std::exception &e) {
-			std::cout << "Failed to build response: " << e.what() << std::endl;
+			std::cerr << "Failed to build response: " << e.what() << std::endl;
 			return;
 		}
 	}
@@ -789,7 +764,7 @@ void WebServer::finalizeCgiResponse(Client& client)
 		// Check if CGI timed out (empty output = timeout)
 		if (cgiOutput.empty())
 		{
-			std::cout << "CGI timeout - sending 504 response" << std::endl;
+			// std::cout << "CGI timeout - sending 504 response" << std::endl;
 			res->setStatusCode(504);
 			res->setStatusTxt("Gateway Timeout");
 			std::string timeoutBody = "<html><body><h1>504 Gateway Timeout</h1><p>CGI script execution timeout</p></body></html>";
@@ -891,7 +866,6 @@ int WebServer::run(void) {
 
 	int	count = 0;
 	while (!g_shutdown) {
-		std::cout << count << " times looping" << std::endl;
 		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
 		if (nfds == -1) {
 			if (!g_shutdown)
@@ -899,7 +873,6 @@ int WebServer::run(void) {
 		}
 
 		for (int i = 0; i < nfds; ++i) {
-			std::cout << "epoll loop: " << i << std::endl;
 			int      fd = events[i].data.fd;
 			uint32_t ev = events[i].events;
 
@@ -936,15 +909,16 @@ int WebServer::run(void) {
 			}
 
 			if (ev & EPOLLIN) {
-				std::cout << "handle read called" << std::endl;
+				// std::cout << "handle read called" << std::endl;
 				handleRead(fd);
 			}
 
 			if (ev & EPOLLOUT) {
-				std::cout << "EPOLLOUT" << std::endl;
+				// std::cout << "EPOLLOUT" << std::endl;
 				handleWrite(fd);
 			}
 		}
+
 		count++;
 	}
 

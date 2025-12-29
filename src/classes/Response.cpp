@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/21 16:31:35 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 03:04:06 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ Response::Response(Request &req, Server &server)
 
 	// Parse max body size
 	size_t maxSize = static_cast<size_t>(std::atol(server.getMaxByte().c_str()));
-	std::cout << server.getMaxByte() << std::endl;
+	// std::cout << server.getMaxByte() << std::endl;
 
 	this->_httpVersion = req.getHttpVersion();
 
@@ -43,7 +43,6 @@ Response::Response(Request &req, Server &server)
 
 	// Content Length Check
 	if (req.getBody().size() < static_cast<size_t>(std::atol(server.getMaxByte().c_str()))) {
-		std::cout << "Allowed: " << server.getMaxByte() << " Have: " << req.getBody().size() << std::endl;
 
 		// Location found - process with location rules
 		if (locIt != server.getLocation().end())
@@ -80,7 +79,7 @@ Response::Response(Request &req, Server &server)
 			// Handle upload/store operations (POST/DELETE to upload directories)
 			if (!loc._uploadStore.empty() && (method == "POST" || method == "DELETE"))
 			{
-				std::cout << "Upload/Store detected for method: " << method << std::endl;
+				// std::cout << "Upload/Store detected for method: " << method << std::endl;
 				handleStore(loc, req);
 				return;
 			}
@@ -136,23 +135,22 @@ Response::Response(Request &req, Server &server)
 			if (req.getMethodType() != "GET") {
 				generateError(405, "Method Not Allowed", "<h1>Method Not Allowed</h1>", server);
 			} else {
-				std::cout << "method is GET" << std::endl;
+				// std::cout << "method is GET" << std::endl;
 				processFileRequest(req, req.getFinalPath(), maxSize, server);
 			}
 		}
 	} else {
-		std::cout << "Allowed: " << server.getMaxByte() << " Have: " << req.getBody().size() << std::endl;
-		generateError(413, "Payload Too Large", "<h1>Parload Too Large</h1>", server);
+		generateError(413, "Payload Too Large", "<h1>Payload Too Large</h1>", server);
 	}
 }
 
 void Response::processFileRequest(Request &req, const std::string &path, size_t maxSize, Server &server)
 {
-	std::cout << "Requested Path: " << path << std::endl;
+	// std::cout << "Requested Path: " << path << std::endl;
 	if (!checkHttpError(req, maxSize, path, server))
 		serveFile(path);
-	if (this->_body.empty())
-		std::cout << "Body is empty" << std::endl;
+	if (this->_body.empty()) {}
+		// std::cout << "Body is empty" << std::endl;
 }
 
 void Response::processDirectoryRequest(Request &req, const t_location &loc, size_t maxSize, Server &server)
@@ -494,7 +492,7 @@ void	Response::doDelete(std::string uploadPath, const Request &req) {
 		return;
 	}
 
-	std::cout << "Deleted: " << fullPath << std::endl;
+	// std::cout << "Deleted: " << fullPath << std::endl;
 
 	// Success
 	this->_statusCode = 200;
@@ -615,19 +613,19 @@ bool Response::generateError(int errorCode, std::string const errorMsg, std::str
 
 	if (it != errorPages.end())
 	{
-		std::cout << "Custom error page found for " << this->_statusCode << ": " << it->second << std::endl;
+		// std::cout << "Custom error page found for " << this->_statusCode << ": " << it->second << std::endl;
 		body = readFile(it->second);
-		std::cout << "Custom page path: " << it->second << std::endl;
+		// std::cout << "Custom page path: " << it->second << std::endl;
 		if (body.empty())
 		{
-			std::cout << "Failed to read custom error page: " << it->second << std::endl;
+			std::cerr << "Failed to read custom error page: " << it->second << std::endl;
 		}
 	}
 
 	// Use simple default error page if no custom page loaded
 	if (body.empty())
 	{
-		std::cout << "Using default error page for " << this->_statusCode << std::endl;
+		std::cerr << "Using default error page for " << this->_statusCode << std::endl;
 		body = bodyMsg;
 	}
 
@@ -880,7 +878,7 @@ std::ostream &operator<<(std::ostream &os, const Response &res)
 		{
 			os << "  [" << it->first << "] = " << it->second << std::endl;
 		}
-		std::cout << "----------------HEADER END-----------------" << std::endl;
+		// std::cout << "----------------HEADER END-----------------" << std::endl;
 	}
 	os << "Body: " << res.getBody() << std::endl;
 	return os;

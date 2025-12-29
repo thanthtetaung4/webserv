@@ -14,16 +14,6 @@
 
 bool ConfigValidator::validateListen(const std::string &value)
 {
-	// size_t colon = value.find(':');
-	// if (colon == std::string::npos)
-	// 	return false;
-
-	// std::string ip = value.substr(0, colon);
-	// std::string portStr = value.substr(colon + 1);
-
-	// if (!isValidIp(ip) || !isNumber(portStr))
-	// 	return false;
-
 	long port = std::strtol(value.c_str(), NULL, 10);
 	if (port < 1 || port > 65535)
 		return false;

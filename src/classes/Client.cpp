@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 00:42:58 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/20 22:54:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 03:03:10 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,6 @@ Client::Client(void) : server(*(new Server())) {
 }
 
 Client::Client(int fd, const Server& server) : server(const_cast<Server&>(server)) {
-	std::cout << "Client fd, server constructor called" << std::endl;
 	this->fd = fd;
 
 	this->inBuffer = "";
@@ -51,14 +50,14 @@ Client&	Client::operator=(const Client& other) {
 		this->state = other.state;
 		this->headerEndPos = other.headerEndPos;
 		this->contentLength = other.contentLength;
-		std::cout << "client copied as: " << *this << std::endl;
+		// std::cout << "client copied as: " << *this << std::endl;
 	}
 	return *this;
 }
 
 
 Client::~Client() {
-	std::cout << "Client Destructor called for fd: " << this->fd << std::endl;
+	// std::cout << "Client Destructor called for fd: " << this->fd << std::endl;
 	if (this->request) {
 		delete this->request;
 		this->request = NULL;
@@ -73,7 +72,7 @@ bool	Client::buildReq() {
 	try {
 		request = new Request(this->inBuffer, this->server);
 	} catch (std::exception &e) {
-		std::cout << e.what() << std::endl;
+		std::cerr << e.what() << std::endl;
 		return false;
 	}
 	return true;
@@ -83,7 +82,7 @@ bool	Client::buildRes() {
 	try {
 		response = new Response(*this->request, this->server);
 	} catch (std::exception &e) {
-		std::cout << e.what() << std::endl;
+		std::cerr << e.what() << std::endl;
 		return false;
 	}
 	return true;
