@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/30 04:24:06 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 06:06:05 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -349,7 +349,17 @@ void	WebServer::updateClient(Client& client) {
 		}
 
 		// Check if this location requires CGI and the file is a CGI file
-		if (!loc._cgiPass.empty() && isCgiFile && (req->getMethodType() == "GET" || req->getMethodType() == "POST")) {
+		// Only allow GET by default (unless limit_except allows other methods)
+		bool cgiMethodAllowed = (req->getMethodType() == "GET" || req->getMethodType() == "HEAD" || req->getMethodType() == "OPTIONS");
+		if (!loc._limit_except.empty())
+		{
+			// If limit_except is specified, use it
+			cgiMethodAllowed = std::find(loc._limit_except.begin(),
+										loc._limit_except.end(),
+										req->getMethodType()) != loc._limit_except.end();
+		}
+
+		if (!loc._cgiPass.empty() && isCgiFile && cgiMethodAllowed) {
 			// std::cout << "Starting CGI execution for: " << finalPath << std::endl;
 
 			try {

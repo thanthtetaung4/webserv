@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/30 03:04:06 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 06:06:05 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,19 +27,35 @@ Response::Response(Request &req, Server &server)
 
 	this->_httpVersion = req.getHttpVersion();
 
+	// Get method early for use in multiple checks
+	std::string method = req.getMethodType();
+
 	// Handle server-level return directive (highest priority)
+	// Only apply to safe methods (GET, HEAD, OPTIONS)
 	if (!server.getReturn().empty())
 	{
-		handleReturn(server.getReturn());
+		if (method == "GET" || method == "HEAD" || method == "OPTIONS")
+		{
+			handleReturn(server.getReturn());
+			return;
+		}
+		// For non-safe methods on return location, return 405
+		generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
 		return;
 	}
-	if (req.getIsRedirect())
+
+	// Get location configuration early to check for location-level return
+	std::map<std::string, t_location>::const_iterator locIt = req.getIt();
+
+	// Check if matched location has a return directive - if so, skip general redirect
+	bool locationHasReturn = (locIt != server.getLocation().end()) && !locIt->second._return.empty();
+
+	// Handle directory redirect (trailing slash) - but not if location has return directive
+	if (!locationHasReturn && req.getIsRedirect())
 	{
 		handleRedirect(req.getPath() + "/");
 		return;
 	}
-	// Get location configuration
-	std::map<std::string, t_location>::const_iterator locIt = req.getIt();
 
 	// Content Length Check
 	if (req.getBody().size() < static_cast<size_t>(std::atol(server.getMaxByte().c_str()))) {
@@ -50,14 +66,20 @@ Response::Response(Request &req, Server &server)
 			const t_location &loc = locIt->second;
 
 			// Handle location-level return directive (second priority)
+			// Only apply to safe methods (GET, HEAD, OPTIONS)
 			if (!loc._return.empty())
 			{
-				handleReturn(loc._return);
+				if (method == "GET" || method == "HEAD" || method == "OPTIONS")
+				{
+					handleReturn(loc._return);
+					return;
+				}
+				// For non-safe methods on return location, return 405
+				generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
 				return;
 			}
 
 			const std::string &finalPath = req.getFinalPath();
-			const std::string &method = req.getMethodType();
 
 			// Check limit_except restrictions (method whitelist)
 			if (!loc._limit_except.empty())
@@ -77,25 +99,48 @@ Response::Response(Request &req, Server &server)
 			}
 
 			// Handle upload/store operations (POST/DELETE to upload directories)
+			// But check if it's a directory first - can't delete directories
 			if (!loc._uploadStore.empty() && (method == "POST" || method == "DELETE"))
 			{
+				// For DELETE on directories, return 405 (method not allowed)
+				if (method == "DELETE" && isDirectory(finalPath))
+				{
+					generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
+					return;
+				}
 				// std::cout << "Upload/Store detected for method: " << method << std::endl;
 				handleStore(loc, req);
 				return;
 			}
 
-			// Handle directory requests (only for GET)
-			if (isDirectory(finalPath))
+		// Handle directory requests (only for GET)
+		if (isDirectory(finalPath))
+		{
+			// Only GET, HEAD, OPTIONS can process directories
+			if (method != "GET" && method != "HEAD" && method != "OPTIONS")
 			{
-				processDirectoryRequest(req, loc, maxSize, server);
+				generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
 				return;
 			}
-
-			// Handle CGI requests (file must exist and be regular file)
+			processDirectoryRequest(req, loc, maxSize, server);
+			return;
+		}			// Handle CGI requests (file must exist and be regular file)
 			// NOTE: CGI requests are now handled asynchronously in WebServer::updateClient()
 			// Skip CGI handling here - it will be deferred to async processing
 			if (isRegularFile(finalPath) && loc._isCgi)
 			{
+				// For CGI, only allow GET by default (unless limit_except allows other methods)
+				// If limit_except is set, it was already checked above
+				// If not set, check if we're inheriting root's restrictions
+				if (loc._limit_except.empty())
+				{
+					// No explicit limit_except on CGI location, use method-only for GET
+					if (method != "GET" && method != "HEAD" && method != "OPTIONS")
+					{
+						generateError(405, "Method Not Allowed", "405 Method Not Allowed", server);
+						return;
+					}
+				}
 				// Don't handle CGI here - let WebServer handle it asynchronously
 				// This prevents blocking the server
 				return;

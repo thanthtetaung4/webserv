@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/30 03:00:33 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 06:01:10 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,12 @@ Request::Request(const std::string &raw, Server &server)
 		// std::cout << "_________________Checking for directory redirect..." << std::endl;
 		_it = searchLongestMatch(server.getLocation(), this->_path + '/');
 		if (_it != server.getLocation().end() && _it->first != "/")
-			this->_isRedirect = true;
+		{
+			// Only redirect for safe methods (GET, HEAD, OPTIONS)
+			// For POST, PUT, DELETE, return 405 instead
+			if (this->_method == "GET" || this->_method == "HEAD" || this->_method == "OPTIONS")
+				this->_isRedirect = true;
+		}
 		else
 		{
 			_it = temp;
@@ -75,7 +80,10 @@ Request::Request(const std::string &raw, Server &server)
 		if (isDirectory(server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path))
 		{
 			// std::cout << "Directory detected, redirecting..._______________" << std::endl;
-			this->_isRedirect = true;
+			// Only redirect for safe methods (GET, HEAD, OPTIONS)
+			// For POST, PUT, DELETE, return 405 instead
+			if (this->_method == "GET" || this->_method == "HEAD" || this->_method == "OPTIONS")
+				this->_isRedirect = true;
 		}
 	}
 	else if (_it != server.getLocation().end())
