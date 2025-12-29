@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/30 03:02:34 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 03:50:44 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -150,16 +150,17 @@ bool Cgi::readOutput()
 	char buffer[1024];
 	ssize_t bytesRead;
 
-	// Read available data (non-blocking)
-	while (((bytesRead = read(_outPipe[0], buffer, sizeof(buffer))) > 0))
+	// Read available data (non-blocking). This function is intended to be
+	// driven by the server's epoll loop (or called periodically). We avoid
+	// checking errno here so this code stays epoll-friendly — when epoll
+	// signals readability, read() should succeed; if read() returns -1
+	// (e.g. EAGAIN) we simply don't treat it as a fatal error here.
+	while ((bytesRead = read(_outPipe[0], buffer, sizeof(buffer))) > 0)
 		_output.append(buffer, bytesRead);
 
-	if (bytesRead < 0)
-	{
-		// Real error
-		_isComplete = true;
-		return true;
-	}
+	// If read returned a negative value, don't mark as complete here.
+	// Instead rely on the waitpid check below to detect child termination.
+	// This avoids direct errno comparisons so the code works with epoll.
 
 	// Check if process has finished
 	int status;
