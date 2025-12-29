@@ -234,7 +234,7 @@ void WebServer::handleAccept(int listenfd) {
 
 		if (client_fd < 0) {
 			if (errno == EAGAIN) break;
-			perror("accept");
+			std::cerr << "accept failed" << std::endl;
 			break;
 		}
 
@@ -287,7 +287,7 @@ void WebServer::readFromClient(Client& client) {
 			return;
 		}
 		// Real error
-		perror("recv");
+		std::cerr << "recv failed" << std::endl;
 		closeClient(client.getFd());
 		return;
 	}
@@ -454,19 +454,28 @@ int	setupUpstreamSock(Client& client) {
 	// 3. Build remote address
 	struct sockaddr_in server_addr;
 	std::memset(&server_addr, 0, sizeof(server_addr));
-	server_addr.sin_family      = AF_INET;
-	server_addr.sin_port        = htons(std::atoi(pp.port.c_str()));
-	server_addr.sin_addr.s_addr = inet_addr(pp.host.c_str());
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port   = htons(std::atoi(pp.port.c_str()));
 
-	if (server_addr.sin_addr.s_addr == INADDR_NONE) {
+	// Resolve hostname to IPv4 address
+	struct addrinfo hints;
+	std::memset(&hints, 0, sizeof(hints));
+	hints.ai_family   = AF_INET;      // IPv4 only
+	hints.ai_socktype = SOCK_STREAM;  // TCP
+
+	struct addrinfo* ai = NULL;
+	int rc = getaddrinfo(pp.host.c_str(), NULL, &hints, &ai);
+	if (rc != 0 || ai == NULL) {
+		std::cout << "DNS resolve failed: " << gai_strerror(rc) << std::endl;
 		close(sockfd);
-		std::cout << "socket err" << std::endl;
 		return (-1);
 	}
+	server_addr.sin_addr = ((struct sockaddr_in*)ai->ai_addr)->sin_addr;
+	freeaddrinfo(ai);
 
 	// 4. Connect to upstream
 	if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-		perror("connect");
+		std::cerr << "Upstream connection failed" << std::endl;
 		close(sockfd);
 		return (-1);
 	}
@@ -532,7 +541,7 @@ void WebServer::handleWrite(int fd) {
 			ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), MSG_DONTWAIT);
 			if (sent < 0)
 			{
-				perror("send error:");
+				std::cerr << "send error:" << std::endl;
 			}
 			closeClient(fd);
 		} else {
@@ -543,7 +552,7 @@ void WebServer::handleWrite(int fd) {
 				ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), MSG_NOSIGNAL);
 				if (sent < 0)
 				{
-					perror("send error:");
+					std::cerr << "send error:" << std::endl;
 					closeClient(fd);
 				} else if (sent > 0) {
 					std::cout << "Sent " << sent << " bytes to client" << "httpResponse size: " << httpResponse.size() << std::endl;
@@ -593,12 +602,12 @@ void WebServer::closeClient(int fd) {
 
 	// 1) Remove from epoll (so it stops monitoring this fd)
 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, fd, NULL) == -1) {
-		perror("epoll_ctl DEL");
+		std::cerr << "epoll_ctl DEL failed" << std::endl;
 	}
 
 	// 2) Close the socket
 	if (close(fd) == -1) {
-		perror("close");
+		std::cerr << "close failed" << std::endl;
 	}
 
 	// 3) Remove from clients map
@@ -698,7 +707,7 @@ void WebServer::handleUpstreamRead(Client& c, int fd) {
 	}
 
 	// Real error
-	perror("recv upstream");
+	std::cerr << "recv upstream failed" << std::endl;
 	closeUpstream(fd);
 	return;
 	}
@@ -846,7 +855,7 @@ void WebServer::finalizeCgiResponse(Client& client)
 	// Remove CGI fd from epoll
 	struct epoll_event ev;
 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, cgi->getOutputFd(), &ev) == -1) {
-		perror("epoll_ctl DEL CGI");
+		std::cerr << "epoll_ctl DEL CGI failed" << std::endl;
 	}
 
 	// Remove from CGI clients map
@@ -862,7 +871,7 @@ void WebServer::finalizeCgiResponse(Client& client)
 	ev.events = EPOLLOUT;
 	ev.data.fd = client.getFd();
 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client.getFd(), &ev) == -1) {
-		perror("epoll_ctl MOD client for response");
+		std::cerr << "epoll_ctl MOD client for response failed" << std::endl;
 	}
 }
 

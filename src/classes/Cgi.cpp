@@ -102,9 +102,9 @@ void Cgi::executeAsync()
 
 		execve(argv[0], argv, envArray);
 
-		perror("execve");
+		std::cerr << "child execve failed" << std::endl;
 		freeEnvArray(envArray);
-		exit(1);
+		std::exit(1);
 	}
 
 	// PARENT PROCESS
@@ -245,9 +245,9 @@ std::string Cgi::execute()
 
 		execve(argv[0], argv, envArray);
 
-		perror("execve");
+		std::cerr << "execve child failed: " << std::endl;
 		freeEnvArray(envArray);
-		exit(1);
+		std::exit(1);
 	}
 
 	// PARENT

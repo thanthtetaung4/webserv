@@ -11,7 +11,7 @@ int loop() {
     // 1. Create socket
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
-        perror("socket failed");
+        std::cerr << "socket failed" << std::endl;
         return 1;
     }
 
@@ -21,13 +21,13 @@ int loop() {
     addr.sin_port = htons(8080); // use 80 if you want, but need sudo
 
     if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        perror("bind failed");
+        std::cerr << "bind failed" << std::endl;
         return 1;
     }
 
     // 3. Listen for connections
     if (listen(server_fd, 10) < 0) {
-        perror("listen failed");
+        std::cerr << "listen failed" << std::endl;
         return 1;
     }
 
@@ -36,7 +36,7 @@ int loop() {
     // 4. Accept a connection
     client_fd = accept(server_fd, (struct sockaddr*)&addr, &addr_len);
     if (client_fd < 0) {
-        perror("accept failed");
+        std::cerr << "accept failed" << std::endl;
         return 1;
     }
 
