@@ -37,12 +37,12 @@ int main(int argc, char **argv)
                 ws.setServer(configFile);   // read config
                 ws.getServers();
 
-                std::cout << "============ SERVERS =============" << std::endl;
-                std::vector<Server> servers = ws.getServers();
-                for (size_t i = 0; i < servers.size(); i++) {
-                        std::cout << servers[i] << std::endl;
-                }
-                std::cout << "============ SERVERS END =============" << std::endl;
+                // std::cout << "============ SERVERS =============" << std::endl;
+                // std::vector<Server> servers = ws.getServers();
+                // for (size_t i = 0; i < servers.size(); i++) {
+                //         std::cout << servers[i] << std::endl;
+                // }
+                // std::cout << "============ SERVERS END =============" << std::endl;
                 ws.setUpSock();          // bind/listen
                 return ws.run();         // event-driven loop
         }

@@ -35,7 +35,9 @@ Socket::Socket(unsigned int port) {
 	this->addr.sin_port = htons(port);
 }
 
-Socket::~Socket() {}
+Socket::~Socket() {
+	// closeSock();
+}
 
 void	Socket::setServerFd(int fd) {
 	this->serverFd = fd;
