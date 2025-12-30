@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/30 06:55:33 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 21:49:06 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -495,7 +495,6 @@ void	WebServer::handleRead(int fd) {
 		ev.events  = EPOLLOUT; // ready to write
 		ev.data.fd = ppassFd;
 
-
 		if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, ppassFd, &ev) == -1) {
 			throw std::runtime_error(std::string("epoll_ctl ADD ppassFD failed"));
 		}
@@ -526,6 +525,7 @@ void WebServer::handleWrite(int fd) {
 			std::string	httpResponse = client->getOutBuffer().c_str();
 
 			if (!client->isTimedOut()) {
+				// std::cout << "sending to client: " << httpResponse << std::endl;
 				ssize_t sent = send(fd, httpResponse.c_str(), httpResponse.size(), MSG_NOSIGNAL);
 				if (sent < 0)
 				{
@@ -818,6 +818,7 @@ void WebServer::finalizeCgiResponse(Client& client)
 
 			// Ensure Content-Length is set if not present
 			std::string body = result.body;
+			std::cout << "CGI body : " << body << ", CGI body size: " << body.size() << std::endl;
 			if (res->getHeaders().count("Content-Length") == 0) {
 				res->setHeader("Content-Length", intToString(body.size()));
 			}

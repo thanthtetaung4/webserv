@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:04:38 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/30 06:54:14 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 19:44:43 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,10 +95,16 @@ Request::Request(const std::string &raw, Server &server)
 			this->_finalPath = _it->second._root + (this->_path.substr(_it->first.length()).empty() ? "" : "/" + this->_path.substr(_it->first.length()));
 		}
 		else
-			this->_finalPath = server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path;
+			if (!server.getRoot().empty())
+				this->_finalPath = server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path;
+			else
+			this->_finalPath = this->_path;
 	}
 	else
-		this->_finalPath = server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path;
+		if (!server.getRoot().empty())
+			this->_finalPath = server.getRoot() + ((server.getRoot().at(server.getRoot().length() - 1) == '/' || _path[0] == '/' ) ? "" : "/") + this->_path;
+		else
+			this->_finalPath = this->_path;
 }
 
 std::string trim(const std::string &s)

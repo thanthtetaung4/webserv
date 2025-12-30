@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/13 16:58:05 by taung             #+#    #+#             */
-/*   Updated: 2025/12/14 20:01:43 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 19:55:51 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,7 +72,6 @@ public:
 	void handleStore(t_location loc, const Request& req);
 	void handleReturn(const std::vector<std::string> &returnDirective);
 	void handleAutoIndex(const std::string &urlPath, const std::string &fullPath);
-	void handleCGI(const Request &req, const Server &server);
 	bool generateError(int errorCode, std::string const errorMsg, std::string const bodyMsg, Server &server);
 	bool checkHttpError(const Request &req, size_t size, std::string path, Server &server);
 	static std::map<int, std::pair<std::string, std::string> > getErrorMap();

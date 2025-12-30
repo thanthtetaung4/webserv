@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 01:39:28 by hthant            #+#    #+#             */
-/*   Updated: 2025/12/30 06:55:20 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 19:55:18 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -550,31 +550,6 @@ void Response::handleStore(t_location loc, const Request& req) {
 	} else if (req.getMethodType() == "DELETE") {
 		doDelete(loc._uploadStore, req);
 	}
-}
-
-void Response::handleCGI(const Request &req, const Server &server)
-{
-	// Execute CGI and parse output
-	Cgi cgi(req, server);
-	std::string output = cgi.execute();
-	CgiResult parsed = cgi.parseCgiHeaders(output);
-
-	// Determine content type
-	std::string contentType = "text/html"; // Default fallback
-	if (parsed.headers.count("Content-Type"))
-		contentType = parsed.headers["Content-Type"];
-
-	// Parse status code from CGI output
-	if (parsed.headers.count("Status"))
-		parseCgiStatus(parsed.headers["Status"]);
-	else
-	{
-		this->_statusCode = 200;
-		this->_statusTxt = "OK";
-	}
-
-	// Set response state
-	setResponseState(this->_statusCode, this->_statusTxt, parsed.body, contentType);
 }
 
 void Response::parseCgiStatus(const std::string &statusHeader)

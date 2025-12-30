@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 06:28:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/30 04:25:03 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 21:43:10 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,6 +109,8 @@ void Cgi::executeAsync()
 	// PARENT PROCESS
 	close(_inPipe[0]);
 	close(_outPipe[1]);
+	_inPipe[0] = -1;
+	_outPipe[1] = -1;
 
 	// Write body to CGI stdin (non-blocking)
 	if (!_body.empty())
@@ -213,112 +215,123 @@ bool Cgi::hasTimedOut() const
 	return elapsedTime > _timeout;
 }
 
-std::string Cgi::execute()
-{
-	int inPipe[2];
-	int outPipe[2];
-	if (pipe(inPipe) < 0 || pipe(outPipe) < 0)
-		return "Status: 500 Internal Server Error\r\n\r\nPipe creation failed";
-
-	pid_t pid = fork();
-	if (pid < 0)
-		return "Status: 500 Internal Server Error\r\n\r\nFork failed";
-
-	if (pid == 0)
-	{
-		// CHILD
-		dup2(inPipe[0], STDIN_FILENO);
-		dup2(outPipe[1], STDOUT_FILENO);
-		close(inPipe[0]);
-		close(inPipe[1]);
-		close(outPipe[0]);
-		close(outPipe[1]);
-
-		char **envArray = createEnvArray(_env);
-
-		char *argv[3];
-		argv[0] = const_cast<char *>(_interpreter.c_str());
-		argv[1] = const_cast<char *>(_path.c_str());
-		argv[2] = NULL;
-
-		execve(argv[0], argv, envArray);
-
-		std::cerr << "execve child failed: " << std::endl;
-		freeEnvArray(envArray);
-		std::exit(1);
-	}
-
-	// PARENT
-	close(inPipe[0]);
-	close(outPipe[1]);
-
-	if (!_body.empty())
-		write(inPipe[1], _body.c_str(), _body.size());
-	close(inPipe[1]);
-	// std::cout << "CGI body sent " << _body << std::endl;
-	std::string output;
-	char buffer[1024];
-	ssize_t bytesRead;
-	while ((bytesRead = read(outPipe[0], buffer, sizeof(buffer))) > 0)
-		output.append(buffer, bytesRead);
-
-	close(outPipe[0]);
-	waitpid(pid, NULL, 0);
-
-	return output;
-}
-
 CgiResult Cgi::parseCgiHeaders(const std::string &output)
 {
 	CgiResult result;
 
-	// Find the end of the CGI header block (handle both \r\n\r\n and \n\n)
-	size_t headerEnd = output.find("\r\n\r\n");
-	size_t bodyStart = 0;
-	std::string delimiter = "\r\n";
+	// Find BOTH possible delimiters and use the one that comes FIRST
+	size_t pos_crlf = output.find("\r\n\r\n");
+	size_t pos_lf = output.find("\n\n");
 
-	if (headerEnd == std::string::npos)
+	size_t headerEnd = std::string::npos;
+	size_t bodyStart = 0;
+	std::string delimiter = "\n";
+
+	// Determine which delimiter comes first
+	if (pos_crlf != std::string::npos && pos_lf != std::string::npos)
 	{
-		// Try Unix line endings (\n\n)
-		headerEnd = output.find("\n\n");
-		if (headerEnd == std::string::npos)
+		// Both found, use the one that comes first
+		if (pos_crlf < pos_lf)
 		{
-			// No header delimiter found → treat everything as body
-			result.body = output;
-			return result;
+			headerEnd = pos_crlf;
+			bodyStart = pos_crlf + 4; // skip "\r\n\r\n"
 		}
-		bodyStart = headerEnd + 2; // skip "\n\n"
-		delimiter = "\n";
+		else
+		{
+			headerEnd = pos_lf;
+			bodyStart = pos_lf + 2; // skip "\n\n"
+		}
+	}
+	else if (pos_crlf != std::string::npos)
+	{
+		// Only CRLF found
+		headerEnd = pos_crlf;
+		bodyStart = pos_crlf + 4; // skip "\r\n\r\n"
+	}
+	else if (pos_lf != std::string::npos)
+	{
+		// Only LF found
+		headerEnd = pos_lf;
+		bodyStart = pos_lf + 2; // skip "\n\n"
 	}
 	else
 	{
-		bodyStart = headerEnd + 4; // skip "\r\n\r\n"
+		// No header delimiter found → treat everything as body
+		result.body = output;
+		return result;
 	}
 
 	std::string headerBlock = output.substr(0, headerEnd);
 	result.body = output.substr(bodyStart);
 
+	// Parse headers line by line (handle both \r\n and \n)
 	size_t start = 0;
 	while (start < headerBlock.size())
 	{
-		size_t end = headerBlock.find(delimiter, start);
-		if (end == std::string::npos)
+		// Find the next line ending (could be \r\n or \n)
+		size_t end_crlf = headerBlock.find("\r\n", start);
+		size_t end_lf = headerBlock.find("\n", start);
+
+		size_t end;
+		size_t line_delim_size;
+
+		if (end_crlf != std::string::npos && end_lf != std::string::npos)
+		{
+			if (end_crlf < end_lf)
+			{
+				end = end_crlf;
+				line_delim_size = 2;
+			}
+			else
+			{
+				end = end_lf;
+				line_delim_size = 1;
+			}
+		}
+		else if (end_crlf != std::string::npos)
+		{
+			end = end_crlf;
+			line_delim_size = 2;
+		}
+		else if (end_lf != std::string::npos)
+		{
+			end = end_lf;
+			line_delim_size = 1;
+		}
+		else
+		{
 			end = headerBlock.size();
+			line_delim_size = 0;
+		}
 
 		std::string line = headerBlock.substr(start, end - start);
 
-		// Parse "Key: Value"
-		size_t colon = line.find(':');
-		if (colon != std::string::npos)
+		// Skip empty lines
+		if (!line.empty())
 		{
-			std::string key = line.substr(0, colon);
-			std::string value = line.substr(colon + 1);
-			while (!value.empty() && (value[0] == ' ' || value[0] == '\t'))
-				value.erase(0, 1);
+			// Remove trailing \r if present (for CRLF handling)
+			if (line[line.size() - 1] == '\r')
+				line = line.substr(0, line.size() - 1);
 
-			result.headers[key] = value;
+			// Parse "Key: Value"
+			size_t colon = line.find(':');
+			if (colon != std::string::npos)
+			{
+				std::string key = line.substr(0, colon);
+				std::string value = line.substr(colon + 1);
+
+				// Trim leading whitespace from value
+				while (!value.empty() && (value[0] == ' ' || value[0] == '\t'))
+					value.erase(0, 1);
+
+				// Trim trailing whitespace from value (C++98 compatible)
+				while (!value.empty() && (value[value.size() - 1] == ' ' || value[value.size() - 1] == '\t'))
+					value = value.substr(0, value.size() - 1);
+
+				result.headers[key] = value;
+			}
 		}
-		start = end + delimiter.size(); // skip delimiter
+		start = end + line_delim_size;
 	}
 
 	return result;

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Validator.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lshein <lshein@student.42singapore.sg>     +#+  +:+       +#+        */
+/*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/10 06:45:57 by lshein            #+#    #+#             */
-/*   Updated: 2025/11/30 12:18:07 by lshein           ###   ########.fr       */
+/*   Updated: 2025/12/30 19:40:23 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,11 @@
 
 bool ConfigValidator::validateListen(const std::string &value)
 {
+	if (value.empty())
+	{
+		return false;
+	}
+
 	long port = std::strtol(value.c_str(), NULL, 10);
 	if (port < 1 || port > 65535)
 		return false;

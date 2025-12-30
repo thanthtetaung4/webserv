@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/12/30 03:04:12 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/30 19:47:01 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -192,7 +192,7 @@ void Server::fetchSeverInfo(t_iterators it)
 	if (this->_autoIndex.empty())
 		this->_autoIndex = "off";
 	if (this->_maxBytes.empty())
-		this->_maxBytes = "1M";
+		this->_maxBytes = "1048576";
 	// addServer(server);
 }
 
