@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/07 07:51:13 by lshein            #+#    #+#             */
-/*   Updated: 2025/12/30 21:49:06 by taung            ###   ########.fr       */
+/*   Updated: 2026/01/01 19:19:40 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -331,6 +331,7 @@ void	WebServer::updateClient(Client& client) {
 		// Creating the Request Instance
 		if (!client.buildReq())
 			throw "Fatal Err: Response Cannot be created";
+
 	}
 
 	// Check if this request needs CGI processing
@@ -402,7 +403,6 @@ void	WebServer::updateClient(Client& client) {
 		client.setState(RES_RDY);
 		return;
 	}
-
 	// Setting epoll event to EPOLLOUT
 	struct epoll_event ev;
 	std::memset(&ev, 0, sizeof(ev));
@@ -522,7 +522,7 @@ void WebServer::handleWrite(int fd) {
 			closeClient(fd);
 		} else {
 
-			std::string	httpResponse = client->getOutBuffer().c_str();
+			std::string	httpResponse = client->getOutBuffer();
 
 			if (!client->isTimedOut()) {
 				// std::cout << "sending to client: " << httpResponse << std::endl;
@@ -558,9 +558,8 @@ void WebServer::handleWrite(int fd) {
 		} else {
 			// Creating Response Instance only if it doesn't exist
 			if (!client->getResponse()) {
-				// std::cout << *client->getRequest() << std::endl;
 				if (!client->buildRes())
-					throw "Fatal Err: Response cannot be create";
+				throw "Fatal Err: Response cannot be create";
 			}
 			// std::cout << "========================" << std::endl;
 			// std::cout << *client->getResponse() << std::endl;
@@ -775,13 +774,23 @@ void WebServer::finalizeCgiResponse(Client& client)
 		// Check if CGI timed out (empty output = timeout)
 		if (cgiOutput.empty())
 		{
-			// std::cout << "CGI timeout - sending 504 response" << std::endl;
-			res->setStatusCode(504);
-			res->setStatusTxt("Gateway Timeout");
-			std::string timeoutBody = "<html><body><h1>504 Gateway Timeout</h1><p>CGI script execution timeout</p></body></html>";
-			res->setBody(timeoutBody);
-			res->setHeader("Content-Type", "text/html");
-			res->setHeader("Content-Length", intToString(timeoutBody.size()));
+			if (cgi->hasTimedOut())
+			{
+				// std::cout << "CGI timeout - sending 504 response" << std::endl;
+				res->setStatusCode(504);
+				res->setStatusTxt("Gateway Timeout");
+				std::string timeoutBody = "<html><body><h1>504 Gateway Timeout</h1><p>CGI script execution timeout</p></body></html>";
+				res->setBody(timeoutBody);
+				res->setHeader("Content-Type", "text/html");
+				res->setHeader("Content-Length", intToString(timeoutBody.size()));
+			} else {
+				res->setStatusCode(500);
+				res->setStatusTxt("Internal Server Error");
+				std::string timeoutBody = "<html><body><h1>500 Internal Server Error</h1><p>CGI script execution failed</p></body></html>";
+				res->setBody(timeoutBody);
+				res->setHeader("Content-Type", "text/html");
+				res->setHeader("Content-Length", intToString(timeoutBody.size()));
+			}
 		}
 		else
 		{
@@ -818,7 +827,6 @@ void WebServer::finalizeCgiResponse(Client& client)
 
 			// Ensure Content-Length is set if not present
 			std::string body = result.body;
-			std::cout << "CGI body : " << body << ", CGI body size: " << body.size() << std::endl;
 			if (res->getHeaders().count("Content-Length") == 0) {
 				res->setHeader("Content-Length", intToString(body.size()));
 			}

@@ -19,8 +19,12 @@ test_case() {
     local path=$2
     local expected=$3
     local description=$4
+    local data=$5
 
-    result=$(curl -s -w "%{http_code}" -X $method "http://localhost:8080$path" -o /dev/null 2>&1)
+    # if [$data]; then
+    #     result=$(curl -s -w "%{http_code}" -X $method "http://localhost:8080$path" -d "$data" -o /dev/null 2>&1)
+    # else
+        result=$(curl -s -w "%{http_code}" -X $method "http://localhost:8080$path" -o /dev/null 2>&1)
 
     if [ "$result" = "$expected" ]; then
         echo -e "${GREEN}✓${NC} $method $path → $result ($description)"
@@ -82,8 +86,8 @@ echo
 # UPLOAD FILE TESTS
 echo "=== UPLOAD FILE (/upload/index.html) ==="
 test_case "GET" "/upload/index.html" "200" "GET existing file"
+test_case "POST" "/upload/" "200" "POST to file allowed"
 test_case "DELETE" "/upload/test.txt" "200" "DELETE file allowed"
-test_case "POST" "/upload/index.html" "200" "POST to file allowed"
 echo
 
 # CGI TESTS

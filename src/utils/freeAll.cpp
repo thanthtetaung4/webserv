@@ -6,7 +6,7 @@
 /*   By: taung <taung@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/20 02:31:35 by taung             #+#    #+#             */
-/*   Updated: 2025/12/20 13:58:02 by taung            ###   ########.fr       */
+/*   Updated: 2025/12/31 17:06:25 by taung            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,7 +31,8 @@ void	freeAllUpstreamClients(WebServer& ws) {
 
 	for (; it != ite; ++it) {
 		close(it->first);
-		delete it->second;
+		if (it->second)
+			delete it->second;
 	}
 	ws.getUpstreamClients().clear();
 }
